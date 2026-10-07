@@ -62,6 +62,15 @@ export default function RegisterPage() {
 
     setLoading(true);
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
+      setErrorMsg(
+        "Supabase credentials are not configured yet. Please update NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file with your real Supabase project details."
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const supabase = createClient();
 
@@ -96,7 +105,10 @@ export default function RegisterPage() {
         setLoading(false);
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to register account.";
+      let message = err instanceof Error ? err.message : "Failed to register account.";
+      if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+        message = "Could not reach Supabase server. Please check your internet connection and verify the Supabase URL in .env.local.";
+      }
       setErrorMsg(message);
       setLoading(false);
     }

@@ -18,6 +18,15 @@ export default function LoginPage() {
     setErrorMsg(null);
     setLoading(true);
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
+      setErrorMsg(
+        "Supabase credentials are not configured yet. Please update NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file with your real Supabase project details."
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
@@ -34,7 +43,10 @@ export default function LoginPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      let message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+        message = "Could not reach Supabase server. Please check your internet connection and verify the Supabase URL in .env.local.";
+      }
       setErrorMsg(message);
       setLoading(false);
     }
