@@ -6,14 +6,17 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   Building,
+  Unit,
   LandlordProfile,
   AVAILABLE_PLANS,
   PropertyType,
   CreateBuildingFormInput,
+  UpdateUnitInput,
 } from "@/types/database";
 import {
   createBuildingWithUnits,
   getBuildingsWithUnits,
+  updateUnitConfiguration,
 } from "@/lib/services/buildingService";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -34,9 +37,14 @@ import {
   Bed,
   Bath,
   Search,
-  KeyRound,
   ShieldCheck,
   DoorOpen,
+  Edit3,
+  Utensils,
+  Sofa,
+  DollarSign,
+  X,
+  Save,
 } from "lucide-react";
 
 export default function BuildingsManagementPage() {
@@ -54,27 +62,38 @@ export default function BuildingsManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedBuildingIds, setExpandedBuildingIds] = useState<Record<string, boolean>>({});
 
-  // Form toggle & creation state
+  // Building creation form state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
-  // Form Fields
+  // Building Form Fields (Floors and default specs removed)
   const [formData, setFormData] = useState<CreateBuildingFormInput>({
     name: "",
     address: "",
     city: "Douala",
     state_region: "Littoral",
     property_type: "apartment",
-    total_floors: 2,
     total_units: 4,
     unit_prefix: "Unit",
-    default_rent: 100000,
-    default_bedrooms: 1,
-    default_bathrooms: 1,
     description: "",
   });
+
+  // Unit Modification Modal state
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [editingBuildingName, setEditingBuildingName] = useState<string>("");
+  const [unitForm, setUnitForm] = useState<UpdateUnitInput>({
+    unit_number: "",
+    rent_amount: 0,
+    parlors: 1,
+    rooms: 2,
+    bathrooms: 1,
+    kitchens: 1,
+    notes: "",
+  });
+  const [savingUnit, setSavingUnit] = useState(false);
+  const [unitEditError, setUnitEditError] = useState<string | null>(null);
 
   // Load Session and Buildings
   const loadData = async () => {
@@ -106,7 +125,7 @@ export default function BuildingsManagementPage() {
       const fetchedBuildings = await getBuildingsWithUnits(authUser.id);
       setBuildings(fetchedBuildings);
 
-      // Expand all buildings by default for clear inspection
+      // Expand all buildings by default for direct inspection
       const initialExpanded: Record<string, boolean> = {};
       fetchedBuildings.forEach((b) => {
         initialExpanded[b.id] = true;
@@ -154,25 +173,19 @@ export default function BuildingsManagementPage() {
     }));
   };
 
-  // Live Unit Generator Preview calculations
+  // Live Unit Generator Preview (simple unit naming preview, no floors)
   const unitPreviewList = useMemo(() => {
     const count = Math.min(Math.max(1, Number(formData.total_units) || 1), 50);
-    const floors = Math.max(1, Number(formData.total_floors) || 1);
-    const unitsPerFloor = Math.max(1, Math.ceil(count / floors));
     const prefix = formData.unit_prefix.trim() || "Unit";
 
     const list = [];
     for (let i = 1; i <= count; i++) {
-      const floor = Math.min(floors, Math.floor((i - 1) / unitsPerFloor) + 1);
-      list.push({
-        unitNumber: `${prefix} ${i}`,
-        floor,
-      });
+      list.push(`${prefix} ${i}`);
     }
     return list;
-  }, [formData.total_units, formData.total_floors, formData.unit_prefix]);
+  }, [formData.total_units, formData.unit_prefix]);
 
-  // Handle form submission
+  // Handle building creation form submission
   const handleCreateBuilding = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -214,7 +227,7 @@ export default function BuildingsManagementPage() {
       }
 
       setFormSuccess(
-        `Building "${formData.name}" created successfully with ${unitsCount} vacant units!`
+        `Building "${formData.name}" created successfully with ${unitsCount} vacant units! You can now configure each unit's rent, parlors, rooms, bathrooms, and kitchens below.`
       );
 
       // Reset form
@@ -224,12 +237,8 @@ export default function BuildingsManagementPage() {
         city: "Douala",
         state_region: "Littoral",
         property_type: "apartment",
-        total_floors: 2,
         total_units: 4,
         unit_prefix: "Unit",
-        default_rent: 100000,
-        default_bedrooms: 1,
-        default_bathrooms: 1,
         description: "",
       });
 
@@ -241,6 +250,73 @@ export default function BuildingsManagementPage() {
       setFormError(msg);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Open Unit Modification Modal
+  const handleOpenEditUnit = (unit: Unit, buildingName: string) => {
+    setEditingUnit(unit);
+    setEditingBuildingName(buildingName);
+    setUnitEditError(null);
+    setUnitForm({
+      unit_number: unit.unit_number,
+      rent_amount: unit.rent_amount || 0,
+      parlors: unit.parlors ?? 0,
+      rooms: unit.rooms ?? unit.bedrooms ?? 0,
+      bathrooms: unit.bathrooms ?? 0,
+      kitchens: unit.kitchens ?? 0,
+      notes: unit.notes || "",
+    });
+  };
+
+  // Save Unit Modification
+  const handleSaveUnitModification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !editingUnit) return;
+
+    setSavingUnit(true);
+    setUnitEditError(null);
+
+    try {
+      const result = await updateUnitConfiguration(user.id, editingUnit.id, unitForm);
+
+      if (!result.success) {
+        setUnitEditError(result.error || "Failed to update unit.");
+        setSavingUnit(false);
+        return;
+      }
+
+      // Update in local state for instantaneous feedback
+      setBuildings((prevBuildings) =>
+        prevBuildings.map((b) => ({
+          ...b,
+          units: b.units?.map((u) =>
+            u.id === editingUnit.id
+              ? {
+                  ...u,
+                  unit_number: unitForm.unit_number?.trim() || u.unit_number,
+                  rent_amount: Number(unitForm.rent_amount) || 0,
+                  parlors: Number(unitForm.parlors) || 0,
+                  rooms: Number(unitForm.rooms) || 0,
+                  bedrooms: Number(unitForm.rooms) || 0,
+                  bathrooms: Number(unitForm.bathrooms) || 0,
+                  kitchens: Number(unitForm.kitchens) || 0,
+                  notes: unitForm.notes || null,
+                }
+              : u
+          ),
+        }))
+      );
+
+      setFormSuccess(
+        `Unit "${unitForm.unit_number || editingUnit.unit_number}" updated successfully!`
+      );
+      setEditingUnit(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error saving unit modification.";
+      setUnitEditError(msg);
+    } finally {
+      setSavingUnit(false);
     }
   };
 
@@ -346,7 +422,7 @@ export default function BuildingsManagementPage() {
               Buildings & Units Management
             </h1>
             <p className="text-sm text-slate-400">
-              Register your physical buildings and instantly generate vacant units ready for tenant assignment.
+              Create buildings with vacant units, then customize each unit&apos;s rent price, parlors, rooms, bathrooms, and kitchens.
             </p>
           </div>
 
@@ -383,7 +459,7 @@ export default function BuildingsManagementPage() {
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-start gap-3 animate-in fade-in">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <div className="text-sm">
-              <span className="font-bold block">Creation Success!</span>
+              <span className="font-bold block">Action Completed!</span>
               <span>{formSuccess}</span>
             </div>
           </div>
@@ -428,7 +504,7 @@ export default function BuildingsManagementPage() {
                 100% Vacant
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">Ready for tenant leases</p>
+            <p className="mt-1 text-[11px] text-slate-500">Ready for configuration</p>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
@@ -459,7 +535,7 @@ export default function BuildingsManagementPage() {
           </div>
         </div>
 
-        {/* SECTION: Building Creation Form */}
+        {/* SECTION: Building Creation Form (Floors & default specs removed) */}
         {showCreateForm && (
           <section className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-blue-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="flex items-center justify-between pb-6 border-b border-slate-800">
@@ -468,9 +544,9 @@ export default function BuildingsManagementPage() {
                   <Plus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Register New Building</h2>
+                  <h2 className="text-xl font-bold text-white">Create New Building</h2>
                   <p className="text-xs text-slate-400">
-                    Fill in the building details. The system will automatically create the building and generate all units as <strong className="text-emerald-400">Vacant</strong>.
+                    Enter the building details and number of units. All units will be created as <strong className="text-emerald-400">Vacant</strong>. You can configure individual rent and room specs right after creation.
                   </p>
                 </div>
               </div>
@@ -577,42 +653,20 @@ export default function BuildingsManagementPage() {
                 </div>
               </div>
 
-              {/* Part 2: Structure & Automatic Unit Generation */}
+              {/* Part 2: Number of Units & Custom Naming (Floor removed) */}
               <div className="pt-4 border-t border-slate-800">
                 <div className="flex items-center gap-2 mb-4">
                   <Sparkles className="w-4 h-4 text-blue-400" />
                   <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                    Structure & Automatic Unit Creation
+                    Units Provisioning (All Generated Vacant)
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Number of Floors
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={formData.total_floors}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          total_floors: Math.max(1, parseInt(e.target.value) || 1),
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
-                    />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Floors in structure
-                    </span>
-                  </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
-                      <span>Total Units to Create</span>
-                      <span className="text-[11px] text-blue-400">
+                      <span>Number of Units to Generate</span>
+                      <span className="text-[11px] text-blue-400 font-semibold">
                         {remainingQuota} quota left
                       </span>
                     </label>
@@ -630,7 +684,7 @@ export default function BuildingsManagementPage() {
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
                     />
                     <span className="text-[11px] text-slate-500 mt-1 block">
-                      Generated as <strong>Vacant</strong>
+                      Generated as <strong className="text-emerald-400">Vacant</strong>
                     </span>
                   </div>
 
@@ -652,77 +706,13 @@ export default function BuildingsManagementPage() {
                     </span>
                   </div>
 
-                  <div>
+                  <div className="sm:col-span-2 lg:col-span-1">
                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Default Monthly Rent
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={5000}
-                      placeholder="e.g. 100000"
-                      value={formData.default_rent}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          default_rent: Math.max(0, parseFloat(e.target.value) || 0),
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
-                    />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Base rent (editable per unit later)
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Bedrooms per Unit
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={10}
-                      value={formData.default_bedrooms}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          default_bedrooms: Math.max(0, parseInt(e.target.value) || 0),
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Bathrooms per Unit
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={10}
-                      step={0.5}
-                      value={formData.default_bathrooms}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          default_bathrooms: Math.max(1, parseFloat(e.target.value) || 1),
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      Description / Notes (Optional)
+                      Building Notes / Amenities (Optional)
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Gated compound, backup borehole"
+                      placeholder="e.g. Gated security, borehole water"
                       value={formData.description}
                       onChange={(e) =>
                         setFormData({ ...formData, description: e.target.value })
@@ -733,7 +723,7 @@ export default function BuildingsManagementPage() {
                 </div>
               </div>
 
-              {/* Part 3: Live Automatic Units Preview Box */}
+              {/* Part 3: Units Generation Preview Box */}
               <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
@@ -741,22 +731,21 @@ export default function BuildingsManagementPage() {
                     <span>Automatic Generation Preview: {unitPreviewList.length} Units</span>
                   </div>
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    All Initialized as VACANT
+                    Initialized as VACANT (Specs unconfigured)
                   </span>
                 </div>
 
                 <p className="text-xs text-slate-400">
-                  The system will automatically initialize the building and simultaneously provision the following units:
+                  The following vacant units will be created. You can customize rent, parlors, rooms, bathrooms, and kitchens for each unit after creation:
                 </p>
 
-                <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1">
-                  {unitPreviewList.map((item, idx) => (
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1">
+                  {unitPreviewList.map((unitName, idx) => (
                     <div
                       key={idx}
                       className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs"
                     >
-                      <span className="font-semibold text-white">{item.unitNumber}</span>
-                      <span className="text-[11px] text-slate-500">Floor {item.floor}</span>
+                      <span className="font-semibold text-white">{unitName}</span>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                       <span className="text-[10px] uppercase font-bold text-emerald-400">
                         Vacant
@@ -802,13 +791,13 @@ export default function BuildingsManagementPage() {
           </section>
         )}
 
-        {/* SECTION: Created Buildings & Vacant Units Display */}
+        {/* SECTION: Created Buildings & Units Display */}
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-white">Your Buildings Portfolio</h2>
               <p className="text-xs text-slate-400">
-                Inspect your registered properties and the vacant units created inside them.
+                View your buildings, inspect vacant units, and customize unit rent & room configurations.
               </p>
             </div>
 
@@ -835,7 +824,7 @@ export default function BuildingsManagementPage() {
               <div className="space-y-1 max-w-md mx-auto">
                 <h3 className="text-lg font-bold text-white">No Buildings Created Yet</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Start by adding your first building. LeaseLink will automatically generate the number of units you enter with a <strong>Vacant</strong> status.
+                  Start by adding your first building. LeaseLink will automatically generate the number of units you enter with a <strong>Vacant</strong> status, ready for you to customize.
                 </p>
               </div>
               <button
@@ -885,11 +874,6 @@ export default function BuildingsManagementPage() {
                               {building.state_region ? ` (${building.state_region})` : ""}
                             </span>
                           </div>
-
-                          <div className="flex items-center gap-1.5">
-                            <Layers className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                            <span>{building.total_floors} Floor(s)</span>
-                          </div>
                         </div>
 
                         {building.description && (
@@ -935,77 +919,113 @@ export default function BuildingsManagementPage() {
                       </div>
                     </div>
 
-                    {/* Expandable Vacant Units Table / Grid */}
+                    {/* Expandable Units Grid */}
                     {isExpanded && (
                       <div className="p-5 sm:p-6 bg-slate-950/60 space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider">
                             <DoorOpen className="w-4 h-4 text-blue-400" />
-                            <span>Generated Units for {building.name}</span>
+                            <span>Units in {building.name}</span>
                           </div>
 
                           <span className="text-xs text-slate-400">
-                            Status: <strong className="text-emerald-400">{vacantCount} Vacant</strong> by default
+                            Click <strong className="text-blue-400">&quot;Modify Unit&quot;</strong> on any unit to set rent price, parlors, rooms, bathrooms, and kitchens.
                           </span>
                         </div>
 
                         {building.units && building.units.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {building.units.map((unit) => (
-                              <div
-                                key={unit.id}
-                                className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-3.5 space-y-2.5 transition"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-white text-sm">
-                                    {unit.unit_number}
-                                  </span>
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    Vacant
-                                  </span>
-                                </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                            {building.units.map((unit) => {
+                              const hasConfiguredSpecs =
+                                (unit.parlors && unit.parlors > 0) ||
+                                (unit.rooms && unit.rooms > 0) ||
+                                (unit.bedrooms && unit.bedrooms > 0) ||
+                                (unit.bathrooms && unit.bathrooms > 0) ||
+                                (unit.kitchens && unit.kitchens > 0) ||
+                                unit.rent_amount > 0;
 
-                                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
-                                  <div>
-                                    <span className="text-slate-500 block">Level</span>
-                                    <span className="text-slate-300 font-medium">
-                                      Floor {unit.floor}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-500 block">Monthly Rent</span>
-                                    <span className="text-white font-medium">
-                                      {unit.rent_amount > 0
-                                        ? `${Number(unit.rent_amount).toLocaleString()} XAF`
-                                        : "Not set"}
-                                    </span>
-                                  </div>
-                                </div>
+                              return (
+                                <div
+                                  key={unit.id}
+                                  className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 space-y-3 transition flex flex-col justify-between"
+                                >
+                                  <div className="space-y-2.5">
+                                    {/* Top Row: Unit Name & Status */}
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-bold text-white text-sm">
+                                        {unit.unit_number}
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                        Vacant
+                                      </span>
+                                    </div>
 
-                                <div className="flex items-center gap-3 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
-                                  <div className="flex items-center gap-1">
-                                    <Bed className="w-3 h-3 text-slate-500" />
-                                    <span>{unit.bedrooms} Bed</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Bath className="w-3 h-3 text-slate-500" />
-                                    <span>{unit.bathrooms} Bath</span>
-                                  </div>
-                                </div>
+                                    {/* Rent Amount */}
+                                    <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                                        Rent Price
+                                      </span>
+                                      {unit.rent_amount > 0 ? (
+                                        <span className="text-sm font-extrabold text-emerald-400">
+                                          {Number(unit.rent_amount).toLocaleString()} XAF
+                                          <span className="text-[11px] text-slate-500 font-normal"> / mo</span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-amber-400/90 font-medium italic">
+                                          Rent not set
+                                        </span>
+                                      )}
+                                    </div>
 
-                                {/* Placeholder modification button ready for next prompt */}
-                                <div className="pt-1">
-                                  <button
-                                    disabled
-                                    className="w-full text-center py-1 rounded-lg bg-slate-950/70 text-[10px] text-slate-500 font-medium border border-slate-800 cursor-not-allowed"
-                                    title="Modifications will be enabled per specifications in the next prompt"
-                                  >
-                                    Vacant • Ready for modification
-                                  </button>
+                                    {/* Specifications Grid */}
+                                    {hasConfiguredSpecs ? (
+                                      <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
+                                          <Sofa className="w-3 h-3 text-purple-400 shrink-0" />
+                                          <span>{unit.parlors ?? 0} Parlor(s)</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
+                                          <Bed className="w-3 h-3 text-blue-400 shrink-0" />
+                                          <span>{unit.rooms ?? unit.bedrooms ?? 0} Room(s)</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
+                                          <Bath className="w-3 h-3 text-cyan-400 shrink-0" />
+                                          <span>{unit.bathrooms ?? 0} Bath(s)</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
+                                          <Utensils className="w-3 h-3 text-amber-400 shrink-0" />
+                                          <span>{unit.kitchens ?? 0} Kitchen(s)</span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800 text-[11px] text-slate-500 italic text-center">
+                                        Specs not set yet (0 parlors, rooms, baths, kitchens)
+                                      </div>
+                                    )}
+
+                                    {unit.notes && (
+                                      <p className="text-[11px] text-slate-400 line-clamp-1 italic">
+                                        &quot;{unit.notes}&quot;
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Action: Modify Unit Button */}
+                                  <div className="pt-2 border-t border-slate-800/80">
+                                    <button
+                                      onClick={() => handleOpenEditUnit(unit, building.name)}
+                                      className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/20 text-xs font-semibold transition cursor-pointer"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                      <span>
+                                        {hasConfiguredSpecs ? "Modify Unit Specs" : "Configure Unit & Rent"}
+                                      </span>
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 text-center">
@@ -1021,6 +1041,237 @@ export default function BuildingsManagementPage() {
           )}
         </section>
       </main>
+
+      {/* MODAL: Unit Modification Modal */}
+      {editingUnit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    Modify Unit: {editingUnit.unit_number}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Property: <strong className="text-slate-200">{editingBuildingName}</strong> • Status: <strong className="text-emerald-400">Vacant</strong>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setEditingUnit(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {unitEditError && (
+              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{unitEditError}</span>
+              </div>
+            )}
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveUnitModification} className="p-5 sm:p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Unit Identifier / Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Unit 1, Apt 101"
+                    value={unitForm.unit_number}
+                    onChange={(e) =>
+                      setUnitForm({ ...unitForm, unit_number: e.target.value })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Monthly Rent (XAF)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      placeholder="e.g. 150000"
+                      value={unitForm.rent_amount}
+                      onChange={(e) =>
+                        setUnitForm({
+                          ...unitForm,
+                          rent_amount: Math.max(0, parseFloat(e.target.value) || 0),
+                        })
+                      }
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Number of Palors, Rooms, Bathrooms, Kitchens */}
+              <div className="pt-2">
+                <span className="block text-xs font-semibold text-white uppercase tracking-wider mb-2.5">
+                  Unit Layout & Specs
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {/* Parlors */}
+                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-purple-400 font-medium">
+                      <Sofa className="w-3.5 h-3.5" />
+                      <span>Parlors</span>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={unitForm.parlors}
+                      onChange={(e) =>
+                        setUnitForm({
+                          ...unitForm,
+                          parlors: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                    />
+                    <span className="text-[10px] text-slate-500 block text-center">Salons</span>
+                  </div>
+
+                  {/* Rooms */}
+                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-blue-400 font-medium">
+                      <Bed className="w-3.5 h-3.5" />
+                      <span>Rooms</span>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={20}
+                      value={unitForm.rooms}
+                      onChange={(e) =>
+                        setUnitForm({
+                          ...unitForm,
+                          rooms: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                    />
+                    <span className="text-[10px] text-slate-500 block text-center">Bedrooms</span>
+                  </div>
+
+                  {/* Bathrooms */}
+                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-medium">
+                      <Bath className="w-3.5 h-3.5" />
+                      <span>Bathrooms</span>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      step={0.5}
+                      value={unitForm.bathrooms}
+                      onChange={(e) =>
+                        setUnitForm({
+                          ...unitForm,
+                          bathrooms: Math.max(0, parseFloat(e.target.value) || 0),
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                    />
+                    <span className="text-[10px] text-slate-500 block text-center">Baths</span>
+                  </div>
+
+                  {/* Kitchens */}
+                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-amber-400 font-medium">
+                      <Utensils className="w-3.5 h-3.5" />
+                      <span>Kitchens</span>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={5}
+                      value={unitForm.kitchens}
+                      onChange={(e) =>
+                        setUnitForm({
+                          ...unitForm,
+                          kitchens: Math.max(0, parseInt(e.target.value) || 0),
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                    />
+                    <span className="text-[10px] text-slate-500 block text-center">Kitchens</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional Notes */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Unit Notes / Particularities (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Master bedroom ensuite, balcony facing street"
+                  value={unitForm.notes || ""}
+                  onChange={(e) => setUnitForm({ ...unitForm, notes: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                />
+              </div>
+
+              {/* Summary Pill Preview */}
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
+                <span>Summary:</span>
+                <span className="font-semibold text-blue-400">
+                  {unitForm.parlors} Parlor(s) • {unitForm.rooms} Room(s) • {unitForm.bathrooms} Bath(s) • {unitForm.kitchens} Kitchen(s)
+                  {unitForm.rent_amount > 0 ? ` • ${Number(unitForm.rent_amount).toLocaleString()} XAF` : ""}
+                </span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingUnit(null)}
+                  disabled={savingUnit}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={savingUnit}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition disabled:opacity-50 cursor-pointer"
+                >
+                  {savingUnit ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Unit Modifications</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

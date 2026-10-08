@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { Building, Unit, CreateBuildingFormInput } from "@/types/database";
+import { Building, Unit, CreateBuildingFormInput, UpdateUnitInput } from "@/types/database";
 
 const LOCAL_STORAGE_KEY_BUILDINGS = "leaselink_local_buildings";
 const LOCAL_STORAGE_KEY_UNITS = "leaselink_local_units";
@@ -32,9 +32,17 @@ export interface BuildingCreationResult {
   isLocalFallback?: boolean;
 }
 
+export interface UnitUpdateResult {
+  success: boolean;
+  unit?: Unit;
+  error?: string;
+  isLocalFallback?: boolean;
+}
+
 /**
  * Creates a building and automatically generates the specified number of vacant units.
- * Supports Supabase RPC, direct client insertion, and local fallback if database table is pending.
+ * Note: Rent price, parlors, rooms, bathrooms, and kitchens are NOT set by default (0/unconfigured),
+ * and floors have been removed per specifications. Landlord customizes each unit after creation.
  */
 export async function createBuildingWithUnits(
   landlordId: string,
@@ -47,7 +55,6 @@ export async function createBuildingWithUnits(
 
   // Validate unit limits
   const totalUnits = Math.max(1, Number(input.total_units) || 1);
-  const totalFloors = Math.max(1, Number(input.total_floors) || 1);
   const cleanPrefix = (input.unit_prefix || "Unit").trim();
 
   // If not mock, attempt Supabase insertion
@@ -62,12 +69,8 @@ export async function createBuildingWithUnits(
           p_city: input.city.trim() || null,
           p_state_region: input.state_region.trim() || null,
           p_property_type: input.property_type || "apartment",
-          p_total_floors: totalFloors,
           p_total_units: totalUnits,
           p_unit_prefix: cleanPrefix,
-          p_default_rent: Number(input.default_rent) || 0,
-          p_default_bedrooms: Number(input.default_bedrooms) || 1,
-          p_default_bathrooms: Number(input.default_bathrooms) || 1.0,
           p_description: input.description.trim() || null,
         }
       );
@@ -89,13 +92,12 @@ export async function createBuildingWithUnits(
         }
       }
 
-      // If RPC failed due to validation (e.g. limit exceeded), return that error directly
+      // If RPC failed due to quota validation, return that error directly
       if (rpcData && !rpcData.success && rpcData.error) {
         return { success: false, error: rpcData.error };
       }
 
-      // 2. Direct client insert fallback (if RPC is not yet created in Supabase)
-      // Check current landlord total units against plan limit
+      // 2. Direct client insert fallback (if RPC function is not yet installed in Supabase)
       const { count: currentUnitsCount } = await supabase
         .from("units")
         .select("id", { count: "exact", head: true })
@@ -109,7 +111,7 @@ export async function createBuildingWithUnits(
         };
       }
 
-      // Insert building
+      // Insert building (without floor requirement)
       const { data: newBuilding, error: buildingError } = await supabase
         .from("buildings")
         .insert({
@@ -119,7 +121,7 @@ export async function createBuildingWithUnits(
           city: input.city.trim() || null,
           state_region: input.state_region.trim() || null,
           property_type: input.property_type || "apartment",
-          total_floors: totalFloors,
+          total_floors: 1,
           total_units: totalUnits,
           description: input.description.trim() || null,
         })
@@ -131,24 +133,24 @@ export async function createBuildingWithUnits(
         throw buildingError;
       }
 
-      // Generate all units with status = 'vacant'
-      const unitsPerFloor = Math.max(1, Math.ceil(totalUnits / totalFloors));
+      // Generate all units with status = 'vacant' and 0 default specs
       const unitsToInsert = [];
 
       for (let i = 1; i <= totalUnits; i++) {
-        const floor = Math.min(totalFloors, Math.floor((i - 1) / unitsPerFloor) + 1);
         const unitNumber = `${cleanPrefix} ${i}`;
 
         unitsToInsert.push({
           building_id: newBuilding.id,
           landlord_id: landlordId,
           unit_number: unitNumber,
-          floor,
           status: "vacant" as const,
-          rent_amount: Number(input.default_rent) || 0,
-          deposit_amount: Number(input.default_rent) || 0,
-          bedrooms: Number(input.default_bedrooms) || 1,
-          bathrooms: Number(input.default_bathrooms) || 1.0,
+          rent_amount: 0,
+          deposit_amount: 0,
+          parlors: 0,
+          rooms: 0,
+          bedrooms: 0,
+          bathrooms: 0,
+          kitchens: 0,
         });
       }
 
@@ -173,12 +175,11 @@ export async function createBuildingWithUnits(
     }
   }
 
-  // 3. Local Fallback (for instant testability or pending Supabase migrations)
+  // 3. Local Fallback (for testing / pending Supabase migrations)
   try {
     const localBuildings = getLocalData<Building>(LOCAL_STORAGE_KEY_BUILDINGS);
     const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
 
-    const userBuildings = localBuildings.filter((b) => b.landlord_id === landlordId);
     const userUnits = localUnits.filter((u) => u.landlord_id === landlordId);
 
     if (userUnits.length + totalUnits > planUnitLimit) {
@@ -199,18 +200,15 @@ export async function createBuildingWithUnits(
       city: input.city.trim() || null,
       state_region: input.state_region.trim() || null,
       property_type: input.property_type || "apartment",
-      total_floors: totalFloors,
       total_units: totalUnits,
       description: input.description.trim() || null,
       created_at: now,
       updated_at: now,
     };
 
-    const unitsPerFloor = Math.max(1, Math.ceil(totalUnits / totalFloors));
     const generatedUnits: Unit[] = [];
 
     for (let i = 1; i <= totalUnits; i++) {
-      const floor = Math.min(totalFloors, Math.floor((i - 1) / unitsPerFloor) + 1);
       const unitNumber = `${cleanPrefix} ${i}`;
 
       generatedUnits.push({
@@ -218,12 +216,14 @@ export async function createBuildingWithUnits(
         building_id: buildingId,
         landlord_id: landlordId,
         unit_number: unitNumber,
-        floor,
         status: "vacant",
-        rent_amount: Number(input.default_rent) || 0,
-        deposit_amount: Number(input.default_rent) || 0,
-        bedrooms: Number(input.default_bedrooms) || 1,
-        bathrooms: Number(input.default_bathrooms) || 1.0,
+        rent_amount: 0,
+        deposit_amount: 0,
+        parlors: 0,
+        rooms: 0,
+        bedrooms: 0,
+        bathrooms: 0,
+        kitchens: 0,
         created_at: now,
         updated_at: now,
       });
@@ -241,6 +241,120 @@ export async function createBuildingWithUnits(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to create building";
     return { success: false, error: message };
+  }
+}
+
+/**
+ * Modifies an existing unit's configuration:
+ * Rent price, parlors, rooms, bathrooms, kitchens, unit number, and notes.
+ */
+export async function updateUnitConfiguration(
+  landlordId: string,
+  unitId: string,
+  input: UpdateUnitInput
+): Promise<UnitUpdateResult> {
+  const supabase = createClient();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const isMockConfig = !url || url.includes("your-project-ref");
+
+  const cleanRent = Math.max(0, Number(input.rent_amount) || 0);
+  const cleanParlors = Math.max(0, Math.floor(Number(input.parlors) || 0));
+  const cleanRooms = Math.max(0, Math.floor(Number(input.rooms) || 0));
+  const cleanBathrooms = Math.max(0, Number(input.bathrooms) || 0);
+  const cleanKitchens = Math.max(0, Math.floor(Number(input.kitchens) || 0));
+  const cleanNotes = input.notes?.trim() || null;
+
+  if (!isMockConfig && landlordId) {
+    try {
+      // 1. Try RPC function
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        "update_unit_configuration",
+        {
+          p_unit_id: unitId,
+          p_unit_number: input.unit_number?.trim() || null,
+          p_rent_amount: cleanRent,
+          p_parlors: cleanParlors,
+          p_rooms: cleanRooms,
+          p_bathrooms: cleanBathrooms,
+          p_kitchens: cleanKitchens,
+          p_notes: cleanNotes,
+        }
+      );
+
+      if (!rpcError && rpcData?.success) {
+        const { data: updatedData } = await supabase
+          .from("units")
+          .select("*")
+          .eq("id", unitId)
+          .maybeSingle();
+
+        if (updatedData) {
+          return { success: true, unit: updatedData as Unit };
+        }
+      }
+
+      // 2. Direct client update fallback
+      const payload: Record<string, unknown> = {
+        rent_amount: cleanRent,
+        parlors: cleanParlors,
+        rooms: cleanRooms,
+        bedrooms: cleanRooms,
+        bathrooms: cleanBathrooms,
+        kitchens: cleanKitchens,
+        notes: cleanNotes,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (input.unit_number?.trim()) {
+        payload.unit_number = input.unit_number.trim();
+      }
+
+      const { data: updatedUnit, error: updateError } = await supabase
+        .from("units")
+        .update(payload)
+        .eq("id", unitId)
+        .eq("landlord_id", landlordId)
+        .select()
+        .single();
+
+      if (!updateError && updatedUnit) {
+        return { success: true, unit: updatedUnit as Unit };
+      }
+    } catch (err) {
+      console.warn("Supabase unit update failed, trying local store update:", err);
+    }
+  }
+
+  // 3. Local fallback update
+  try {
+    const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
+    const index = localUnits.findIndex((u) => u.id === unitId);
+
+    if (index !== -1) {
+      const existing = localUnits[index];
+      const updated: Unit = {
+        ...existing,
+        unit_number: input.unit_number?.trim() || existing.unit_number,
+        rent_amount: cleanRent,
+        parlors: cleanParlors,
+        rooms: cleanRooms,
+        bedrooms: cleanRooms,
+        bathrooms: cleanBathrooms,
+        kitchens: cleanKitchens,
+        notes: cleanNotes,
+        updated_at: new Date().toISOString(),
+      };
+
+      localUnits[index] = updated;
+      setLocalData(LOCAL_STORAGE_KEY_UNITS, localUnits);
+
+      return { success: true, unit: updated, isLocalFallback: true };
+    }
+
+    return { success: false, error: "Unit not found" };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to update unit";
+    return { success: false, error: msg };
   }
 }
 
@@ -263,7 +377,15 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
         .order("created_at", { ascending: false });
 
       if (!error && data) {
-        return data as Building[];
+        // Sort units inside buildings by created_at or unit_number
+        return (data as Building[]).map((b) => ({
+          ...b,
+          units: (b.units || []).sort((a, b) => {
+            const numA = parseInt(a.unit_number.replace(/\D/g, "")) || 0;
+            const numB = parseInt(b.unit_number.replace(/\D/g, "")) || 0;
+            return numA - numB;
+          }),
+        }));
       }
     } catch (err) {
       console.warn("Could not fetch buildings from Supabase, checking local fallback:", err);
@@ -278,6 +400,12 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
     .filter((b) => b.landlord_id === landlordId)
     .map((b) => ({
       ...b,
-      units: localUnits.filter((u) => u.building_id === b.id),
+      units: localUnits
+        .filter((u) => u.building_id === b.id)
+        .sort((a, b) => {
+          const numA = parseInt(a.unit_number.replace(/\D/g, "")) || 0;
+          const numB = parseInt(b.unit_number.replace(/\D/g, "")) || 0;
+          return numA - numB;
+        }),
     }));
 }

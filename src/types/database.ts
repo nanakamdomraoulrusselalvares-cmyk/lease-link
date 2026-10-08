@@ -91,7 +91,7 @@ export interface Building {
   country?: string | null;
   postal_code?: string | null;
   property_type: PropertyType;
-  total_floors: number;
+  total_floors?: number | null;
   total_units: number;
   description?: string | null;
   created_at: string;
@@ -104,12 +104,15 @@ export interface Unit {
   building_id: string;
   landlord_id: string;
   unit_number: string;
-  floor: number;
+  floor?: number | null;
   status: UnitStatus;
   rent_amount: number;
-  deposit_amount: number;
-  bedrooms: number;
+  deposit_amount?: number;
+  parlors: number;
+  rooms: number;
   bathrooms: number;
+  kitchens: number;
+  bedrooms?: number;
   size_sqft?: number | null;
   notes?: string | null;
   created_at: string;
@@ -122,12 +125,19 @@ export interface CreateBuildingFormInput {
   city: string;
   state_region: string;
   property_type: PropertyType;
-  total_floors: number;
   total_units: number;
   unit_prefix: string;
-  default_rent: number;
-  default_bedrooms: number;
-  default_bathrooms: number;
   description: string;
 }
+
+export interface UpdateUnitInput {
+  unit_number?: string;
+  rent_amount: number;
+  parlors: number;
+  rooms: number;
+  bathrooms: number;
+  kitchens: number;
+  notes?: string | null;
+}
+
 
