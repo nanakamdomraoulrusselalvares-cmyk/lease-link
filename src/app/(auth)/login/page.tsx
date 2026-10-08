@@ -50,21 +50,27 @@ export default function LoginPage() {
       });
 
       if (error) {
-        if (
-          error.message.toLowerCase().includes("email not confirmed") ||
-          error.status === 400
-        ) {
-          if (error.message.toLowerCase().includes("invalid login credentials")) {
-            setErrorMsg("Invalid email or password. Please verify your credentials and try again.");
-          } else {
-            setIsEmailUnconfirmed(true);
-            setErrorMsg(
-              "Your email address is not confirmed yet. Please verify your email via the confirmation link sent by Supabase, or confirm the user in your Supabase Dashboard."
-            );
-          }
+        const msg = (error.message || "").toLowerCase();
+        const code = ((error as { code?: string }).code || "").toLowerCase();
+
+        if (msg.includes("email not confirmed") || code.includes("email_not_confirmed")) {
+          setIsEmailUnconfirmed(true);
+          setErrorMsg(
+            "Your email address is not confirmed yet. Please verify your email via the confirmation link sent by Supabase, or confirm the user in your Supabase Dashboard."
+          );
+        } else if (msg.includes("invalid login credentials") || code.includes("invalid_credentials")) {
+          setErrorMsg(
+            "Invalid email or password. Please verify your credentials or register a new account if you haven't yet."
+          );
+        } else if (msg.includes("rate limit") || code.includes("rate_limit") || error.status === 422) {
+          setErrorMsg(
+            error.message ||
+              "Request rate limit exceeded. Please wait a few seconds before trying to log in again."
+          );
         } else {
           setErrorMsg(error.message);
         }
+
         setLoading(false);
         return;
       }
