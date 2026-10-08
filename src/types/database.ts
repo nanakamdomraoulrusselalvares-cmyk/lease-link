@@ -70,3 +70,64 @@ export interface LandlordProfile {
   created_at: string;
   updated_at: string;
 }
+
+export type UnitStatus = 'vacant' | 'occupied' | 'maintenance';
+
+export type PropertyType =
+  | 'apartment'
+  | 'residential'
+  | 'commercial'
+  | 'mixed_use'
+  | 'duplex'
+  | 'other';
+
+export interface Building {
+  id: string;
+  landlord_id: string;
+  name: string;
+  address: string;
+  city?: string | null;
+  state_region?: string | null;
+  country?: string | null;
+  postal_code?: string | null;
+  property_type: PropertyType;
+  total_floors: number;
+  total_units: number;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+  units?: Unit[];
+}
+
+export interface Unit {
+  id: string;
+  building_id: string;
+  landlord_id: string;
+  unit_number: string;
+  floor: number;
+  status: UnitStatus;
+  rent_amount: number;
+  deposit_amount: number;
+  bedrooms: number;
+  bathrooms: number;
+  size_sqft?: number | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateBuildingFormInput {
+  name: string;
+  address: string;
+  city: string;
+  state_region: string;
+  property_type: PropertyType;
+  total_floors: number;
+  total_units: number;
+  unit_prefix: string;
+  default_rent: number;
+  default_bedrooms: number;
+  default_bathrooms: number;
+  description: string;
+}
+

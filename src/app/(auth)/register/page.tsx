@@ -100,7 +100,7 @@ export default function RegisterPage() {
       } else {
         // Email confirmation is required
         setSuccessMsg(
-          "Registration successful! Please check your email to confirm your account, then sign in to access your landlord dashboard."
+          `Registration successful! Supabase sent a verification email to ${email.trim()}. Please verify your email before logging in. (Tip: You can disable 'Confirm email' in Supabase Dashboard -> Auth -> Providers -> Email for instant testing without email links).`
         );
         setLoading(false);
       }

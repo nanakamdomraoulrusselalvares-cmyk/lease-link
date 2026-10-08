@@ -209,3 +209,265 @@ begin
     end if;
 end;
 $$;
+
+-- ==============================================================================
+-- 7. Create Buildings Table (Owned by Landlords)
+-- ==============================================================================
+create table if not exists public.buildings (
+    id uuid primary key default gen_random_uuid(),
+    landlord_id uuid not null references public.profiles(id) on delete cascade,
+    name text not null,
+    address text not null,
+    city text,
+    state_region text,
+    country text default 'Cameroon',
+    postal_code text,
+    property_type text not null default 'apartment' check (property_type in ('apartment', 'residential', 'commercial', 'mixed_use', 'duplex', 'other')),
+    total_floors integer not null default 1 check (total_floors >= 1),
+    total_units integer not null default 1 check (total_units >= 1),
+    description text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+-- Enable Row Level Security (RLS) on Buildings
+alter table public.buildings enable row level security;
+
+-- Drop existing policies if re-running
+drop policy if exists "Landlords can view their own buildings" on public.buildings;
+drop policy if exists "Landlords can insert their own buildings" on public.buildings;
+drop policy if exists "Landlords can update their own buildings" on public.buildings;
+drop policy if exists "Landlords can delete their own buildings" on public.buildings;
+
+-- Create RLS Policies for Buildings
+create policy "Landlords can view their own buildings"
+    on public.buildings for select
+    using (auth.uid() = landlord_id);
+
+create policy "Landlords can insert their own buildings"
+    on public.buildings for insert
+    with check (auth.uid() = landlord_id);
+
+create policy "Landlords can update their own buildings"
+    on public.buildings for update
+    using (auth.uid() = landlord_id)
+    with check (auth.uid() = landlord_id);
+
+create policy "Landlords can delete their own buildings"
+    on public.buildings for delete
+    using (auth.uid() = landlord_id);
+
+-- Trigger for buildings updated_at
+drop trigger if exists set_buildings_updated_at on public.buildings;
+create trigger set_buildings_updated_at
+    before update on public.buildings
+    for each row
+    execute function public.update_updated_at_column();
+
+-- ==============================================================================
+-- 8. Create Units Table (All Vacant by Default)
+-- ==============================================================================
+create table if not exists public.units (
+    id uuid primary key default gen_random_uuid(),
+    building_id uuid not null references public.buildings(id) on delete cascade,
+    landlord_id uuid not null references public.profiles(id) on delete cascade,
+    unit_number text not null,
+    floor integer not null default 1 check (floor >= 1),
+    status text not null default 'vacant' check (status in ('vacant', 'occupied', 'maintenance')),
+    rent_amount numeric(12, 2) not null default 0.00,
+    deposit_amount numeric(12, 2) not null default 0.00,
+    bedrooms integer not null default 1 check (bedrooms >= 0),
+    bathrooms numeric(3, 1) not null default 1.0 check (bathrooms >= 0),
+    size_sqft integer,
+    notes text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    unique(building_id, unit_number)
+);
+
+-- Enable Row Level Security (RLS) on Units
+alter table public.units enable row level security;
+
+-- Drop existing policies if re-running
+drop policy if exists "Landlords can view their own units" on public.units;
+drop policy if exists "Landlords can insert their own units" on public.units;
+drop policy if exists "Landlords can update their own units" on public.units;
+drop policy if exists "Landlords can delete their own units" on public.units;
+
+-- Create RLS Policies for Units
+create policy "Landlords can view their own units"
+    on public.units for select
+    using (auth.uid() = landlord_id);
+
+create policy "Landlords can insert their own units"
+    on public.units for insert
+    with check (auth.uid() = landlord_id);
+
+create policy "Landlords can update their own units"
+    on public.units for update
+    using (auth.uid() = landlord_id)
+    with check (auth.uid() = landlord_id);
+
+create policy "Landlords can delete their own units"
+    on public.units for delete
+    using (auth.uid() = landlord_id);
+
+-- Trigger for units updated_at
+drop trigger if exists set_units_updated_at on public.units;
+create trigger set_units_updated_at
+    before update on public.units
+    for each row
+    execute function public.update_updated_at_column();
+
+-- ==============================================================================
+-- 9. Database Indexes for Performance
+-- ==============================================================================
+create index if not exists idx_buildings_landlord_id on public.buildings(landlord_id);
+create index if not exists idx_units_building_id on public.units(building_id);
+create index if not exists idx_units_landlord_id on public.units(landlord_id);
+create index if not exists idx_units_status on public.units(status);
+
+-- ==============================================================================
+-- 10. Enable Realtime Replication for Buildings & Units
+-- ==============================================================================
+alter table public.buildings replica identity full;
+alter table public.units replica identity full;
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_publication_tables 
+        where pubname = 'supabase_realtime' and tablename = 'buildings'
+    ) then
+        alter publication supabase_realtime add table public.buildings;
+    end if;
+
+    if not exists (
+        select 1 from pg_publication_tables 
+        where pubname = 'supabase_realtime' and tablename = 'units'
+    ) then
+        alter publication supabase_realtime add table public.units;
+    end if;
+end;
+$$;
+
+-- ==============================================================================
+-- 11. Stored Function: Atomic Building Creation with Automatic Vacant Units
+-- ==============================================================================
+create or replace function public.create_building_with_vacant_units(
+    p_name text,
+    p_address text,
+    p_city text default null,
+    p_state_region text default null,
+    p_property_type text default 'apartment',
+    p_total_floors integer default 1,
+    p_total_units integer default 1,
+    p_unit_prefix text default 'Unit',
+    p_default_rent numeric default 0.00,
+    p_default_bedrooms integer default 1,
+    p_default_bathrooms numeric default 1.0,
+    p_description text default null
+)
+returns json as $$
+declare
+    v_user_id uuid;
+    v_building_id uuid;
+    v_unit_limit integer;
+    v_current_units integer;
+    v_floors integer;
+    v_units_count integer;
+    v_units_per_floor integer;
+    v_i integer;
+    v_calc_floor integer;
+    v_clean_prefix text;
+    v_unit_number text;
+begin
+    v_user_id := auth.uid();
+    if v_user_id is null then
+        return json_build_object('success', false, 'error', 'Unauthorized. Please log in.');
+    end if;
+
+    v_floors := greatest(coalesce(p_total_floors, 1), 1);
+    v_units_count := greatest(coalesce(p_total_units, 1), 1);
+    v_clean_prefix := coalesce(nullif(trim(p_unit_prefix), ''), 'Unit');
+
+    -- Check landlord plan unit quota
+    select plan_unit_limit into v_unit_limit
+    from public.profiles
+    where id = v_user_id;
+
+    if v_unit_limit is not null then
+        select coalesce(count(*), 0) into v_current_units
+        from public.units
+        where landlord_id = v_user_id;
+
+        if (v_current_units + v_units_count) > v_unit_limit then
+            return json_build_object(
+                'success', false,
+                'error', format('Unit limit exceeded! Your current plan allows up to %s units. You already have %s units created. Creating %s additional units requires an upgrade.', v_unit_limit, v_current_units, v_units_count)
+            );
+        end if;
+    end if;
+
+    -- 1. Insert Building record
+    insert into public.buildings (
+        landlord_id,
+        name,
+        address,
+        city,
+        state_region,
+        property_type,
+        total_floors,
+        total_units,
+        description
+    ) values (
+        v_user_id,
+        trim(p_name),
+        trim(p_address),
+        nullif(trim(p_city), ''),
+        nullif(trim(p_state_region), ''),
+        coalesce(p_property_type, 'apartment'),
+        v_floors,
+        v_units_count,
+        nullif(trim(p_description), '')
+    ) returning id into v_building_id;
+
+    -- 2. Bulk generate all units with status = 'vacant'
+    v_units_per_floor := greatest(ceil(v_units_count::numeric / v_floors::numeric)::integer, 1);
+
+    for v_i in 1..v_units_count loop
+        v_calc_floor := least(v_floors, floor((v_i - 1)::numeric / v_units_per_floor::numeric)::integer + 1);
+        v_unit_number := v_clean_prefix || ' ' || v_i;
+
+        insert into public.units (
+            building_id,
+            landlord_id,
+            unit_number,
+            floor,
+            status,
+            rent_amount,
+            deposit_amount,
+            bedrooms,
+            bathrooms
+        ) values (
+            v_building_id,
+            v_user_id,
+            v_unit_number,
+            v_calc_floor,
+            'vacant',
+            coalesce(p_default_rent, 0.00),
+            coalesce(p_default_rent, 0.00),
+            greatest(coalesce(p_default_bedrooms, 1), 0),
+            greatest(coalesce(p_default_bathrooms, 1.0), 0.0)
+        );
+    end loop;
+
+    return json_build_object(
+        'success', true,
+        'building_id', v_building_id,
+        'total_units', v_units_count,
+        'message', format('Building "%s" created successfully with %s vacant units!', trim(p_name), v_units_count)
+    );
+end;
+$$ language plpgsql security definer;
+

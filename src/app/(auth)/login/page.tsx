@@ -4,7 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Building2, Lock, Mail, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import {
+  Building2,
+  Lock,
+  Mail,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Send,
+  HelpCircle,
+} from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,10 +22,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isEmailUnconfirmed, setIsEmailUnconfirmed] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setIsEmailUnconfirmed(false);
+    setResendSuccess(false);
     setLoading(true);
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -35,7 +50,21 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setErrorMsg(error.message);
+        if (
+          error.message.toLowerCase().includes("email not confirmed") ||
+          error.status === 400
+        ) {
+          if (error.message.toLowerCase().includes("invalid login credentials")) {
+            setErrorMsg("Invalid email or password. Please verify your credentials and try again.");
+          } else {
+            setIsEmailUnconfirmed(true);
+            setErrorMsg(
+              "Your email address is not confirmed yet. Please verify your email via the confirmation link sent by Supabase, or confirm the user in your Supabase Dashboard."
+            );
+          }
+        } else {
+          setErrorMsg(error.message);
+        }
         setLoading(false);
         return;
       }
@@ -49,6 +78,34 @@ export default function LoginPage() {
       }
       setErrorMsg(message);
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setErrorMsg("Please enter your email address to resend the confirmation.");
+      return;
+    }
+
+    setResending(true);
+    setResendSuccess(false);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+      });
+
+      if (error) {
+        setErrorMsg(error.message);
+      } else {
+        setResendSuccess(true);
+      }
+    } catch {
+      setErrorMsg("Failed to resend confirmation email.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -74,7 +131,45 @@ export default function LoginPage() {
           {errorMsg && (
             <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-rose-300">{errorMsg}</p>
+              <div className="space-y-2 text-sm text-rose-300">
+                <p>{errorMsg}</p>
+
+                {isEmailUnconfirmed && (
+                  <div className="pt-2 border-t border-rose-500/20 space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleResendConfirmation}
+                      disabled={resending}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition disabled:opacity-50 cursor-pointer"
+                    >
+                      {resending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      <span>Resend Confirmation Email</span>
+                    </button>
+
+                    <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
+                      <HelpCircle className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Testing tip:</strong> In your Supabase Dashboard, go to{" "}
+                        <strong className="text-slate-200">Authentication &rarr; Providers &rarr; Email</strong> and turn off{" "}
+                        <strong className="text-slate-200">&quot;Confirm email&quot;</strong> to sign in immediately without email confirmation.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {resendSuccess && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-emerald-300">
+                Confirmation email resent! Please check your inbox and spam folder.
+              </p>
             </div>
           )}
 

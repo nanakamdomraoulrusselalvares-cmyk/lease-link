@@ -153,7 +153,7 @@ export default function LandlordHomePage() {
       {/* Top Navigation Bar */}
       <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
                 <Building2 className="w-5 h-5 text-white" />
@@ -162,9 +162,18 @@ export default function LandlordHomePage() {
                 Lease<span className="text-blue-500">Link</span>
               </span>
             </Link>
-            <span className="hidden sm:inline-block text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-medium">
-              Registration Test Mode
-            </span>
+
+            <nav className="hidden sm:flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white">
+                Dashboard
+              </span>
+              <Link
+                href="/dashboard/buildings"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                Buildings & Units
+              </Link>
+            </nav>
           </div>
 
           <div className="flex items-center gap-3">
@@ -226,6 +235,15 @@ export default function LandlordHomePage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link
+                href="/dashboard/buildings"
+                id="banner-manage-buildings-btn"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition cursor-pointer"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Manage Buildings & Units</span>
+              </Link>
+
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing}
@@ -424,13 +442,23 @@ export default function LandlordHomePage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-              <div className="w-9 h-9 rounded-lg bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-2.5">
+            <Link
+              href="/dashboard/buildings"
+              className="bg-slate-900 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/80 rounded-xl p-4 transition group cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-lg bg-blue-600/10 group-hover:bg-blue-600 border border-blue-500/20 group-hover:border-blue-500 text-blue-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
                 <Building2 className="w-4 h-4" />
               </div>
-              <h3 className="font-semibold text-white text-xs">Buildings</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Properties index</p>
-            </div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-white text-xs group-hover:text-blue-400 transition">
+                  Buildings
+                </h3>
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  Ready
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">Manage & create units &rarr;</p>
+            </Link>
 
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
               <div className="w-9 h-9 rounded-lg bg-purple-600/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mb-2.5">
