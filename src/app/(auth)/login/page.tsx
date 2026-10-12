@@ -15,9 +15,12 @@ import {
   Send,
   HelpCircle,
 } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isFrench } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +39,9 @@ export default function LoginPage() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
       setErrorMsg(
-        "Supabase credentials are not configured yet. Please update NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file with your real Supabase project details."
+        isFrench
+          ? "Les identifiants Supabase ne sont pas encore configurés. Veuillez mettre à jour NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY dans votre fichier .env.local."
+          : "Supabase credentials are not configured yet. Please update NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file with your real Supabase project details."
       );
       setLoading(false);
       return;
@@ -56,16 +61,21 @@ export default function LoginPage() {
         if (msg.includes("email not confirmed") || code.includes("email_not_confirmed")) {
           setIsEmailUnconfirmed(true);
           setErrorMsg(
-            "Your email address is not confirmed yet. Please verify your email via the confirmation link sent by Supabase, or confirm the user in your Supabase Dashboard."
+            isFrench
+              ? "Votre adresse e-mail n'est pas encore confirmée. Veuillez vérifier votre boîte mail ou confirmer l'utilisateur dans votre console Supabase."
+              : "Your email address is not confirmed yet. Please verify your email via the confirmation link sent by Supabase, or confirm the user in your Supabase Dashboard."
           );
         } else if (msg.includes("invalid login credentials") || code.includes("invalid_credentials")) {
           setErrorMsg(
-            "Invalid email or password. Please verify your credentials or register a new account if you haven't yet."
+            isFrench
+              ? "E-mail ou mot de passe invalide. Veuillez vérifier vos identifiants ou créer un nouveau compte si nécessaire."
+              : "Invalid email or password. Please verify your credentials or register a new account if you haven't yet."
           );
         } else if (msg.includes("rate limit") || code.includes("rate_limit") || error.status === 422) {
           setErrorMsg(
-            error.message ||
-              "Request rate limit exceeded. Please wait a few seconds before trying to log in again."
+            isFrench
+              ? "Limite de requêtes atteinte. Veuillez patienter quelques secondes avant de réessayer."
+              : error.message || "Request rate limit exceeded. Please wait a few seconds before trying to log in again."
           );
         } else {
           setErrorMsg(error.message);
@@ -78,9 +88,11 @@ export default function LoginPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      let message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      let message = err instanceof Error ? err.message : (isFrench ? "Une erreur inattendue est survenue." : "An unexpected error occurred.");
       if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
-        message = "Could not reach Supabase server. Please check your internet connection and verify the Supabase URL in .env.local.";
+        message = isFrench
+          ? "Impossible de joindre le serveur Supabase. Veuillez vérifier votre connexion internet."
+          : "Could not reach Supabase server. Please check your internet connection and verify the Supabase URL in .env.local.";
       }
       setErrorMsg(message);
       setLoading(false);
@@ -89,7 +101,11 @@ export default function LoginPage() {
 
   const handleResendConfirmation = async () => {
     if (!email) {
-      setErrorMsg("Please enter your email address to resend the confirmation.");
+      setErrorMsg(
+        isFrench
+          ? "Veuillez entrer votre adresse e-mail pour renvoyer la confirmation."
+          : "Please enter your email address to resend the confirmation."
+      );
       return;
     }
 
@@ -109,14 +125,23 @@ export default function LoginPage() {
         setResendSuccess(true);
       }
     } catch {
-      setErrorMsg("Failed to resend confirmation email.");
+      setErrorMsg(
+        isFrench
+          ? "Échec de l'envoi de l'e-mail de confirmation."
+          : "Failed to resend confirmation email."
+      );
     } finally {
       setResending(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative selection:bg-blue-500 selection:text-white">
+      {/* Top right language switch */}
+      <div className="absolute top-5 right-5 z-20">
+        <LanguageSwitcher variant="pill" />
+      </div>
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-white">
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -125,10 +150,12 @@ export default function LoginPage() {
           <span>Lease<span className="text-blue-500">Link</span></span>
         </Link>
         <h2 className="mt-4 text-2xl font-extrabold text-white">
-          Landlord Portal Login
+          {isFrench ? "Connexion Espace Bailleur" : "Landlord Portal Login"}
         </h2>
         <p className="mt-1 text-sm text-slate-400">
-          Manage your properties, tenant ledgers, and rent logs.
+          {isFrench
+            ? "Gérez vos biens, carnets de quittances et registres de loyers."
+            : "Manage your properties, tenant ledgers, and rent logs."}
         </p>
       </div>
 
@@ -153,15 +180,18 @@ export default function LoginPage() {
                       ) : (
                         <Send className="w-3.5 h-3.5" />
                       )}
-                      <span>Resend Confirmation Email</span>
+                      <span>
+                        {isFrench ? "Renvoyer l'E-mail de Confirmation" : "Resend Confirmation Email"}
+                      </span>
                     </button>
 
                     <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
                       <HelpCircle className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
                       <span>
-                        <strong>Testing tip:</strong> In your Supabase Dashboard, go to{" "}
-                        <strong className="text-slate-200">Authentication &rarr; Providers &rarr; Email</strong> and turn off{" "}
-                        <strong className="text-slate-200">&quot;Confirm email&quot;</strong> to sign in immediately without email confirmation.
+                        <strong>{isFrench ? "Astuce de test :" : "Testing tip:"}</strong>{" "}
+                        {isFrench
+                          ? "Dans votre tableau de bord Supabase, allez dans Authentication -> Providers -> Email et désactivez « Confirm email » pour vous connecter immédiatement sans validation."
+                          : "In your Supabase Dashboard, go to Authentication -> Providers -> Email and turn off \"Confirm email\" to sign in immediately without email confirmation."}
                       </span>
                     </div>
                   </div>
@@ -174,7 +204,9 @@ export default function LoginPage() {
             <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
               <p className="text-sm text-emerald-300">
-                Confirmation email resent! Please check your inbox and spam folder.
+                {isFrench
+                  ? "E-mail de confirmation renvoyé ! Veuillez vérifier votre boîte de réception et vos spams."
+                  : "Confirmation email resent! Please check your inbox and spam folder."}
               </p>
             </div>
           )}
@@ -182,7 +214,7 @@ export default function LoginPage() {
           <form className="space-y-5" onSubmit={handleLogin}>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                Email Address <span className="text-blue-400">*</span>
+                {isFrench ? "Adresse E-mail" : "Email Address"} <span className="text-blue-400">*</span>
               </label>
               <div className="mt-1.5 relative rounded-lg">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -202,7 +234,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Password <span className="text-blue-400">*</span>
+                  {isFrench ? "Mot de Passe" : "Password"} <span className="text-blue-400">*</span>
                 </label>
               </div>
               <div className="mt-1.5 relative rounded-lg">
@@ -228,27 +260,38 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Signing in...</span>
+                  <span>{isFrench ? "Connexion en cours..." : "Signing in..."}</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In to Dashboard</span>
+                  <span>{isFrench ? "Se Connecter au Tableau de Bord" : "Sign In to Dashboard"}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-800 text-center">
+          <div className="mt-6 pt-6 border-t border-slate-800 text-center space-y-3">
             <p className="text-xs text-slate-400">
-              New landlord?{" "}
+              {isFrench ? "Nouveau bailleur ?" : "New landlord?"}{" "}
               <Link
                 href="/register"
                 className="font-semibold text-blue-400 hover:text-blue-300 hover:underline"
               >
-                Register and select a plan
+                {isFrench ? "Inscrivez-vous et choisissez un abonnement" : "Register and select a plan"}
               </Link>
             </p>
+
+            <div className="pt-3 border-t border-slate-800/60 flex items-center justify-center gap-2 text-xs">
+              <span className="text-slate-400">{isFrench ? "Vous êtes locataire ?" : "Are you a tenant?"}</span>
+              <Link
+                href="/tenant/login"
+                className="font-bold text-emerald-400 hover:text-emerald-300 hover:underline inline-flex items-center gap-1"
+              >
+                <span>{isFrench ? "Connexion Espace Locataire" : "Tenant Portal Login"}</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

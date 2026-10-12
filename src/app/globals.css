@@ -11,23 +11,90 @@
   --border: #334155;
 }
 
+/* 1. Prevent Horizontal Page Wobble & Scrollbar Layout Shifts */
+html {
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  width: 100%;
+  max-width: 100vw;
+}
+
 body {
   background-color: #0b1120;
   color: #f1f5f9;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for mobile & desktop */
+/* 2. Hardware acceleration for sticky elements to prevent jitter on Windows */
+header {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* 3. Sleek scrollbar with fixed track */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0b1120;
 }
 ::-webkit-scrollbar-thumb {
   background: #334155;
   border-radius: 9999px;
+  border: 2px solid #0b1120;
 }
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* 4. Complete background freeze when any modal is open */
+html.modal-open,
+body.modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+
+/* 5. Print optimization for official receipts */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+  #printable-receipt-content {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 20px !important;
+    margin: 0 auto !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+}
+
+/* 6. Globally remove increasing and decreasing number arrows (spin buttons) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+
+

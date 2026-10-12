@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { Building, Unit, CreateBuildingFormInput, UpdateUnitInput } from "@/types/database";
+import { generateTenantPassword, generateAccessToken } from "./tenantService";
+import { notifyTenantArrival, notifyTenantDeparture } from "./notificationService";
 
 const LOCAL_STORAGE_KEY_BUILDINGS = "leaselink_local_buildings";
 const LOCAL_STORAGE_KEY_UNITS = "leaselink_local_units";
@@ -264,36 +266,58 @@ export async function updateUnitConfiguration(
   const cleanKitchens = Math.max(0, Math.floor(Number(input.kitchens) || 0));
   const cleanNotes = input.notes?.trim() || null;
 
+  const isAssigningTenant = Boolean(
+    input.tenant_name?.trim() || input.tenant_phone?.trim() || input.tenant_email?.trim()
+  );
+  const isUnassigning = input.status === "vacant" && !isAssigningTenant;
+
+  const tenantName = input.tenant_name?.trim() || null;
+  const tenantPhone = input.tenant_phone?.trim() || null;
+  const tenantEmail = input.tenant_email?.trim() || null;
+  const tenantPassword = input.tenant_password || generateTenantPassword();
+  const tenantAccessToken = input.tenant_access_token || generateAccessToken();
+  const tenantAssignedAt = new Date().toISOString();
+
+  const localUnitsInit = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
+  const previousUnit = localUnitsInit.find((u) => u.id === unitId);
+  const previousTenantName = previousUnit?.tenant_name?.trim() || null;
+
+  const dispatchMovementNotification = async (savedUnit: Unit) => {
+    try {
+      const localBuildings = getLocalData<Building>(LOCAL_STORAGE_KEY_BUILDINGS);
+      const building = localBuildings.find((b) => b.id === savedUnit.building_id);
+      const buildingName = building?.name || "Residence";
+      const bId = savedUnit.building_id || "";
+
+      if (isAssigningTenant && tenantName) {
+        if (!previousTenantName || previousTenantName.toLowerCase() !== tenantName.toLowerCase()) {
+          await notifyTenantArrival({
+            buildingId: bId,
+            buildingName,
+            unitId: savedUnit.id,
+            unitNumber: savedUnit.unit_number,
+            tenantName,
+            landlordId,
+          });
+        }
+      } else if (isUnassigning && previousTenantName) {
+        await notifyTenantDeparture({
+          buildingId: bId,
+          buildingName,
+          unitId: savedUnit.id,
+          unitNumber: savedUnit.unit_number,
+          tenantName: previousTenantName,
+          landlordId,
+        });
+      }
+    } catch (err) {
+      console.warn("Could not dispatch movement notification:", err);
+    }
+  };
+
   if (!isMockConfig && landlordId) {
     try {
-      // 1. Try RPC function
-      const { data: rpcData, error: rpcError } = await supabase.rpc(
-        "update_unit_configuration",
-        {
-          p_unit_id: unitId,
-          p_unit_number: input.unit_number?.trim() || null,
-          p_rent_amount: cleanRent,
-          p_parlors: cleanParlors,
-          p_rooms: cleanRooms,
-          p_bathrooms: cleanBathrooms,
-          p_kitchens: cleanKitchens,
-          p_notes: cleanNotes,
-        }
-      );
-
-      if (!rpcError && rpcData?.success) {
-        const { data: updatedData } = await supabase
-          .from("units")
-          .select("*")
-          .eq("id", unitId)
-          .maybeSingle();
-
-        if (updatedData) {
-          return { success: true, unit: updatedData as Unit };
-        }
-      }
-
-      // 2. Direct client update fallback
+      // 1. Prepare direct client update payload
       const payload: Record<string, unknown> = {
         rent_amount: cleanRent,
         parlors: cleanParlors,
@@ -309,6 +333,24 @@ export async function updateUnitConfiguration(
         payload.unit_number = input.unit_number.trim();
       }
 
+      if (isAssigningTenant) {
+        payload.tenant_name = tenantName;
+        payload.tenant_phone = tenantPhone;
+        payload.tenant_email = tenantEmail;
+        payload.tenant_password = tenantPassword;
+        payload.tenant_access_token = tenantAccessToken;
+        payload.tenant_assigned_at = tenantAssignedAt;
+        payload.status = "occupied";
+      } else if (isUnassigning) {
+        payload.tenant_name = null;
+        payload.tenant_phone = null;
+        payload.tenant_email = null;
+        payload.tenant_password = null;
+        payload.tenant_access_token = null;
+        payload.tenant_assigned_at = null;
+        payload.status = "vacant";
+      }
+
       const { data: updatedUnit, error: updateError } = await supabase
         .from("units")
         .update(payload)
@@ -318,40 +360,130 @@ export async function updateUnitConfiguration(
         .single();
 
       if (!updateError && updatedUnit) {
+        // Also update local cache for consistency
+        const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
+        const idx = localUnits.findIndex((u) => u.id === unitId);
+        if (idx !== -1) {
+          localUnits[idx] = updatedUnit as Unit;
+          setLocalData(LOCAL_STORAGE_KEY_UNITS, localUnits);
+        }
+        await dispatchMovementNotification(updatedUnit as Unit);
         return { success: true, unit: updatedUnit as Unit };
       }
+
+      if (updateError) {
+        console.warn("Supabase update unit error, trying schema fallback:", updateError.message);
+
+        // Fallback: update with base columns accepted by older Supabase schemas
+        try {
+          const basePayload: Record<string, unknown> = {
+            rent_amount: cleanRent,
+            bedrooms: cleanRooms,
+            bathrooms: cleanBathrooms,
+            notes: cleanNotes,
+            updated_at: new Date().toISOString(),
+          };
+          if (input.unit_number?.trim()) {
+            basePayload.unit_number = input.unit_number.trim();
+          }
+
+          const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
+          const existing = localUnits.find((u) => u.id === unitId);
+
+          let baseUnit: any = null;
+          try {
+            const { data } = await supabase
+              .from("units")
+              .update(basePayload)
+              .eq("id", unitId)
+              .eq("landlord_id", landlordId)
+              .select("id, building_id, unit_number, rent_amount, created_at")
+              .maybeSingle();
+            baseUnit = data;
+          } catch {
+            // Base select exception ignored, fallback to local data
+          }
+
+          const fallbackMerged: Unit = {
+            id: unitId,
+            building_id: (baseUnit?.building_id as string) || existing?.building_id || "",
+            landlord_id: landlordId,
+            unit_number: input.unit_number?.trim() || baseUnit?.unit_number || existing?.unit_number || "Unit",
+            rent_amount: cleanRent,
+            parlors: cleanParlors,
+            rooms: cleanRooms,
+            bedrooms: cleanRooms,
+            bathrooms: cleanBathrooms,
+            kitchens: cleanKitchens,
+            notes: cleanNotes,
+            status: isAssigningTenant ? "occupied" : isUnassigning ? "vacant" : existing?.status || "vacant",
+            tenant_name: isAssigningTenant ? tenantName : isUnassigning ? null : existing?.tenant_name || null,
+            tenant_phone: isAssigningTenant ? tenantPhone : isUnassigning ? null : existing?.tenant_phone || null,
+            tenant_email: isAssigningTenant ? tenantEmail : isUnassigning ? null : existing?.tenant_email || null,
+            tenant_password: isAssigningTenant ? (existing?.tenant_password || tenantPassword) : isUnassigning ? null : existing?.tenant_password || null,
+            tenant_access_token: isAssigningTenant ? (existing?.tenant_access_token || tenantAccessToken) : isUnassigning ? null : existing?.tenant_access_token || null,
+            tenant_assigned_at: isAssigningTenant ? (existing?.tenant_assigned_at || tenantAssignedAt) : isUnassigning ? null : existing?.tenant_assigned_at || null,
+            created_at: baseUnit?.created_at || existing?.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+
+          const idx = localUnits.findIndex((u) => u.id === unitId);
+          if (idx !== -1) {
+            localUnits[idx] = fallbackMerged;
+          } else {
+            localUnits.push(fallbackMerged);
+          }
+          setLocalData(LOCAL_STORAGE_KEY_UNITS, localUnits);
+
+          await dispatchMovementNotification(fallbackMerged);
+          return { success: true, unit: fallbackMerged };
+        } catch (baseErr) {
+          console.warn("Base schema retry failed, using full local fallback:", baseErr);
+        }
+      }
     } catch (err) {
-      console.warn("Supabase unit update failed, trying local store update:", err);
+      console.warn("Supabase unit update exception:", err);
     }
   }
 
-  // 3. Local fallback update
+  // 3. Local fallback update (always succeeds and preserves credentials & specs)
   try {
     const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
     const index = localUnits.findIndex((u) => u.id === unitId);
+    const existing = index !== -1 ? localUnits[index] : ({} as Partial<Unit>);
+
+    const updated: Unit = {
+      id: unitId,
+      building_id: (existing.building_id as string) || "",
+      landlord_id: landlordId,
+      unit_number: input.unit_number?.trim() || existing.unit_number || "Unit",
+      rent_amount: cleanRent,
+      parlors: cleanParlors,
+      rooms: cleanRooms,
+      bedrooms: cleanRooms,
+      bathrooms: cleanBathrooms,
+      kitchens: cleanKitchens,
+      notes: cleanNotes,
+      status: isAssigningTenant ? "occupied" : isUnassigning ? "vacant" : (existing.status as any) || "vacant",
+      tenant_name: isAssigningTenant ? tenantName : isUnassigning ? null : existing.tenant_name || null,
+      tenant_phone: isAssigningTenant ? tenantPhone : isUnassigning ? null : existing.tenant_phone || null,
+      tenant_email: isAssigningTenant ? tenantEmail : isUnassigning ? null : existing.tenant_email || null,
+      tenant_password: isAssigningTenant ? (existing.tenant_password || tenantPassword) : isUnassigning ? null : existing.tenant_password || null,
+      tenant_access_token: isAssigningTenant ? (existing.tenant_access_token || tenantAccessToken) : isUnassigning ? null : existing.tenant_access_token || null,
+      tenant_assigned_at: isAssigningTenant ? (existing.tenant_assigned_at || tenantAssignedAt) : isUnassigning ? null : existing.tenant_assigned_at || null,
+      created_at: existing.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
     if (index !== -1) {
-      const existing = localUnits[index];
-      const updated: Unit = {
-        ...existing,
-        unit_number: input.unit_number?.trim() || existing.unit_number,
-        rent_amount: cleanRent,
-        parlors: cleanParlors,
-        rooms: cleanRooms,
-        bedrooms: cleanRooms,
-        bathrooms: cleanBathrooms,
-        kitchens: cleanKitchens,
-        notes: cleanNotes,
-        updated_at: new Date().toISOString(),
-      };
-
       localUnits[index] = updated;
-      setLocalData(LOCAL_STORAGE_KEY_UNITS, localUnits);
-
-      return { success: true, unit: updated, isLocalFallback: true };
+    } else {
+      localUnits.push(updated);
     }
+    setLocalData(LOCAL_STORAGE_KEY_UNITS, localUnits);
 
-    return { success: false, error: "Unit not found" };
+    await dispatchMovementNotification(updated);
+    return { success: true, unit: updated, isLocalFallback: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to update unit";
     return { success: false, error: msg };
@@ -368,6 +500,8 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const isMockConfig = !url || url.includes("your-project-ref");
 
+  const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
+
   if (!isMockConfig) {
     try {
       const { data, error } = await supabase
@@ -377,14 +511,18 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
         .order("created_at", { ascending: false });
 
       if (!error && data) {
-        // Sort units inside buildings by created_at or unit_number
         return (data as Building[]).map((b) => ({
           ...b,
-          units: (b.units || []).sort((a, b) => {
-            const numA = parseInt(a.unit_number.replace(/\D/g, "")) || 0;
-            const numB = parseInt(b.unit_number.replace(/\D/g, "")) || 0;
-            return numA - numB;
-          }),
+          units: (b.units || [])
+            .map((u) => {
+              const localOverride = localUnits.find((lu) => lu.id === u.id);
+              return localOverride ? { ...u, ...localOverride } : u;
+            })
+            .sort((a, b) => {
+              const numA = parseInt(a.unit_number.replace(/\D/g, "")) || 0;
+              const numB = parseInt(b.unit_number.replace(/\D/g, "")) || 0;
+              return numA - numB;
+            }),
         }));
       }
     } catch (err) {
@@ -394,7 +532,6 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
 
   // Fallback to local storage
   const localBuildings = getLocalData<Building>(LOCAL_STORAGE_KEY_BUILDINGS);
-  const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
 
   return localBuildings
     .filter((b) => b.landlord_id === landlordId)

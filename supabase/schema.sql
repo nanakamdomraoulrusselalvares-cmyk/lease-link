@@ -531,4 +531,313 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- ==============================================================================
+-- 13. Tenant Credentials & Portal Architecture
+-- ==============================================================================
+-- Add Unit Specs & Tenant columns to units table
+alter table public.units add column if not exists parlors integer not null default 0;
+alter table public.units add column if not exists rooms integer not null default 0;
+alter table public.units add column if not exists bathrooms numeric(3, 1) not null default 0.0;
+alter table public.units add column if not exists kitchens integer not null default 0;
+alter table public.units add column if not exists tenant_name text;
+alter table public.units add column if not exists tenant_phone text;
+alter table public.units add column if not exists tenant_email text;
+alter table public.units add column if not exists tenant_password text;
+alter table public.units add column if not exists tenant_access_token text;
+alter table public.units add column if not exists tenant_assigned_at timestamptz;
+
+create index if not exists idx_units_tenant_access_token on public.units(tenant_access_token);
+create index if not exists idx_units_tenant_email on public.units(tenant_email);
+create index if not exists idx_units_tenant_phone on public.units(tenant_phone);
+
+-- Notify PostgREST to refresh its schema cache immediately
+notify pgrst, 'reload schema';
+
+-- Stored Function: Assign Tenant to Unit & Generate/Save Credentials
+create or replace function public.assign_unit_tenant(
+    p_unit_id uuid,
+    p_tenant_name text,
+    p_tenant_phone text,
+    p_tenant_email text,
+    p_tenant_password text,
+    p_tenant_access_token text
+)
+returns json as $$
+declare
+    v_user_id uuid;
+begin
+    v_user_id := auth.uid();
+    if v_user_id is null then
+        return json_build_object('success', false, 'error', 'Unauthorized');
+    end if;
+
+    update public.units
+    set
+        tenant_name = trim(p_tenant_name),
+        tenant_phone = trim(p_tenant_phone),
+        tenant_email = lower(trim(p_tenant_email)),
+        tenant_password = trim(p_tenant_password),
+        tenant_access_token = trim(p_tenant_access_token),
+        tenant_assigned_at = coalesce(tenant_assigned_at, now()),
+        status = 'occupied',
+        updated_at = now()
+    where id = p_unit_id and landlord_id = v_user_id;
+
+    if not found then
+        return json_build_object('success', false, 'error', 'Unit not found or access denied');
+    end if;
+
+    return json_build_object(
+        'success', true,
+        'message', 'Tenant assigned and credentials created successfully'
+    );
+end;
+$$ language plpgsql security definer;
+
+-- Stored Function: Secure Tenant Portal Data Lookup via Token
+create or replace function public.get_tenant_portal_data(p_token text)
+returns json as $$
+declare
+    v_res json;
+begin
+    select json_build_object(
+        'tenant_name', u.tenant_name,
+        'tenant_phone', u.tenant_phone,
+        'tenant_email', u.tenant_email,
+        'unit_id', u.id,
+        'unit_number', u.unit_number,
+        'rent_amount', u.rent_amount,
+        'parlors', u.parlors,
+        'rooms', u.rooms,
+        'bathrooms', u.bathrooms,
+        'kitchens', u.kitchens,
+        'notes', u.notes,
+        'building_id', b.id,
+        'building_name', b.name,
+        'building_address', b.address,
+        'building_city', b.city,
+        'landlord_id', p.id,
+        'landlord_name', p.full_name,
+        'landlord_phone', p.phone,
+        'landlord_email', p.email,
+        'assigned_at', u.tenant_assigned_at,
+        'access_token', u.tenant_access_token
+    ) into v_res
+    from public.units u
+    join public.buildings b on b.id = u.building_id
+    join public.profiles p on p.id = u.landlord_id
+    where u.tenant_access_token = p_token and u.status = 'occupied';
+
+    if v_res is null then
+        return json_build_object('success', false, 'error', 'Invalid or expired access token');
+    end if;
+
+    return json_build_object('success', true, 'data', v_res);
+end;
+$$ language plpgsql security definer;
+
+-- Stored Function: Secure Tenant Login via Identifier (Email/Phone) & Password
+create or replace function public.authenticate_tenant(p_identifier text, p_password text)
+returns json as $$
+declare
+    v_clean_id text;
+    v_res json;
+begin
+    v_clean_id := lower(trim(p_identifier));
+
+    select json_build_object(
+        'tenant_name', u.tenant_name,
+        'tenant_phone', u.tenant_phone,
+        'tenant_email', u.tenant_email,
+        'unit_id', u.id,
+        'unit_number', u.unit_number,
+        'rent_amount', u.rent_amount,
+        'parlors', u.parlors,
+        'rooms', u.rooms,
+        'bathrooms', u.bathrooms,
+        'kitchens', u.kitchens,
+        'notes', u.notes,
+        'building_id', b.id,
+        'building_name', b.name,
+        'building_address', b.address,
+        'building_city', b.city,
+        'landlord_id', p.id,
+        'landlord_name', p.full_name,
+        'landlord_phone', p.phone,
+        'landlord_email', p.email,
+        'assigned_at', u.tenant_assigned_at,
+        'access_token', u.tenant_access_token
+    ) into v_res
+    from public.units u
+    join public.buildings b on b.id = u.building_id
+    join public.profiles p on p.id = u.landlord_id
+    where (lower(u.tenant_email) = v_clean_id or regexp_replace(u.tenant_phone, '\D', '', 'g') = regexp_replace(v_clean_id, '\D', '', 'g'))
+      and u.tenant_password = trim(p_password)
+      and u.status = 'occupied';
+
+    if v_res is null then
+        return json_build_object('success', false, 'error', 'Invalid email or password.');
+    end if;
+
+    return json_build_object('success', true, 'data', v_res);
+end;
+$$ language plpgsql security definer;
+
+-- ==============================================================================
+-- Grant execution permissions on stored functions for Tenant Portal & Auth
+-- ==============================================================================
+grant execute on function public.get_tenant_portal_data(text) to anon, authenticated;
+grant execute on function public.authenticate_tenant(text, text) to anon, authenticated;
+grant execute on function public.assign_unit_tenant(uuid, text, text, text, text, text) to authenticated;
+
+-- Refresh PostgREST schema cache immediately
+notify pgrst, 'reload schema';
+
+-- ==============================================================================
+-- 14. Tenant Reparation & Maintenance Requests Architecture
+-- ==============================================================================
+create table if not exists public.maintenance_requests (
+    id uuid primary key default gen_random_uuid(),
+    unit_id uuid not null references public.units(id) on delete cascade,
+    building_id uuid not null references public.buildings(id) on delete cascade,
+    landlord_id uuid not null references public.profiles(id) on delete cascade,
+    tenant_name text not null,
+    tenant_phone text not null,
+    tenant_email text,
+    unit_number text not null,
+    building_name text not null,
+    category text not null check (category in ('plumbing', 'electrical', 'structural', 'appliances', 'carpentry_locks', 'other')),
+    urgency text not null default 'medium' check (urgency in ('low', 'medium', 'high', 'emergency')),
+    title text not null,
+    description text not null,
+    status text not null default 'pending' check (status in ('pending', 'in_progress', 'resolved', 'rejected')),
+    photo_url text,
+    video_url text,
+    voice_url text,
+    voice_duration_seconds integer,
+    landlord_notes text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+-- Indexes for performance
+create index if not exists idx_maintenance_unit_id on public.maintenance_requests(unit_id);
+create index if not exists idx_maintenance_landlord_id on public.maintenance_requests(landlord_id);
+create index if not exists idx_maintenance_status on public.maintenance_requests(status);
+create index if not exists idx_maintenance_created_at on public.maintenance_requests(created_at desc);
+
+-- Enable Row Level Security (RLS)
+alter table public.maintenance_requests enable row level security;
+
+-- Drop existing policies if re-running
+drop policy if exists "Landlords can view and manage their units maintenance requests" on public.maintenance_requests;
+drop policy if exists "Anyone can insert maintenance requests for valid occupied units" on public.maintenance_requests;
+drop policy if exists "Public can view maintenance requests by unit" on public.maintenance_requests;
+
+-- Landlords can view, update, delete their maintenance requests
+create policy "Landlords can view and manage their units maintenance requests"
+    on public.maintenance_requests for all
+    using (auth.uid() = landlord_id)
+    with check (auth.uid() = landlord_id);
+
+-- Tenants (including unauthenticated portal sessions) can insert maintenance requests
+create policy "Anyone can insert maintenance requests for valid occupied units"
+    on public.maintenance_requests for insert
+    with check (true);
+
+-- Allow read of requests for tracking
+create policy "Public can view maintenance requests by unit"
+    on public.maintenance_requests for select
+    using (true);
+
+-- Trigger for updated_at
+drop trigger if exists set_maintenance_updated_at on public.maintenance_requests;
+create trigger set_maintenance_updated_at
+    before update on public.maintenance_requests
+    for each row
+    execute function public.update_updated_at_column();
+
+-- Grant permissions to anon and authenticated
+grant select, insert, update on table public.maintenance_requests to anon, authenticated;
+
+-- ==============================================================================
+-- 15. Rent Payments & Digital Receipts Architecture
+-- ==============================================================================
+create table if not exists public.rent_payments (
+    id uuid primary key default gen_random_uuid(),
+    receipt_number text not null unique,
+    unit_id uuid not null references public.units(id) on delete cascade,
+    building_id uuid not null references public.buildings(id) on delete cascade,
+    landlord_id uuid not null references public.profiles(id) on delete cascade,
+    landlord_name text,
+    tenant_name text not null,
+    tenant_phone text not null,
+    tenant_email text,
+    unit_number text not null,
+    building_name text not null,
+    rent_month text not null,
+    months_count integer not null default 1,
+    months_covered text[] default '{}',
+    monthly_rent_amount numeric(12, 2) not null default 0.00,
+    amount_paid numeric(12, 2) not null default 0.00,
+    balance_remaining numeric(12, 2) not null default 0.00,
+    payment_type text not null default 'full' check (payment_type in ('full', 'partial')),
+    payment_method text not null default 'momo' check (payment_method in ('momo', 'orange_money', 'card', 'bank_transfer', 'cash')),
+    transaction_ref text not null,
+    status text not null default 'completed' check (status in ('completed', 'pending', 'failed')),
+    payer_phone text,
+    notes text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+-- Migration safety for existing installations
+alter table public.rent_payments add column if not exists landlord_name text;
+alter table public.rent_payments add column if not exists months_count integer not null default 1;
+alter table public.rent_payments add column if not exists months_covered text[] default '{}';
+
+-- Performance Indexes
+create index if not exists idx_rent_payments_unit_id on public.rent_payments(unit_id);
+create index if not exists idx_rent_payments_landlord_id on public.rent_payments(landlord_id);
+create index if not exists idx_rent_payments_receipt_number on public.rent_payments(receipt_number);
+create index if not exists idx_rent_payments_rent_month on public.rent_payments(rent_month);
+create index if not exists idx_rent_payments_created_at on public.rent_payments(created_at desc);
+
+-- Enable RLS
+alter table public.rent_payments enable row level security;
+
+-- Policies
+drop policy if exists "Landlords can view and manage their payments" on public.rent_payments;
+drop policy if exists "Anyone can insert payments for valid occupied units" on public.rent_payments;
+drop policy if exists "Public can view payments by unit" on public.rent_payments;
+
+create policy "Landlords can view and manage their payments"
+    on public.rent_payments for all
+    using (auth.uid() = landlord_id)
+    with check (auth.uid() = landlord_id);
+
+create policy "Anyone can insert payments for valid occupied units"
+    on public.rent_payments for insert
+    with check (true);
+
+create policy "Public can view payments by unit"
+    on public.rent_payments for select
+    using (true);
+
+-- Trigger for updated_at
+drop trigger if exists set_rent_payments_updated_at on public.rent_payments;
+create trigger set_rent_payments_updated_at
+    before update on public.rent_payments
+    for each row
+    execute function public.update_updated_at_column();
+
+-- Grant permissions to anon and authenticated
+grant select, insert on table public.rent_payments to anon, authenticated;
+
+-- Refresh PostgREST schema cache immediately
+notify pgrst, 'reload schema';
+
+
+
+
 

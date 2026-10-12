@@ -31,6 +31,9 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,7 +44,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-screen bg-slate-950 text-slate-100 flex flex-col`}
       >
-        {children}
+        <LanguageProvider>
+          {children}
+          {/* Universal Floating Language Switcher Toggle */}
+          <LanguageSwitcher variant="floating" />
+        </LanguageProvider>
       </body>
     </html>
   );
