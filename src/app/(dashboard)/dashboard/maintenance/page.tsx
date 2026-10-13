@@ -325,7 +325,7 @@ export default function LandlordMaintenancePage() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs cursor-pointer"
                 >
                   ✕
                 </button>
@@ -682,7 +682,7 @@ export default function LandlordMaintenancePage() {
             />
             <button
               onClick={() => setPreviewPhoto(null)}
-              className="absolute -top-3 -right-3 p-2 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition cursor-pointer"
+              className="absolute -top-3 -right-3 p-2 rounded-full bg-slate-900/90 text-white hover:bg-slate-800 border border-slate-700/80 shadow-lg transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

@@ -833,11 +833,11 @@ function PaymentsContent() {
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-            <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
+            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
-                  <h3 className="text-sm font-bold text-white">
+                  <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     {isFrench
                       ? "Enregistrer un Paiement en Espèces"
                       : "Record Physical Cash Payment"}
@@ -845,7 +845,7 @@ function PaymentsContent() {
                 </div>
                 <button
                   onClick={() => setRecordTarget(null)}
-                  className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -853,23 +853,23 @@ function PaymentsContent() {
 
               <form onSubmit={handleRecordPayment} className="p-6 space-y-4 text-xs">
                 {/* Tenant & Property Overview Strip */}
-                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                       {isFrench ? "Locataire & Logement" : "Tenant & Apartment"}
                     </span>
-                    <span className="text-emerald-400 font-mono font-bold">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                       {monthlyRent.toLocaleString()} XAF / {isFrench ? "mois" : "month"}
                     </span>
                   </div>
-                  <p className="font-bold text-white text-sm">{recordTarget.tenant_name}</p>
-                  <p className="text-slate-400 text-xs">
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">{recordTarget.tenant_name}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs">
                     {recordTarget.building_name} • {isFrench ? "Logement" : "Unit"}{" "}
                     {recordTarget.unit_number}
                     {recordTarget.tenant_phone && ` • ${recordTarget.tenant_phone}`}
                   </p>
                   {owingThisMonth > 0 && (
-                    <p className="text-amber-400 font-medium text-[11px] pt-0.5">
+                    <p className="text-amber-600 dark:text-amber-400 font-medium text-[11px] pt-0.5">
                       {isFrench
                         ? `Solde dû pour le mois en cours : ${owingThisMonth.toLocaleString()} XAF`
                         : `Current Month Balance Due: ${owingThisMonth.toLocaleString()} XAF`}
@@ -878,18 +878,18 @@ function PaymentsContent() {
                 </div>
 
                 {/* MULTI-MONTH RENT SELECTOR */}
-                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                      <label className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                         <span>
                           {isFrench
                             ? "Nombre de mois réglés par le locataire :"
                             : "Number of Months Tenant is Paying:"}
                         </span>
                       </label>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
                         {isFrench
                           ? "Par défaut 1 mois. Vous pouvez ajouter des mois futurs si le locataire avance son loyer."
                           : "Default is 1 month. You can add future months if tenant is advancing."}
@@ -897,19 +897,19 @@ function PaymentsContent() {
                     </div>
 
                     {/* Stepper */}
-                    <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-xl p-1">
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl p-1">
                       <button
                         type="button"
                         disabled={recordMonthsCount <= 1}
                         onClick={() =>
                           setRecordMonthsCount((prev) => Math.max(1, prev - 1))
                         }
-                        className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center transition cursor-pointer text-xs"
+                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
                         title={isFrench ? "Diminuer d'un mois" : "Decrease month"}
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="px-2 font-mono font-bold text-xs text-blue-400 min-w-[55px] text-center">
+                      <span className="px-2 font-mono font-bold text-xs text-blue-600 dark:text-blue-400 min-w-[55px] text-center">
                         {recordMonthsCount}{" "}
                         {recordMonthsCount === 1
                           ? isFrench
@@ -925,7 +925,7 @@ function PaymentsContent() {
                         onClick={() =>
                           setRecordMonthsCount((prev) => Math.min(12, prev + 1))
                         }
-                        className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center transition cursor-pointer text-xs"
+                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
                         title={isFrench ? "Ajouter un mois" : "Add another month"}
                       >
                         <Plus className="w-3 h-3" />
@@ -943,7 +943,7 @@ function PaymentsContent() {
                         className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border ${
                           recordMonthsCount === cnt
                             ? "bg-blue-600 text-white border-blue-500 shadow-sm"
-                            : "bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-800"
+                            : "bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800"
                         }`}
                       >
                         {cnt === 1
@@ -956,14 +956,14 @@ function PaymentsContent() {
                   </div>
 
                   {/* Period & Total Expected Indicator */}
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                    <span className="text-slate-400">
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">
                       {isFrench ? "Période couverte :" : "Period Covered:"}{" "}
-                      <strong className="text-white">{periodLabel}</strong>
+                      <strong className="text-slate-900 dark:text-white">{periodLabel}</strong>
                     </span>
-                    <span className="text-slate-400 font-mono">
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">
                       {isFrench ? "Attendu :" : "Expected:"}{" "}
-                      <strong className="text-white font-bold">
+                      <strong className="text-slate-900 dark:text-white font-bold">
                         {totalPeriodExpected.toLocaleString()} XAF
                       </strong>
                     </span>
@@ -973,7 +973,7 @@ function PaymentsContent() {
                 {/* Amount Received Input */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300 block">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                       {isFrench
                         ? "Montant remis en mains propres / Reçu (XAF) :"
                         : "Amount Handed Over / Received (XAF):"}
@@ -981,7 +981,7 @@ function PaymentsContent() {
                     <button
                       type="button"
                       onClick={() => setRecordAmount(String(totalPeriodExpected))}
-                      className="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
+                      className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 font-semibold cursor-pointer"
                     >
                       {isFrench
                         ? `Remplir montant attendu (${totalPeriodExpected.toLocaleString()} XAF)`
@@ -1001,7 +1001,7 @@ function PaymentsContent() {
                         ? "ex. 40000, 20000, 13000..."
                         : "e.g. 40000, 20000, 13000..."
                     }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition"
                     autoFocus
                     required
                   />
@@ -1011,13 +1011,13 @@ function PaymentsContent() {
                     <div
                       className={`p-2.5 rounded-xl border flex items-center gap-2 ${
                         willBeFullyPaid
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                          : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                          : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300"
                       }`}
                     >
                       {willBeFullyPaid ? (
                         <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>
                             {isFrench ? (
                               <>
@@ -1034,7 +1034,7 @@ function PaymentsContent() {
                         </>
                       ) : (
                         <>
-                          <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                          <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                           <span>
                             {isFrench ? (
                               <>
@@ -1058,7 +1058,7 @@ function PaymentsContent() {
 
                 {/* Notes Input */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300 block">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                     {isFrench ? "Remarques (Optionnel) :" : "Notes (Optional):"}
                   </label>
                   <input
@@ -1070,7 +1070,7 @@ function PaymentsContent() {
                         ? "ex. Remis en espèces à la résidence, reçu d'acompte..."
                         : "e.g. Received in cash at residence, deposit receipt..."
                     }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -1078,7 +1078,7 @@ function PaymentsContent() {
                   <button
                     type="button"
                     onClick={() => setRecordTarget(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
                   >
                     {isFrench ? "Annuler" : "Cancel"}
                   </button>
@@ -1124,7 +1124,7 @@ function PaymentsContent() {
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-            <div className="relative w-full max-w-lg bg-slate-900 border border-emerald-500/30 rounded-3xl shadow-2xl overflow-hidden my-6">
+            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-3xl shadow-2xl overflow-hidden my-6">
               {/* Glow Accent Top Strip */}
               <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
 
@@ -1132,14 +1132,14 @@ function PaymentsContent() {
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10">
-                      <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">
                         {isFrench ? "💵 Espèces Reçues Physiquement" : "💵 Cash Received Physically"}
                       </span>
-                      <h3 className="text-lg font-extrabold text-white">
+                      <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
                         {isFrench
                           ? "Quittance Certifiée & Prête à être Envoyée"
                           : "Receipt Certified & Ready to Dispatch"}
@@ -1149,34 +1149,34 @@ function PaymentsContent() {
 
                   <button
                     onClick={() => setCashConfirmedPayment(null)}
-                    className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                    className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                   {isFrench ? (
                     <>
                       Le paiement physique en espèces de{" "}
-                      <strong className="text-emerald-400 font-mono">
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-mono">
                         {Number(cashConfirmedPayment.amount_paid).toLocaleString()} XAF
                       </strong>{" "}
-                      par <strong className="text-white">{cashConfirmedPayment.tenant_name}</strong>{" "}
+                      par <strong className="text-slate-900 dark:text-white">{cashConfirmedPayment.tenant_name}</strong>{" "}
                       a été validé. Le statut de son registre est passé directement à{" "}
-                      <strong className={isCompletelyPaid ? "text-emerald-400" : "text-amber-400"}>
+                      <strong className={isCompletelyPaid ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
                         {isCompletelyPaid ? "Complètement Soldé ✅" : "Partiellement Payé ⏳"}
                       </strong>.
                     </>
                   ) : (
                     <>
                       The physical cash payment of{" "}
-                      <strong className="text-emerald-400 font-mono">
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-mono">
                         {Number(cashConfirmedPayment.amount_paid).toLocaleString()} XAF
                       </strong>{" "}
-                      from <strong className="text-white">{cashConfirmedPayment.tenant_name}</strong>{" "}
+                      from <strong className="text-slate-900 dark:text-white">{cashConfirmedPayment.tenant_name}</strong>{" "}
                       has been saved. The tenant&apos;s ledger status directly changed to{" "}
-                      <strong className={isCompletelyPaid ? "text-emerald-400" : "text-amber-400"}>
+                      <strong className={isCompletelyPaid ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
                         {isCompletelyPaid ? "Completely Paid (Soldé) ✅" : "Partially Paid ⏳"}
                       </strong>.
                     </>
@@ -1184,59 +1184,59 @@ function PaymentsContent() {
                 </p>
 
                 {/* Certified Receipt Card */}
-                <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5 text-xs">
-                    <span className="text-slate-400">
+                <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2.5 text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">
                       {isFrench ? "N° de Quittance Officielle" : "Official Receipt N°"}
                     </span>
-                    <span className="font-mono font-bold text-emerald-400">
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       {cashConfirmedPayment.receipt_number}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold block">
                         {isFrench ? "Nom du Locataire" : "Tenant Name"}
                       </span>
-                      <span className="font-bold text-white block">
+                      <span className="font-bold text-slate-900 dark:text-white block">
                         {cashConfirmedPayment.tenant_name}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-mono">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                         {cashConfirmedPayment.tenant_phone}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold block">
                         {isFrench ? "Logement" : "Apartment"}
                       </span>
-                      <span className="font-bold text-white block">
+                      <span className="font-bold text-slate-900 dark:text-white block">
                         {isFrench ? "Logement" : "Unit"} {cashConfirmedPayment.unit_number}
                       </span>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
                         {cashConfirmedPayment.building_name}
                       </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-800/60">
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-200 dark:border-slate-800/60">
                     <div>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold block">
                         {isFrench ? "Période Couverte" : "Period Covered"}
                       </span>
-                      <span className="font-semibold text-slate-200 block">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 block">
                         {cashConfirmedPayment.rent_month}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold block">
                         {isFrench ? "Solde Restant Dû" : "Remaining Solde"}
                       </span>
                       <span
                         className={`font-bold font-mono ${
-                          isCompletelyPaid ? "text-emerald-400" : "text-amber-400"
+                          isCompletelyPaid ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
                         }`}
                       >
                         {Number(cashConfirmedPayment.balance_remaining).toLocaleString()} XAF
@@ -1245,8 +1245,8 @@ function PaymentsContent() {
                   </div>
 
                   {/* Stamp Reference */}
-                  <div className="pt-2 border-t border-slate-800/60 flex items-center gap-2 text-[11px] text-slate-400">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>
                       {isFrench
                         ? `Certifié avec sceau officiel unique pour ${profile?.full_name || "le bailleur"}.`
@@ -1279,9 +1279,9 @@ function PaymentsContent() {
                       setSelectedReceipt(cashConfirmedPayment);
                       setShowReceiptModal(true);
                     }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                   >
-                    <Eye className="w-4 h-4 text-blue-400" />
+                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span>
                       {isFrench
                         ? "Voir & Télécharger la Quittance avec Sceau Officiel"
@@ -1299,12 +1299,12 @@ function PaymentsContent() {
                         setTimeout(() => setCopiedNotice(false), 2500);
                       }
                     }}
-                    className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                    className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition cursor-pointer"
                   >
                     {copiedNotice ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 font-semibold">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                           {isFrench
                             ? "Texte de la quittance copié dans le presse-papier !"
                             : "Receipt text copied to clipboard!"}
@@ -1325,7 +1325,7 @@ function PaymentsContent() {
                   <button
                     type="button"
                     onClick={() => setCashConfirmedPayment(null)}
-                    className="w-full py-2 text-xs text-slate-500 hover:text-slate-300 transition text-center cursor-pointer"
+                    className="w-full py-2 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition text-center cursor-pointer"
                   >
                     {isFrench ? "Terminer" : "Done"}
                   </button>
@@ -1339,40 +1339,40 @@ function PaymentsContent() {
       {/* Inspect All Tenant Receipts Drawer */}
       {inspectTenantReceipts && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
               <div>
-                <h3 className="text-sm font-bold text-white">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                   {isFrench
                     ? `Quittances pour ${inspectTenantReceipts.tenant_name}`
                     : `Receipts for ${inspectTenantReceipts.tenant_name}`}
                 </h3>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   {inspectTenantReceipts.building_name} • {isFrench ? "Logement" : "Unit"}{" "}
                   {inspectTenantReceipts.unit_number}
                 </p>
               </div>
               <button
                 onClick={() => setInspectTenantReceipts(null)}
-                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-3 flex-1 text-xs divide-y divide-slate-800">
+            <div className="p-6 overflow-y-auto space-y-3 flex-1 text-xs divide-y divide-slate-100 dark:divide-slate-800">
               {inspectTenantReceipts.payments.map((p) => (
                 <div key={p.id} className="pt-3 first:pt-0 flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-emerald-400">
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {p.receipt_number}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
                         {p.rent_month}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-500 block">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                       {isFrench ? "Payé le :" : "Paid:"}{" "}
                       {new Date(p.created_at).toLocaleDateString(isFrench ? "fr-FR" : "en-US")}{" "}
                       via {PAYMENT_METHOD_LABELS[p.payment_method]?.short || p.payment_method}
@@ -1380,7 +1380,7 @@ function PaymentsContent() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-white font-mono">
+                    <span className="font-bold text-slate-900 dark:text-white font-mono">
                       {Number(p.amount_paid).toLocaleString()} XAF
                     </span>
                     <button
@@ -1388,7 +1388,7 @@ function PaymentsContent() {
                         setSelectedReceipt(p);
                         setShowReceiptModal(true);
                       }}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 hover:text-white cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition cursor-pointer"
                     >
                       {isFrench ? "Voir" : "View"}
                     </button>

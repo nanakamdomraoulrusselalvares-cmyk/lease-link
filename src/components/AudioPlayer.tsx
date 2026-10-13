@@ -57,7 +57,7 @@ export default function AudioPlayer({ src, durationSeconds, label }: AudioPlayer
   };
 
   return (
-    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex items-center gap-3">
       <button
         type="button"
         onClick={togglePlay}
@@ -77,21 +77,21 @@ export default function AudioPlayer({ src, durationSeconds, label }: AudioPlayer
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between text-[11px] mb-1">
-          <span className="font-semibold text-slate-300 flex items-center gap-1.5 truncate">
-            <Volume2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+          <span className="font-semibold text-slate-800 dark:text-slate-300 flex items-center gap-1.5 truncate">
+            <Volume2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
             <span className="truncate">{displayLabel}</span>
           </span>
-          <span className="font-mono text-slate-400 shrink-0">
-            <span className="text-white font-medium">{formatTime(currentTime)}</span>
-            <span className="mx-1 text-slate-600">/</span>
-            <span className="text-purple-400 font-bold">{formatTime(duration)}</span>
+          <span className="font-mono text-slate-500 dark:text-slate-400 shrink-0">
+            <span className="text-slate-900 dark:text-white font-medium">{formatTime(currentTime)}</span>
+            <span className="mx-1 text-slate-400 dark:text-slate-600">/</span>
+            <span className="text-purple-600 dark:text-purple-400 font-bold">{formatTime(duration)}</span>
           </span>
         </div>
 
         {/* Interactive Scrub Bar */}
         <div
           onClick={handleSeek}
-          className="w-full h-2 bg-slate-800 rounded-full overflow-hidden cursor-pointer relative"
+          className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden cursor-pointer relative"
           title={isFrench ? "Cliquer pour naviguer" : "Click to seek"}
         >
           <div

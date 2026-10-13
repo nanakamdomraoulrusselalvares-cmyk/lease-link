@@ -938,18 +938,18 @@ export default function LandlordHomePage() {
           onClick={() => setPreviewPhoto(null)}
         >
           <div
-            className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-2"
+            className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800">
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-300 flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                 <span>{isFrench ? "Inspection de la photo de la panne" : "Damage Photo Inspection"}</span>
               </span>
               <button
                 type="button"
                 onClick={() => setPreviewPhoto(null)}
-                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
