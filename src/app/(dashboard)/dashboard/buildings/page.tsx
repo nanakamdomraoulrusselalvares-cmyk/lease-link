@@ -595,7 +595,7 @@ export default function BuildingsManagementPage() {
         )}
 
         {/* Summary Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4">
           {/* Card 1: Total Buildings */}
           <div className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md">
             <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-400 font-bold">

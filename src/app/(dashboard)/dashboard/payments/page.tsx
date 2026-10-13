@@ -315,7 +315,7 @@ function PaymentsContent() {
         {/* Financial KPI Dashboard Strip: Rich Colors in both Light & Dark Mode */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Expected Rent */}
-          <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50/50 dark:bg-slate-900 border-2 border-blue-200 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
+          <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50/50 dark:bg-none dark:bg-slate-900 border-2 border-blue-200 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
             <div className="flex items-center justify-between text-blue-800 dark:text-slate-400 text-[11px] font-bold uppercase">
               <span>{isFrench ? "Loyer Mensuel Attendu" : "Expected Monthly"}</span>
               <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -333,7 +333,7 @@ function PaymentsContent() {
           </div>
 
           {/* Collected Rent */}
-          <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-50/40 dark:bg-slate-900 border-2 border-emerald-300 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
+          <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-50/40 dark:bg-none dark:bg-slate-900 border-2 border-emerald-300 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
             <div className="flex items-center justify-between text-emerald-900 dark:text-slate-400 text-[11px] font-bold uppercase">
               <span>{isFrench ? "Total Encaissé" : "Collected So Far"}</span>
               <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -358,8 +358,8 @@ function PaymentsContent() {
           <div
             className={`rounded-2xl p-4.5 space-y-2 border-2 shadow-sm ${
               totalOwingBalance > 0
-                ? "bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50/40 border-amber-300 dark:bg-amber-500/5 dark:border-amber-500/30"
-                : "bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-800"
+                ? "bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50/40 border-amber-300 dark:bg-none dark:bg-slate-900 dark:border-amber-500/30"
+                : "bg-slate-50 border-slate-200 dark:bg-none dark:bg-slate-900 dark:border-slate-800"
             }`}
           >
             <div className="flex items-center justify-between text-amber-900 dark:text-slate-400 text-[11px] font-bold uppercase">
@@ -387,7 +387,7 @@ function PaymentsContent() {
           </div>
 
           {/* Tenant Compliance Stats */}
-          <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-purple-50/40 dark:bg-slate-900 border-2 border-purple-200 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
+          <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-purple-50/40 dark:bg-none dark:bg-slate-900 border-2 border-purple-200 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
             <div className="flex items-center justify-between text-purple-900 dark:text-slate-400 text-[11px] font-bold uppercase">
               <span>{isFrench ? "Statut de Règlement" : "Settlement Status"}</span>
               <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400">

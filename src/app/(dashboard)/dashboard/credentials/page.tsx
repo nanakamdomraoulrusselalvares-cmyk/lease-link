@@ -588,17 +588,17 @@ function CredentialsContent() {
                   )}
 
                   {/* Generated Credentials Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0">
                     {/* Login Username / Email */}
-                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5">
+                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5 min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                          <span>{isFrench ? "Identifiant / E-mail du Locataire" : "Tenant Login ID / E-mail"}</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span className="truncate">{isFrench ? "Identifiant / E-mail" : "Tenant Login ID / E-mail"}</span>
                         </span>
                         <button
                           onClick={() => handleCopy(cred.tenantEmail || cred.tenantPhone, `email_${cred.unit.id}`)}
-                          className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
+                          className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition shrink-0"
                           title={isFrench ? "Copier l'identifiant" : "Copy login ID"}
                         >
                           {copiedField === `email_${cred.unit.id}` ? (
@@ -611,19 +611,19 @@ function CredentialsContent() {
                       <span className="font-mono text-xs font-bold text-slate-900 dark:text-white block truncate">
                         {cred.tenantEmail || cred.tenantPhone || (isFrench ? "Aucun e-mail assigné" : "No email assigned")}
                       </span>
-                      <span className="text-[10px] text-slate-500 block">
+                      <span className="text-[10px] text-slate-500 block truncate">
                         {isFrench ? "Tél : " : "Phone: "}{cred.tenantPhone || (isFrench ? "Aucun" : "None")}
                       </span>
                     </div>
 
                     {/* Access Password */}
-                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5">
+                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5 min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <KeyRound className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                          <span>{isFrench ? "Mot de Passe d'Accès" : "Access Password"}</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <KeyRound className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span className="truncate">{isFrench ? "Mot de Passe d'Accès" : "Access Password"}</span>
                         </span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           <button
                             type="button"
                             onClick={() => togglePasswordVisibility(cred.unit.id)}
@@ -649,22 +649,22 @@ function CredentialsContent() {
                           </button>
                         </div>
                       </div>
-                      <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 block tracking-wider">
+                      <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 block tracking-wider truncate">
                         {isPasswordVisible ? cred.tenantPassword : "••••••••••••"}
                       </span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {isFrench ? "Connexion standard sur /tenant/login" : "Used for standard login at /tenant/login"}
+                      <span className="text-[10px] text-slate-500 block truncate">
+                        {isFrench ? "Connexion sur /tenant/login" : "Used for standard login at /tenant/login"}
                       </span>
                     </div>
 
                     {/* 1-Click Direct Magic Link */}
-                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5">
+                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5 min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                          <span>{isFrench ? "Lien Direct en 1-Clic" : "1-Click Magic Link"}</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                          <span className="truncate">{isFrench ? "Lien Direct en 1-Clic" : "1-Click Magic Link"}</span>
                         </span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           <a
                             href={cred.directAccessUrl}
                             target="_blank"
@@ -687,10 +687,10 @@ function CredentialsContent() {
                           </button>
                         </div>
                       </div>
-                      <span className="font-mono text-xs text-blue-600 dark:text-blue-400 block truncate">
+                      <span className="font-mono text-xs text-blue-600 dark:text-blue-400 block truncate max-w-full">
                         {cred.directAccessUrl}
                       </span>
-                      <span className="text-[10px] text-slate-500 block">
+                      <span className="text-[10px] text-slate-500 block truncate">
                         {isFrench ? "Accès direct sans mot de passe pour le locataire" : "Direct passwordless login for tenant"}
                       </span>
                     </div>

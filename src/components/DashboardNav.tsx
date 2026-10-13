@@ -141,8 +141,8 @@ export default function DashboardNav({
       {/* ========================================================================= */}
       {/* 1. TOP DESKTOP & TABLET HEADER BAR (Sticky Glassmorphic)                  */}
       {/* ========================================================================= */}
-      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 transition-colors shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 transition-colors shadow-sm w-full max-w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4 w-full min-w-0">
           {/* Left: Brand Identity & Plan Badge */}
           <div className="flex items-center gap-3 shrink-0">
             <Link href="/dashboard" className="flex items-center gap-2.5 group">
@@ -159,7 +159,7 @@ export default function DashboardNav({
               </div>
             </Link>
 
-            <span className="hidden xl:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
+            <span className="hidden 2xl:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
               <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
               <span>{planLabel}</span>
             </span>
@@ -167,7 +167,7 @@ export default function DashboardNav({
 
           {/* Center: Desktop Segmented Navigation Tabs */}
           <nav
-            className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-950/60 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-inner"
+            className="hidden xl:flex items-center gap-1 bg-slate-100 dark:bg-slate-950/60 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-inner"
             role="navigation"
             aria-label="Dashboard primary navigation"
           >
@@ -177,7 +177,7 @@ export default function DashboardNav({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                  className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
                     item.active
                       ? "bg-blue-600 text-white shadow-sm font-bold"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/70"
@@ -209,17 +209,17 @@ export default function DashboardNav({
           </nav>
 
           {/* Right: Controls, Switchers, User Pill, Logout */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <LanguageSwitcher variant="pill" />
             <ThemeSwitcher variant="pill" />
             <NotificationBell role="landlord" landlordId={user?.id} />
 
             {/* User Profile Pill (Desktop) */}
-            <div className="hidden md:flex items-center gap-2 pl-2 pr-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs">
-              <div className="w-6 h-6 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-[11px] shadow-sm">
+            <div className="hidden md:flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs">
+              <div className="w-6 h-6 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-[11px] shadow-sm shrink-0">
                 {userDisplayName.substring(0, 2).toUpperCase()}
               </div>
-              <span className="text-slate-800 dark:text-slate-200 font-semibold max-w-[130px] truncate">
+              <span className="text-slate-800 dark:text-slate-200 font-semibold max-w-[120px] truncate hidden xl:inline">
                 {userDisplayName}
               </span>
             </div>
@@ -228,11 +228,11 @@ export default function DashboardNav({
             <button
               onClick={handleLogout}
               disabled={loggingOut}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
               title={isFrench ? "Se déconnecter" : "Sign out"}
             >
               <LogOut className={`w-3.5 h-3.5 ${loggingOut ? "animate-spin" : ""}`} />
-              <span className="hidden xl:inline">
+              <span className="hidden 2xl:inline">
                 {loggingOut
                   ? isFrench
                     ? "Déconnexion..."
@@ -247,7 +247,7 @@ export default function DashboardNav({
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+              className="xl:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer"
               aria-label="Open mobile navigation menu"
             >
               <Menu className="w-5 h-5" />
@@ -260,7 +260,7 @@ export default function DashboardNav({
       {/* 2. MOBILE FIXED BOTTOM NAVIGATION BAR (iOS / Native PWA style)           */}
       {/* ========================================================================= */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800/90 shadow-2xl safe-area-bottom"
+        className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800/90 shadow-2xl safe-area-bottom"
         role="navigation"
         aria-label="Mobile bottom navigation"
       >
@@ -307,7 +307,7 @@ export default function DashboardNav({
       {/* 3. MOBILE SLIDE-OVER DRAWER (For full profile, actions & utilities)        */}
       {/* ========================================================================= */}
       {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
+        <div className="fixed inset-0 z-50 flex xl:hidden">
           {/* Backdrop overlay */}
           <div
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
