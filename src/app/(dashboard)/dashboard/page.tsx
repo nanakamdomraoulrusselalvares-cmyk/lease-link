@@ -230,10 +230,10 @@ export default function LandlordHomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
         <div className="text-center space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             {isFrench ? "Vérification de la session bailleur..." : "Verifying landlord session..."}
           </p>
         </div>
@@ -242,7 +242,7 @@ export default function LandlordHomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
       {/* Unified SaaS Dashboard Navigation Bar (Desktop Tabs + Mobile Bottom Bar) */}
       <DashboardNav
         user={user}
@@ -268,14 +268,14 @@ export default function LandlordHomePage() {
         )}
 
         {/* Welcome & Registration Test Success Banner */}
-        <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-slate-900 border border-blue-500/30 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-50 via-white to-indigo-50/40 dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 sm:p-8 shadow-sm dark:shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 pointer-events-none opacity-10">
-            <Sparkles className="w-48 h-48 text-blue-400" />
+            <Sparkles className="w-48 h-48 text-blue-600 dark:text-blue-400" />
           </div>
 
           <div className="relative z-10 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>
                 {isFrench
                   ? "Session Bailleur Vérifiée & Active"
@@ -284,10 +284,10 @@ export default function LandlordHomePage() {
             </div>
 
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
                 {isFrench ? `Bienvenue sur LeaseLink, ${fullName} !` : `Welcome to LeaseLink, ${fullName}!`}
               </h1>
-              <p className="mt-1.5 text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
+              <p className="mt-1.5 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
                 {isFrench
                   ? "Votre compte propriétaire est opérationnel. Vous êtes connecté à l'espace de gestion LeaseLink. Voici le récapitulatif de votre portefeuille."
                   : "Your landlord account was created successfully. You are now logged into the LeaseLink landlord portal. Below are the details captured during registration."}
@@ -298,7 +298,7 @@ export default function LandlordHomePage() {
               <Link
                 href="/dashboard/buildings"
                 id="banner-manage-buildings-btn"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition cursor-pointer"
               >
                 <Building2 className="w-3.5 h-3.5" />
                 <span>{isFrench ? "Gérer les Immeubles & Logements" : "Manage Buildings & Units"}</span>
@@ -307,9 +307,9 @@ export default function LandlordHomePage() {
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 transition cursor-pointer shadow-xs"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-blue-400" : ""}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-blue-600 dark:text-blue-400" : ""}`} />
                 <span>{refreshing ? (isFrench ? "Actualisation..." : "Refreshing...") : (isFrench ? "Actualiser la Session" : "Refresh Session")}</span>
               </button>
 
@@ -317,7 +317,7 @@ export default function LandlordHomePage() {
                 id="logout-banner-btn"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>{loggingOut ? (isFrench ? "Déconnexion..." : "Signing Out...") : (isFrench ? "Se Déconnecter" : "Log Out Now")}</span>
@@ -325,7 +325,7 @@ export default function LandlordHomePage() {
 
               <Link
                 href="/"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-medium border border-slate-800 transition"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-slate-800 transition shadow-xs"
               >
                 <span>{isFrench ? "Accueil Public" : "View Public Homepage"}</span>
                 <ArrowRight className="w-3 h-3" />
@@ -337,15 +337,15 @@ export default function LandlordHomePage() {
         {/* Details Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Card 1: Registered Identity */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <UserIcon className="w-4 h-4 text-blue-400" />
-                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">
+                <UserIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
                   {isFrench ? "Profil Bailleur" : "Landlord Profile"}
                 </span>
               </div>
-              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-medium">
+              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 font-medium">
                 <ShieldCheck className="w-3 h-3" />
                 {isFrench ? "Authentifié" : "Authenticated"}
               </span>
@@ -353,66 +353,66 @@ export default function LandlordHomePage() {
 
             <div className="space-y-3.5 text-sm">
               <div>
-                <span className="text-xs text-slate-400 block mb-0.5">{isFrench ? "Nom Complet" : "Full Name"}</span>
-                <span className="font-semibold text-white text-base">{fullName}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">{isFrench ? "Nom Complet" : "Full Name"}</span>
+                <span className="font-semibold text-slate-900 dark:text-white text-base">{fullName}</span>
               </div>
 
               <div>
-                <span className="text-xs text-slate-400 block mb-0.5">{isFrench ? "Adresse E-mail" : "Email Address"}</span>
-                <div className="flex items-center gap-2 text-slate-200">
-                  <Mail className="w-4 h-4 text-slate-500 shrink-0" />
+                <span className="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">{isFrench ? "Adresse E-mail" : "Email Address"}</span>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                  <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                   <span className="font-mono text-xs">{email}</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-xs text-slate-400 block mb-0.5">{isFrench ? "Numéro de Téléphone" : "Phone Number"}</span>
-                <div className="flex items-center gap-2 text-slate-200">
-                  <Phone className="w-4 h-4 text-slate-500 shrink-0" />
+                <span className="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">{isFrench ? "Numéro de Téléphone" : "Phone Number"}</span>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                  <Phone className="w-4 h-4 text-slate-400 shrink-0" />
                   <span>{phone}</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-xs text-slate-400 block mb-0.5">{isFrench ? "Inscrit le" : "Registered On"}</span>
-                <div className="flex items-center gap-2 text-slate-300 text-xs">
-                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span className="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">{isFrench ? "Inscrit le" : "Registered On"}</span>
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-xs">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   <span>{joinedDate}</span>
                 </div>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-500">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
               <span className="block mb-1">{isFrench ? "Identifiant Utilisateur (UID Supabase) :" : "User ID (Supabase Auth UID):"}</span>
-              <span className="font-mono text-slate-400 block truncate bg-slate-950 p-2 rounded-lg border border-slate-800">
+              <span className="font-mono text-slate-600 dark:text-slate-400 block truncate bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
                 {user?.id || "N/A"}
               </span>
             </div>
           </div>
 
           {/* Card 2: Subscription & Unit Capacity */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-400" />
-                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">
+                <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
                   {isFrench ? "Abonnement & Capacité" : "Subscription Tier"}
                 </span>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
                 {profile?.plan_status || (isFrench ? "Actif" : "Active")}
               </span>
             </div>
 
             <div>
-              <h3 className="text-2xl font-extrabold text-white">{planName}</h3>
-              <p className="text-xs text-slate-400 mt-1">{planConfig.tagline}</p>
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{planName}</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{planConfig.tagline}</p>
             </div>
 
             {/* Occupied vs Vacant Units Portfolio Breakdown */}
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="bg-blue-50 dark:bg-slate-950/70 p-3.5 rounded-xl border-2 border-blue-200 dark:border-blue-500/20">
-                <div className="flex items-center justify-between text-xs text-blue-700 dark:text-slate-400">
+              <div className="bg-blue-50/70 dark:bg-slate-950/70 p-3.5 rounded-xl border-2 border-blue-200 dark:border-blue-500/20">
+                <div className="flex items-center justify-between text-xs text-blue-800 dark:text-slate-400">
                   <div className="flex items-center gap-1.5 font-bold">
                     <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>{isFrench ? "Occupés" : "Occupied"}</span>
@@ -426,7 +426,7 @@ export default function LandlordHomePage() {
                 </div>
               </div>
 
-              <div className="bg-emerald-50 dark:bg-slate-950/70 p-3.5 rounded-xl border-2 border-emerald-200 dark:border-emerald-500/20">
+              <div className="bg-emerald-50/70 dark:bg-slate-950/70 p-3.5 rounded-xl border-2 border-emerald-200 dark:border-emerald-500/20">
                 <div className="flex items-center justify-between text-xs text-emerald-800 dark:text-slate-400">
                   <div className="flex items-center gap-1.5 font-bold">
                     <DoorOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -444,13 +444,13 @@ export default function LandlordHomePage() {
 
             {/* Capacity & Progress */}
             <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                 <span>{isFrench ? "Capacité du Forfait :" : "Unit Capacity:"}</span>
-                <span className="font-semibold text-white font-mono">
+                <span className="font-semibold text-slate-900 dark:text-white font-mono">
                   {totalUnits} / {unitLimit} {isFrench ? "Logements" : "Units"}
                 </span>
               </div>
-              <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800 flex">
+              <div className="w-full bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 flex">
                 <div
                   style={{ width: `${unitLimit > 0 ? (occupiedUnits / unitLimit) * 100 : 0}%` }}
                   className="bg-blue-500 h-full transition-all"
@@ -463,38 +463,38 @@ export default function LandlordHomePage() {
                 />
               </div>
               <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
-                <span className="text-blue-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                   {occupiedUnits} {isFrench ? "Occupés" : "Occupied"}
                 </span>
-                <span className="text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   {vacantUnits} {isFrench ? "Vacants" : "Vacant"}
                 </span>
-                <span>{Math.max(0, unitLimit - totalUnits)} {isFrench ? "Restants" : "Left"}</span>
+                <span className="text-slate-500">{Math.max(0, unitLimit - totalUnits)} {isFrench ? "Restants" : "Left"}</span>
               </div>
             </div>
           </div>
 
           {/* Card 3: Registration Test Checklist */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-blue-400" />
-                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">
+                <KeyRound className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
                   {isFrench ? "Diagnostic & État du Compte" : "Registration Diagnostics"}
                 </span>
               </div>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-white block">
+                  <span className="font-semibold text-slate-900 dark:text-white block">
                     {isFrench ? "Compte Auth Supabase" : "Supabase Auth Record"}
                   </span>
-                  <span className="text-slate-400">
+                  <span className="text-slate-600 dark:text-slate-400">
                     {isFrench
                       ? "Utilisateur créé avec hash de mot de passe sécurisé."
                       : "User created in auth.users with secure password hash."}
@@ -502,13 +502,13 @@ export default function LandlordHomePage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-white block">
+                  <span className="font-semibold text-slate-900 dark:text-white block">
                     {isFrench ? "Métadonnées Enregistrées" : "User Metadata Saved"}
                   </span>
-                  <span className="text-slate-400">
+                  <span className="text-slate-600 dark:text-slate-400">
                     {isFrench
                       ? "Nom, téléphone et formule stockés avec succès."
                       : "Name, phone, and plan stored in raw_user_meta_data."}
@@ -516,13 +516,13 @@ export default function LandlordHomePage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
-                <Database className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-white block">
+                  <span className="font-semibold text-slate-900 dark:text-white block">
                     {isFrench ? "Profil Public du Propriétaire" : "Public Profile Record"}
                   </span>
-                  <span className="text-slate-400">
+                  <span className="text-slate-600 dark:text-slate-400">
                     {profile
                       ? (isFrench ? "Ligne de profil chargée avec succès." : "Profile table row loaded successfully.")
                       : (isFrench ? "Exécution en attente (repli sur métadonnées actif)." : "Pending SQL trigger execution (metadata fallback active).")}
@@ -536,7 +536,7 @@ export default function LandlordHomePage() {
                 id="logout-test-btn"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="w-full py-2.5 px-4 rounded-xl bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/10 dark:hover:bg-rose-600/20 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 hover:text-rose-800 dark:hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>
@@ -550,7 +550,7 @@ export default function LandlordHomePage() {
         {/* Operational Modules Preview */}
         <div className="space-y-4 pt-4">
           <div>
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               {isFrench ? "Modules de Gestion Opérationnelle" : "Next Step: Operational Modules"}
             </h2>
             <p className="text-xs text-slate-400">
@@ -687,19 +687,19 @@ export default function LandlordHomePage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                   <Wrench className="w-4 h-4" />
                 </div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <span>{isFrench ? "Demandes de maintenance & réparations" : "Maintenance & Repair Requests"}</span>
                   {pendingRequests.length > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold animate-pulse">
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs font-bold animate-pulse">
                       {pendingRequests.length} {isFrench ? "En attente" : "Pending"}
                     </span>
                   )}
                 </h2>
               </div>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                 {isFrench
                   ? "Pannes signalées par vos locataires. Inspectez photos, notes vocales et mettez à jour le statut."
                   : "Issues reported by your tenants. Inspect photos, voice recordings, and update status."}
@@ -710,7 +710,7 @@ export default function LandlordHomePage() {
               <Link
                 href="/dashboard/maintenance"
                 id="view-all-repairs-btn"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/30 text-amber-300 hover:text-white text-xs font-semibold transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-600/15 dark:hover:bg-amber-600/25 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold transition cursor-pointer shadow-xs"
               >
                 <span>{isFrench ? "Centre de réparations" : "Repairs Hub"} ({maintenanceRequests.length})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -720,42 +720,42 @@ export default function LandlordHomePage() {
 
           {/* KPI Summary Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
               <div>
-                <span className="text-[11px] text-slate-400 block">{isFrench ? "Total Demandes" : "Total Requests"}</span>
-                <span className="text-xl font-bold text-white">{maintenanceRequests.length}</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">{isFrench ? "Total Demandes" : "Total Requests"}</span>
+                <span className="text-xl font-bold text-slate-900 dark:text-white">{maintenanceRequests.length}</span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
                 <Wrench className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
               <div>
-                <span className="text-[11px] text-amber-400/90 block">{isFrench ? "En Attente" : "Pending Review"}</span>
-                <span className="text-xl font-bold text-amber-300">{pendingRequests.length}</span>
+                <span className="text-[11px] text-amber-700 dark:text-amber-400/90 block font-medium">{isFrench ? "En Attente" : "Pending Review"}</span>
+                <span className="text-xl font-bold text-amber-800 dark:text-amber-300">{pendingRequests.length}</span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                 <Clock className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-blue-500/30 rounded-xl p-3.5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
               <div>
-                <span className="text-[11px] text-blue-400/90 block">{isFrench ? "En Cours" : "In Progress"}</span>
-                <span className="text-xl font-bold text-blue-300">{inProgressRequests.length}</span>
+                <span className="text-[11px] text-blue-700 dark:text-blue-400/90 block font-medium">{isFrench ? "En Cours" : "In Progress"}</span>
+                <span className="text-xl font-bold text-blue-800 dark:text-blue-300">{inProgressRequests.length}</span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <RefreshCw className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
               <div>
-                <span className="text-[11px] text-emerald-400/90 block">{isFrench ? "Résolu" : "Resolved"}</span>
-                <span className="text-xl font-bold text-emerald-300">{resolvedRequests.length}</span>
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-400/90 block font-medium">{isFrench ? "Résolu" : "Resolved"}</span>
+                <span className="text-xl font-bold text-emerald-800 dark:text-emerald-300">{resolvedRequests.length}</span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
@@ -763,15 +763,15 @@ export default function LandlordHomePage() {
 
           {/* Requests List */}
           {maintenanceRequests.length === 0 ? (
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-800/80 text-slate-500 flex items-center justify-center mx-auto">
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-8 text-center space-y-3 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 text-slate-500 flex items-center justify-center mx-auto">
                 <Wrench className="w-6 h-6" />
               </div>
               <div className="max-w-md mx-auto space-y-1">
-                <h3 className="font-semibold text-white text-sm">
+                <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                   {isFrench ? "Aucune demande de maintenance pour le moment" : "No Maintenance Requests Yet"}
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   {isFrench
                     ? "Lorsqu'un locataire signale une fuite de plomberie, un problème électrique ou un défaut avec des photos et des notes vocales, sa demande apparaîtra directement sur ce tableau de bord."
                     : "When a tenant reports a plumbing leak, electrical problem, or defect with photos and voice notes, their request will appear directly on this dashboard."}
@@ -779,7 +779,7 @@ export default function LandlordHomePage() {
               </div>
               <Link
                 href="/dashboard/maintenance"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold border border-slate-300 dark:border-slate-700 transition"
               >
                 <span>{isFrench ? "Consulter le centre de réparations" : "Visit Maintenance Center"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -797,17 +797,17 @@ export default function LandlordHomePage() {
                   return (
                     <div
                       key={req.id}
-                      className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg space-y-4 transition flex flex-col justify-between"
+                      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-2xl p-5 shadow-sm dark:shadow-lg space-y-4 transition flex flex-col justify-between"
                     >
                       <div className="space-y-3">
                         {/* Header: Location & Status */}
                         <div className="flex items-start justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs font-bold text-white">
-                              <Home className="w-3.5 h-3.5 text-blue-400" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white">
+                              <Home className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                               <span>{req.building_name} • {req.unit_number}</span>
                             </span>
-                            <span className="text-[11px] text-slate-400">
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                               {isFrench ? categoryConfig.fr : categoryConfig.label}
                             </span>
                           </div>
@@ -824,11 +824,11 @@ export default function LandlordHomePage() {
 
                         {/* Title & Description */}
                         <div>
-                          <h4 className="font-bold text-white text-base tracking-tight capitalize">
+                          <h4 className="font-bold text-slate-900 dark:text-white text-base tracking-tight capitalize">
                             {req.title}
                           </h4>
                           {req.description && (
-                            <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed bg-slate-950/40 p-2 rounded-lg border border-slate-800/60 italic">
+                            <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-slate-950/40 p-2 rounded-lg border border-slate-200 dark:border-slate-800/60 italic">
                               "{req.description}"
                             </p>
                           )}
@@ -838,7 +838,7 @@ export default function LandlordHomePage() {
                         {(req.photo_url || req.voice_url || req.video_url) && (
                           <div className="space-y-2 pt-1">
                             {req.photo_url && (
-                              <div className="relative group rounded-xl overflow-hidden border border-slate-800 bg-slate-950/60 max-w-xs">
+                              <div className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 max-w-xs">
                                 <img
                                   src={req.photo_url}
                                   alt={isFrench ? "Photo de la panne" : "Tenant damage photo"}
@@ -848,9 +848,9 @@ export default function LandlordHomePage() {
                                 <button
                                   type="button"
                                   onClick={() => setPreviewPhoto(req.photo_url || null)}
-                                  className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-slate-900/80 backdrop-blur text-white text-[11px] font-medium flex items-center gap-1.5 border border-slate-700/80 hover:bg-slate-900 transition cursor-pointer"
+                                  className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/80 backdrop-blur text-slate-900 dark:text-white text-[11px] font-medium flex items-center gap-1.5 border border-slate-200 dark:border-slate-700/80 hover:bg-white dark:hover:bg-slate-900 transition cursor-pointer shadow-xs"
                                 >
-                                  <Camera className="w-3.5 h-3.5 text-blue-400" />
+                                  <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                   <span>{isFrench ? "Inspecter la photo" : "Inspect Photo"}</span>
                                 </button>
                               </div>
@@ -858,7 +858,7 @@ export default function LandlordHomePage() {
 
                             {req.voice_url && (
                               <div className="space-y-1">
-                                <span className="text-[11px] text-purple-400 font-semibold flex items-center gap-1">
+                                <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
                                   <Mic className="w-3.5 h-3.5" />
                                   <span>
                                     {isFrench ? "Note vocale" : "Voice Note"} ({req.voice_duration_seconds ? `${req.voice_duration_seconds}s` : isFrench ? "Enregistrée" : "Recorded"})
@@ -876,11 +876,11 @@ export default function LandlordHomePage() {
                       </div>
 
                       {/* Footer: Tenant Details & Actions */}
-                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                          <UserIcon className="w-3.5 h-3.5 text-slate-500" />
-                          <span className="text-slate-200 font-semibold">{req.tenant_name}</span>
-                          <span className="text-slate-500">•</span>
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                          <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-slate-900 dark:text-slate-200 font-semibold">{req.tenant_name}</span>
+                          <span className="text-slate-300 dark:text-slate-500">•</span>
                           <span>{req.tenant_phone}</span>
                         </div>
 
@@ -890,7 +890,7 @@ export default function LandlordHomePage() {
                               href={whatsappReply.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 text-xs font-semibold transition cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-600/15 dark:hover:bg-emerald-600/25 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold transition cursor-pointer shadow-xs"
                               title={isFrench ? "Discuter sur WhatsApp" : "Chat on WhatsApp"}
                             >
                               <MessageCircle className="w-3.5 h-3.5" />
@@ -900,7 +900,7 @@ export default function LandlordHomePage() {
 
                           <Link
                             href="/dashboard/maintenance"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-semibold border border-slate-300 dark:border-slate-700 transition cursor-pointer shadow-xs"
                           >
                             <span>{isFrench ? "Gérer" : "Manage"}</span>
                             <ArrowRight className="w-3 h-3" />

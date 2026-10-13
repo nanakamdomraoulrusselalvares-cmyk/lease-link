@@ -541,12 +541,12 @@ Date: ${formattedDate}`;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
       {/* Modal Card */}
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 flex flex-col">
+      <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 flex flex-col">
         {/* Modal Top Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90">
           <div className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-emerald-400" />
-            <span className="font-bold text-white text-sm">
+            <Receipt className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-bold text-slate-900 dark:text-white text-sm">
               {isFrench ? "Quittance de Paiement Officielle" : "Official Payment Receipt"}
             </span>
           </div>
@@ -576,16 +576,16 @@ Date: ${formattedDate}`;
                 href={whatsAppUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-semibold border border-emerald-500/30 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-600/20 dark:hover:bg-emerald-600/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-500/30 transition cursor-pointer"
               >
-                <MessageCircle className="w-3.5 h-3.5 fill-emerald-400/30 text-emerald-400" />
+                <MessageCircle className="w-3.5 h-3.5 fill-emerald-500/30 text-emerald-600 dark:text-emerald-400" />
                 <span>{isFrench ? "Notifier le bailleur" : "Notify Landlord"}</span>
               </a>
             )}
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
               title={isFrench ? "Fermer" : "Close Modal"}
             >
               <X className="w-4 h-4" />
@@ -596,20 +596,20 @@ Date: ${formattedDate}`;
         {/* Receipt Body */}
         <div
           ref={receiptRef}
-          className="p-6 sm:p-8 space-y-6 bg-slate-900 text-slate-100"
+          className="p-6 sm:p-8 space-y-6 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
         >
           {/* Receipt Header */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-800 pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
                   LL
                 </div>
                 <div>
-                  <h1 className="font-extrabold text-lg text-white tracking-tight">
-                    Lease<span className="text-blue-500">Link</span>
+                  <h1 className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight">
+                    Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
                   </h1>
-                  <span className="text-[10px] text-slate-400 block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                     {isFrench
                       ? "Gestion Immobilière & Quittances Numériques"
                       : "Property Management & Digital Receipts"}
@@ -617,24 +617,24 @@ Date: ${formattedDate}`;
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300 pt-2 font-medium">
+              <p className="text-xs text-slate-600 dark:text-slate-300 pt-2 font-medium">
                 {isFrench ? "Résidence :" : "Residence:"}{" "}
-                <strong>{effectiveResidenceName}</strong>
+                <strong className="text-slate-900 dark:text-white">{effectiveResidenceName}</strong>
               </p>
-              <p className="text-[11px] text-slate-400 font-medium">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 {isFrench ? "Bailleur / Gestionnaire :" : "Landlord / Manager:"}{" "}
-                <strong className="text-slate-200">
+                <strong className="text-slate-800 dark:text-slate-200">
                   {effectiveLandlordName}
                 </strong>
               </p>
             </div>
 
             <div className="sm:text-right space-y-1">
-              <div className="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              <div className="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400">
                 {payment.receipt_number}
               </div>
-              <div className="text-[11px] text-slate-400 flex items-center sm:justify-end gap-1">
-                <Calendar className="w-3 h-3 text-slate-500" />
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center sm:justify-end gap-1">
+                <Calendar className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                 <span>{formattedDate}</span>
               </div>
             </div>
@@ -644,16 +644,16 @@ Date: ${formattedDate}`;
           <div
             className={`p-4 rounded-2xl border flex items-center justify-between ${
               isFullPayment
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300"
             }`}
           >
             <div className="flex items-center gap-3">
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   isFullPayment
-                    ? "bg-emerald-500/20 text-emerald-400"
-                    : "bg-amber-500/20 text-amber-400"
+                    ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                    : "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
                 }`}
               >
                 <CheckCircle2 className="w-5 h-5" />
@@ -686,29 +686,29 @@ Date: ${formattedDate}`;
           </div>
 
           {/* Tenant & Apartment Details */}
-          <div className="grid grid-cols-2 gap-4 text-xs bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+          <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 dark:bg-slate-950/70 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
             <div className="space-y-1">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                 {isFrench ? "Locataire (Payeur)" : "Tenant (Payer)"}
               </span>
-              <p className="font-bold text-white text-sm">
+              <p className="font-bold text-slate-900 dark:text-white text-sm">
                 {payment.tenant_name}
               </p>
-              <p className="text-slate-400 font-mono">{payment.tenant_phone}</p>
+              <p className="text-slate-600 dark:text-slate-400 font-mono">{payment.tenant_phone}</p>
               {payment.tenant_email && (
-                <p className="text-slate-400">{payment.tenant_email}</p>
+                <p className="text-slate-600 dark:text-slate-400">{payment.tenant_email}</p>
               )}
             </div>
 
             <div className="space-y-1 sm:text-right">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                 {isFrench ? "Logement Attribué" : "Unit Allocated"}
               </span>
-              <p className="font-bold text-blue-400 text-sm">
+              <p className="font-bold text-blue-600 dark:text-blue-400 text-sm">
                 {isFrench ? `Logement ${payment.unit_number}` : `Unit ${payment.unit_number}`}
               </p>
-              <p className="text-slate-400">{effectiveResidenceName}</p>
-              <p className="text-slate-500 text-[11px]">
+              <p className="text-slate-600 dark:text-slate-400">{effectiveResidenceName}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-[11px]">
                 {isFrench ? "Loyer mensuel :" : "Monthly Rate:"} {formattedRent} XAF
               </p>
             </div>
@@ -716,32 +716,32 @@ Date: ${formattedDate}`;
 
           {/* Payment Breakdown Table */}
           <div className="space-y-2">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
               {isFrench ? "Détail du Paiement" : "Payment Breakdown"}
             </span>
-            <div className="border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800 text-xs">
-              <div className="flex justify-between p-3 bg-slate-950/40">
-                <span className="text-slate-400">
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+              <div className="flex justify-between p-3 bg-slate-50/50 dark:bg-slate-950/40">
+                <span className="text-slate-600 dark:text-slate-400">
                   {isFrench
                     ? `Loyer convenu pour ${payment.rent_month}`
                     : `Agreed Rent for ${payment.rent_month}`}
                 </span>
-                <span className="font-semibold text-white font-mono">
+                <span className="font-semibold text-slate-900 dark:text-white font-mono">
                   {formattedRent} XAF
                 </span>
               </div>
 
-              <div className="flex justify-between p-3 bg-slate-950/60">
-                <span className="text-slate-300 font-medium">
+              <div className="flex justify-between p-3 bg-white dark:bg-slate-950/60">
+                <span className="text-slate-700 dark:text-slate-300 font-medium">
                   {isFrench ? "Montant Reçu & Confirmé" : "Amount Received & Confirmed"}
                 </span>
-                <span className="font-bold text-emerald-400 font-mono text-sm">
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm">
                   + {formattedPaid} XAF
                 </span>
               </div>
 
-              <div className="flex justify-between p-3 bg-slate-950/40">
-                <span className="text-slate-400">
+              <div className="flex justify-between p-3 bg-slate-50/50 dark:bg-slate-950/40">
+                <span className="text-slate-600 dark:text-slate-400">
                   {isFrench
                     ? "Solde Restant (Arriérés / Dû)"
                     : "Remaining Balance (Arrears / Owing)"}
@@ -749,8 +749,8 @@ Date: ${formattedDate}`;
                 <span
                   className={`font-bold font-mono ${
                     payment.balance_remaining > 0
-                      ? "text-amber-400"
-                      : "text-emerald-400"
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-emerald-600 dark:text-emerald-400"
                   }`}
                 >
                   {payment.balance_remaining > 0
@@ -761,20 +761,20 @@ Date: ${formattedDate}`;
                 </span>
               </div>
 
-              <div className="flex justify-between p-3 bg-slate-950/60">
-                <span className="text-slate-400">
+              <div className="flex justify-between p-3 bg-white dark:bg-slate-950/60">
+                <span className="text-slate-600 dark:text-slate-400">
                   {isFrench ? "Mode de Paiement" : "Payment Method"}
                 </span>
-                <span className="font-medium text-slate-200">
+                <span className="font-medium text-slate-800 dark:text-slate-200">
                   {methodMeta.label}
                 </span>
               </div>
 
-              <div className="flex justify-between p-3 bg-slate-950/40">
-                <span className="text-slate-400">
+              <div className="flex justify-between p-3 bg-slate-50/50 dark:bg-slate-950/40">
+                <span className="text-slate-600 dark:text-slate-400">
                   {isFrench ? "Référence de Transaction" : "Transaction Reference"}
                 </span>
-                <span className="font-mono text-slate-300 text-[11px]">
+                <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px]">
                   {payment.transaction_ref}
                 </span>
               </div>
@@ -782,19 +782,19 @@ Date: ${formattedDate}`;
           </div>
 
           {/* UNIQUE PHYSICAL STAMP DISPLAY (Based on Landlord & Residence Name) */}
-          <div className="pt-2 pb-1 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-800/80">
-            <div className="space-y-1 text-xs text-slate-400 max-w-xs">
-              <span className="font-bold text-white flex items-center gap-1.5 text-xs">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="pt-2 pb-1 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 dark:border-slate-800/80">
+            <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+              <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 text-xs">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{isFrench ? "Quittance Officielle Certifiée" : "Certified Official Receipt"}</span>
               </span>
-              <p className="text-[11px] text-slate-400 leading-tight">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
                 {isFrench ? (
                   <>
                     Cette quittance porte le sceau authentique officiel de{" "}
-                    <strong className="text-white">{effectiveLandlordName}</strong>{" "}
+                    <strong className="text-slate-900 dark:text-white">{effectiveLandlordName}</strong>{" "}
                     pour{" "}
-                    <strong className="text-blue-400">
+                    <strong className="text-blue-600 dark:text-blue-400">
                       {effectiveResidenceName}
                     </strong>
                     .
@@ -802,9 +802,9 @@ Date: ${formattedDate}`;
                 ) : (
                   <>
                     This receipt carries the authentic official seal of{" "}
-                    <strong className="text-white">{effectiveLandlordName}</strong>{" "}
+                    <strong className="text-slate-900 dark:text-white">{effectiveLandlordName}</strong>{" "}
                     for{" "}
-                    <strong className="text-blue-400">
+                    <strong className="text-blue-600 dark:text-blue-400">
                       {effectiveResidenceName}
                     </strong>
                     .
@@ -815,7 +815,7 @@ Date: ${formattedDate}`;
 
             {/* Official Ink Rubber Stamp Component */}
             <div className="relative select-none transform -rotate-6 hover:rotate-0 transition duration-300 shrink-0">
-              <div className="w-44 h-44 rounded-full border-4 border-dashed border-rose-600/80 p-1 flex items-center justify-center bg-rose-500/5 shadow-lg shadow-rose-950/40">
+              <div className="w-44 h-44 rounded-full border-4 border-dashed border-rose-600/80 p-1 flex items-center justify-center bg-rose-50 dark:bg-rose-500/5 shadow-lg shadow-rose-900/10 dark:shadow-rose-950/40">
                 <div className="w-full h-full rounded-full border-2 border-rose-600 flex flex-col items-center justify-center text-center p-2 text-rose-500 font-serif relative">
                   <span className="text-[8px] font-black tracking-widest uppercase border-b border-rose-600/40 pb-0.5 w-full block">
                     {isFrench ? "★ SCEAU OFFICIEL ★" : "★ OFFICIAL SEAL ★"}
@@ -842,15 +842,15 @@ Date: ${formattedDate}`;
         </div>
 
         {/* Modal Bottom Actions */}
-        <div className="p-4 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 bg-slate-50 dark:bg-slate-950/90 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={handleCopyReceipt}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-transparent transition cursor-pointer"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">{isFrench ? "Copié !" : "Copied!"}</span>
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-600 dark:text-emerald-400">{isFrench ? "Copié !" : "Copied!"}</span>
               </>
             ) : (
               <>
@@ -885,7 +885,7 @@ Date: ${formattedDate}`;
 
             <button
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-transparent transition cursor-pointer"
             >
               {isFrench ? "Fermer" : "Close"}
             </button>

@@ -208,10 +208,10 @@ export default function LandlordMaintenancePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
         <div className="text-center space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-amber-500 mx-auto" />
-          <p className="text-xs font-semibold text-slate-400">
+          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
             {isFrench ? "Chargement des tickets d'entretien..." : "Loading maintenance tickets..."}
           </p>
         </div>
@@ -220,7 +220,7 @@ export default function LandlordMaintenancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-amber-500 selection:text-white">
       {/* Unified SaaS Dashboard Navigation Bar */}
       <DashboardNav
         user={user}
@@ -231,9 +231,9 @@ export default function LandlordMaintenancePage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24 lg:pb-12">
         {/* Emergency Alert Banner if any open critical tickets */}
         {stats.emergency > 0 && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between gap-3 text-rose-300 animate-pulse">
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-center justify-between gap-3 text-rose-800 dark:text-rose-300 animate-pulse shadow-sm">
             <div className="flex items-center gap-3">
-              <AlertOctagon className="w-5 h-5 shrink-0 text-rose-400" />
+              <AlertOctagon className="w-5 h-5 shrink-0 text-rose-600 dark:text-rose-400" />
               <span className="text-xs font-bold">
                 {isFrench
                   ? `Attention : Vous avez ${stats.emergency} ticket${stats.emergency > 1 ? "s" : ""} d'urgence nécessitant une intervention immédiate !`
@@ -242,7 +242,7 @@ export default function LandlordMaintenancePage() {
             </div>
             <button
               onClick={() => setUrgencyFilter("emergency")}
-              className="px-3 py-1 rounded-lg bg-rose-600 text-white text-xs font-bold shrink-0 hover:bg-rose-500 transition cursor-pointer"
+              className="px-3 py-1 rounded-lg bg-rose-600 text-white text-xs font-bold shrink-0 hover:bg-rose-700 transition cursor-pointer shadow-xs"
             >
               {isFrench ? "Voir Urgents" : "View Critical"}
             </button>
@@ -251,12 +251,12 @@ export default function LandlordMaintenancePage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>{isFrench ? "Total Demandes" : "Total Requests"}</span>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg space-y-1">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span className="font-semibold">{isFrench ? "Total Demandes" : "Total Requests"}</span>
               <Wrench className="w-4 h-4 text-slate-400" />
             </div>
-            <div className="text-2xl font-black text-white">{stats.total}</div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">{stats.total}</div>
             <span className="text-[10px] text-slate-500 block">
               {isFrench ? "Tous les signalements" : "All recorded issues"}
             </span>
@@ -264,13 +264,13 @@ export default function LandlordMaintenancePage() {
 
           <div
             onClick={() => setStatusFilter("pending")}
-            className="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 cursor-pointer transition"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-400 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg space-y-1 cursor-pointer transition"
           >
-            <div className="flex items-center justify-between text-xs text-amber-400">
-              <span>{isFrench ? "En Attente" : "Pending Review"}</span>
-              <Clock className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center justify-between text-xs text-amber-700 dark:text-amber-400">
+              <span className="font-semibold">{isFrench ? "En Attente" : "Pending Review"}</span>
+              <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <div className="text-2xl font-black text-amber-400">{stats.pending}</div>
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{stats.pending}</div>
             <span className="text-[10px] text-slate-500 block">
               {isFrench ? "Nécessite votre attention" : "Needs your attention"}
             </span>
@@ -278,13 +278,13 @@ export default function LandlordMaintenancePage() {
 
           <div
             onClick={() => setStatusFilter("in_progress")}
-            className="bg-slate-900 border border-slate-800 hover:border-blue-500/40 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 cursor-pointer transition"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-400 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg space-y-1 cursor-pointer transition"
           >
-            <div className="flex items-center justify-between text-xs text-blue-400">
-              <span>{isFrench ? "En Cours" : "In Progress"}</span>
-              <RefreshCw className="w-4 h-4 text-blue-400" />
+            <div className="flex items-center justify-between text-xs text-blue-700 dark:text-blue-400">
+              <span className="font-semibold">{isFrench ? "En Cours" : "In Progress"}</span>
+              <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="text-2xl font-black text-blue-400">{stats.inProgress}</div>
+            <div className="text-2xl font-black text-blue-600 dark:text-blue-400">{stats.inProgress}</div>
             <span className="text-[10px] text-slate-500 block">
               {isFrench ? "Intervention en cours" : "Technician on site"}
             </span>
@@ -292,13 +292,13 @@ export default function LandlordMaintenancePage() {
 
           <div
             onClick={() => setStatusFilter("resolved")}
-            className="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 cursor-pointer transition"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg space-y-1 cursor-pointer transition"
           >
-            <div className="flex items-center justify-between text-xs text-emerald-400">
-              <span>{isFrench ? "Résolu" : "Resolved"}</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-400">
+              <span className="font-semibold">{isFrench ? "Résolu" : "Resolved"}</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="text-2xl font-black text-emerald-400">{stats.resolved}</div>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.resolved}</div>
             <span className="text-[10px] text-slate-500 block">
               {isFrench ? "Réparé et clôturé" : "Fixed and closed"}
             </span>
@@ -306,11 +306,11 @@ export default function LandlordMaintenancePage() {
         </div>
 
         {/* Filters and Search Bar */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-xl space-y-3">
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder={
@@ -320,7 +320,7 @@ export default function LandlordMaintenancePage() {
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
               />
               {searchQuery && (
                 <button
@@ -338,7 +338,7 @@ export default function LandlordMaintenancePage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500 transition cursor-pointer"
+                className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-amber-500 transition cursor-pointer shadow-xs"
               >
                 <option value="all">{isFrench ? "Tous les statuts" : "All Statuses"}</option>
                 <option value="pending">{isFrench ? "En attente d'examen" : "Pending Review"}</option>
@@ -351,7 +351,7 @@ export default function LandlordMaintenancePage() {
               <select
                 value={urgencyFilter}
                 onChange={(e) => setUrgencyFilter(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500 transition cursor-pointer"
+                className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-amber-500 transition cursor-pointer shadow-xs"
               >
                 <option value="all">{isFrench ? "Toutes les urgences" : "All Urgency Levels"}</option>
                 <option value="emergency">{isFrench ? "Urgence absolue (Danger)" : "Emergency (Danger)"}</option>
@@ -364,7 +364,7 @@ export default function LandlordMaintenancePage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500 transition cursor-pointer"
+                className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-amber-500 transition cursor-pointer shadow-xs"
               >
                 <option value="all">{isFrench ? "Toutes les catégories" : "All Categories"}</option>
                 <option value="plumbing">{isFrench ? "Plomberie & Fuites" : "Plumbing & Leaks"}</option>
@@ -380,14 +380,14 @@ export default function LandlordMaintenancePage() {
 
         {/* Tickets Grid */}
         {filteredRequests.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-xl">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/20">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-white">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               {isFrench ? "Aucun Ticket d'Entretien Trouvé" : "No Maintenance Tickets Found"}
             </h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
               {isFrench
                 ? searchQuery || statusFilter !== "all" || urgencyFilter !== "all" || categoryFilter !== "all"
                   ? "Aucun ticket ne correspond à vos critères de filtrage. Essayez de réinitialiser les filtres."
@@ -415,14 +415,14 @@ export default function LandlordMaintenancePage() {
               return (
                 <div
                   key={req.id}
-                  className={`bg-slate-900 border rounded-2xl p-5 sm:p-6 shadow-xl space-y-4 transition ${
+                  className={`bg-white dark:bg-slate-900 border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 transition ${
                     req.urgency === "emergency" && req.status !== "resolved"
-                      ? "border-rose-500/40 bg-gradient-to-r from-rose-950/20 via-slate-900 to-slate-900"
-                      : "border-slate-800 hover:border-slate-700/80"
+                      ? "border-rose-400 dark:border-rose-500/40 bg-gradient-to-r from-rose-50/50 via-white to-white dark:from-rose-950/20 dark:via-slate-900 dark:to-slate-900"
+                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/80"
                   }`}
                 >
                   {/* Top Bar: Badges + Creation Date */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800/80 pb-3.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-200 dark:border-slate-800/80 pb-3.5">
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Urgency Badge */}
                       <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${urgencyMeta.badgeClass}`}>
@@ -430,19 +430,19 @@ export default function LandlordMaintenancePage() {
                       </span>
 
                       {/* Category Badge */}
-                      <span className="text-[10px] font-semibold text-slate-300 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800 flex items-center gap-1.5">
-                        {req.category === "plumbing" && <Droplets className="w-3 h-3 text-cyan-400" />}
-                        {req.category === "electrical" && <Zap className="w-3 h-3 text-amber-400" />}
-                        {req.category === "structural" && <Home className="w-3 h-3 text-purple-400" />}
-                        {req.category === "appliances" && <Wrench className="w-3 h-3 text-blue-400" />}
-                        {req.category === "carpentry_locks" && <Wrench className="w-3 h-3 text-orange-400" />}
-                        {req.category === "other" && <AlertTriangle className="w-3 h-3 text-slate-400" />}
+                      <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
+                        {req.category === "plumbing" && <Droplets className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />}
+                        {req.category === "electrical" && <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400" />}
+                        {req.category === "structural" && <Home className="w-3 h-3 text-purple-600 dark:text-purple-400" />}
+                        {req.category === "appliances" && <Wrench className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
+                        {req.category === "carpentry_locks" && <Wrench className="w-3 h-3 text-orange-600 dark:text-orange-400" />}
+                        {req.category === "other" && <AlertTriangle className="w-3 h-3 text-slate-500 dark:text-slate-400" />}
                         <span>{isFrench ? categoryMeta.fr : categoryMeta.label}</span>
                       </span>
 
                       {/* Status Dropdown */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
                           {isFrench ? "Statut :" : "Status:"}
                         </span>
                         <select
@@ -451,16 +451,16 @@ export default function LandlordMaintenancePage() {
                           onChange={(e) => handleStatusChange(req.id, e.target.value as MaintenanceStatus)}
                           className={`text-xs font-bold px-3 py-1 rounded-full border focus:outline-none cursor-pointer transition ${statusMeta.badgeClass}`}
                         >
-                          <option value="pending" className="bg-slate-900 text-amber-400 font-semibold">
+                          <option value="pending" className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-semibold">
                             {isFrench ? "En Attente d'Examen" : "Pending Review"}
                           </option>
-                          <option value="in_progress" className="bg-slate-900 text-blue-400 font-semibold">
+                          <option value="in_progress" className="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold">
                             {isFrench ? "En Cours (Intervention)" : "In Progress"}
                           </option>
-                          <option value="resolved" className="bg-slate-900 text-emerald-400 font-semibold">
+                          <option value="resolved" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 font-semibold">
                             {isFrench ? "Résolu (Terminé)" : "Resolved"}
                           </option>
-                          <option value="rejected" className="bg-slate-900 text-rose-400 font-semibold">
+                          <option value="rejected" className="bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-semibold">
                             {isFrench ? "Rejeté / Fermé" : "Rejected / Closed"}
                           </option>
                         </select>
@@ -478,9 +478,9 @@ export default function LandlordMaintenancePage() {
                     {/* Left 2 Cols: Issue Content & Attachments */}
                     <div className="lg:col-span-2 space-y-3.5">
                       <div>
-                        <h2 className="text-base font-bold text-white">{req.title}</h2>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">{req.title}</h2>
                         {req.description && (
-                          <p className="text-xs text-slate-300 mt-1.5 leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 mt-1.5 leading-relaxed bg-slate-50 dark:bg-slate-950/70 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                             {req.description}
                           </p>
                         )}
@@ -489,14 +489,14 @@ export default function LandlordMaintenancePage() {
                       {/* Attachments (Photos, Videos, Voice Note) */}
                       {(req.photo_url || req.video_url || req.voice_url) && (
                         <div className="space-y-2.5 pt-1">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                             {isFrench ? "Preuves & Médias Joints :" : "Evidence & Media Attached:"}
                           </span>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {/* Photo */}
                             {req.photo_url && (
-                              <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={req.photo_url}
@@ -504,14 +504,14 @@ export default function LandlordMaintenancePage() {
                                   className="w-full h-40 object-cover cursor-pointer hover:opacity-90 transition"
                                   onClick={() => setPreviewPhoto(req.photo_url || null)}
                                 />
-                                <div className="p-2 flex items-center justify-between text-[11px] text-slate-400 bg-slate-950 border-t border-slate-800">
+                                <div className="p-2 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
                                   <span className="flex items-center gap-1.5">
-                                    <Camera className="w-3.5 h-3.5 text-blue-400" />
+                                    <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                     <span>{isFrench ? "Preuve Photo" : "Photo Evidence"}</span>
                                   </span>
                                   <button
                                     onClick={() => setPreviewPhoto(req.photo_url || null)}
-                                    className="text-blue-400 hover:text-blue-300 font-semibold cursor-pointer"
+                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-500 font-semibold cursor-pointer"
                                   >
                                     {isFrench ? "Agrandir" : "View Full Size"}
                                   </button>
@@ -521,14 +521,14 @@ export default function LandlordMaintenancePage() {
 
                             {/* Video */}
                             {req.video_url && (
-                              <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
                                 <video
                                   src={req.video_url}
                                   controls
                                   className="w-full h-40 object-cover bg-black"
                                 />
-                                <div className="p-2 flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-950 border-t border-slate-800">
-                                  <Video className="w-3.5 h-3.5 text-emerald-400" />
+                                <div className="p-2 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+                                  <Video className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                                   <span>{isFrench ? "Vidéo Jointe" : "Video Clip Attached"}</span>
                                 </div>
                               </div>
@@ -552,20 +552,20 @@ export default function LandlordMaintenancePage() {
                     </div>
 
                     {/* Right Col: Tenant Card & Direct Contact */}
-                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-4">
+                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
                       <div className="space-y-1">
                         <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
                           {isFrench ? "Locataire & Logement" : "Tenant & Location"}
                         </span>
-                        <div className="font-bold text-white text-sm">{req.tenant_name}</div>
-                        <div className="text-xs text-slate-400">
+                        <div className="font-bold text-slate-900 dark:text-white text-sm">{req.tenant_name}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">
                           {isFrench ? "Logement : " : "Unit: "}{" "}
-                          <strong className="text-blue-400">{req.unit_number}</strong> • {req.building_name}
+                          <strong className="text-blue-600 dark:text-blue-400">{req.unit_number}</strong> • {req.building_name}
                         </div>
                       </div>
 
                       {/* Direct Communication Buttons */}
-                      <div className="space-y-2 pt-1 border-t border-slate-800">
+                      <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
                         {cleanTenantPhone && (
                           <a
                             href={tenantWhatsAppUrl}
@@ -581,9 +581,9 @@ export default function LandlordMaintenancePage() {
                         {req.tenant_phone && (
                           <a
                             href={`tel:${req.tenant_phone}`}
-                            className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-800 transition"
+                            className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-semibold text-xs border border-slate-200 dark:border-slate-800 transition"
                           >
-                            <Phone className="w-3.5 h-3.5 text-blue-400" />
+                            <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                             <span>{isFrench ? "Appeler" : "Call"} ({req.tenant_phone})</span>
                           </a>
                         )}
@@ -591,9 +591,9 @@ export default function LandlordMaintenancePage() {
                         {req.tenant_email && (
                           <a
                             href={`mailto:${req.tenant_email}`}
-                            className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-800 transition truncate"
+                            className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-semibold text-xs border border-slate-200 dark:border-slate-800 transition truncate"
                           >
-                            <Mail className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                            <Mail className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                             <span className="truncate">{req.tenant_email}</span>
                           </a>
                         )}
@@ -602,10 +602,10 @@ export default function LandlordMaintenancePage() {
                   </div>
 
                   {/* Landlord Response & Technician Notes */}
-                  <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-blue-400" />
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                         <span>
                           {isFrench
                             ? "Notes du Bailleur / Planning Intervention Technicien"
@@ -614,7 +614,7 @@ export default function LandlordMaintenancePage() {
                       </label>
 
                       {isSavedJustNow && (
-                        <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                           <Check className="w-3 h-3" /> {isFrench ? "Enregistré !" : "Saved!"}
                         </span>
                       )}
@@ -635,14 +635,14 @@ export default function LandlordMaintenancePage() {
                             [req.id]: e.target.value,
                           })
                         }
-                        className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                        className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500 transition shadow-xs"
                       />
 
                       <button
                         type="button"
                         onClick={() => handleSaveNotes(req.id)}
                         disabled={isSavingThis}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition shrink-0 disabled:opacity-50 cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition shrink-0 disabled:opacity-50 cursor-pointer shadow-xs"
                       >
                         {isSavingThis
                           ? isFrench
@@ -654,7 +654,7 @@ export default function LandlordMaintenancePage() {
                       </button>
                     </div>
 
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
                       {isFrench
                         ? "Les notes enregistrées ici sont immédiatement visibles par le locataire sur son portail."
                         : "Notes saved here are immediately visible to the tenant in their portal."}

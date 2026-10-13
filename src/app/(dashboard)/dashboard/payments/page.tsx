@@ -255,10 +255,10 @@ function PaymentsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
         <div className="text-center space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-emerald-500 mx-auto" />
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             {isFrench
               ? "Chargement des registres de loyers et statuts des locataires..."
               : "Loading rent ledgers and tenant statuses..."}
@@ -269,7 +269,7 @@ function PaymentsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
       {/* Unified SaaS Dashboard Navigation Bar */}
       <DashboardNav
         user={user}
@@ -282,7 +282,7 @@ function PaymentsContent() {
         {/* Title Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold mb-2">
               <Receipt className="w-3.5 h-3.5" />
               <span>
                 {isFrench
@@ -290,12 +290,12 @@ function PaymentsContent() {
                   : "Rent Collection & Tenant Arrears Consultation"}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
               {isFrench
                 ? "Paiements de Loyer & Registres des Locataires"
                 : "Rent Payments & Tenant Ledgers"}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-medium">
               {isFrench
                 ? "Consultez le statut de paiement de chaque locataire, suivez les paiements partiels, inspectez les arriérés et accédez aux quittances officielles."
                 : "Consult rent payment status for every tenant, track partial payments, inspect outstanding arrears, and review official receipts."}
@@ -303,10 +303,10 @@ function PaymentsContent() {
           </div>
 
           <div className="text-right">
-            <span className="text-[11px] text-slate-400 block">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">
               {isFrench ? "Période de facturation" : "Billing Period"}
             </span>
-            <span className="text-base font-bold text-white bg-slate-900 px-3 py-1 rounded-xl border border-slate-800 inline-block mt-0.5">
+            <span className="text-base font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-800 inline-block mt-0.5 shadow-sm">
               {currentMonth}
             </span>
           </div>
@@ -507,15 +507,15 @@ function PaymentsContent() {
 
         {/* Empty State */}
         {statuses.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center space-y-4 max-w-lg mx-auto my-10 shadow-xl">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center space-y-4 max-w-lg mx-auto my-10 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
               <Receipt className="w-7 h-7" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-base font-bold text-white">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Aucun Logement Occupé dans le Portefeuille" : "No Occupied Units in Portfolio"}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {isFrench
                   ? "Attribuez des locataires à vos logements dans la section Immeubles & Logements pour générer des registres de loyers, suivre les paiements partiels et consulter les quittances."
                   : "Assign tenants to your units in the Buildings & Units section to start generating rent ledgers, tracking partial payments, and monitoring receipts."}
@@ -523,19 +523,19 @@ function PaymentsContent() {
             </div>
             <Link
               href="/dashboard/buildings"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition shadow-sm"
             >
               <DoorOpen className="w-4 h-4" />
               <span>{isFrench ? "Aller aux Immeubles & Logements" : "Go to Buildings & Units"}</span>
             </Link>
           </div>
         ) : filteredStatuses.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
-            <h3 className="text-sm font-bold text-white">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center space-y-3 shadow-sm">
+            <AlertCircle className="w-8 h-8 text-amber-500 dark:text-amber-400 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {isFrench ? "Aucun Locataire ne Correspond au Filtre" : "No Tenants Match Your Filter"}
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {isFrench
                 ? "Aucun locataire ne correspond aux filtres actuels. Effacez votre recherche ou réinitialisez le filtre."
                 : "No tenants match the current filters. Clear your search or reset the filter."}
@@ -546,7 +546,7 @@ function PaymentsContent() {
                 setSelectedBuildingId("all");
                 setStatusFilter("all");
               }}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-white transition"
+              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-medium text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer"
             >
               {isFrench ? "Réinitialiser les Filtres" : "Reset Filters"}
             </button>
@@ -1416,7 +1416,7 @@ export default function PaymentsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
           <RefreshCw className="w-8 h-8 animate-spin text-emerald-500" />
         </div>
       }

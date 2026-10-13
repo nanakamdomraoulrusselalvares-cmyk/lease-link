@@ -300,10 +300,10 @@ function TenantPortalContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white">
         <div className="text-center space-y-3">
-          <RefreshCw className="w-9 h-9 animate-spin text-blue-500 mx-auto" />
-          <p className="text-sm font-medium text-slate-400">
+          <RefreshCw className="w-9 h-9 animate-spin text-blue-600 dark:text-blue-500 mx-auto" />
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
             {isFrench ? "Chargement de votre espace sécurisé locataire..." : "Loading your secure tenant space..."}
           </p>
         </div>
@@ -313,29 +313,29 @@ function TenantPortalContent() {
 
   if (errorMsg || !data) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full text-center space-y-5 shadow-2xl">
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/20">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 text-slate-900 dark:text-white">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 max-w-md w-full text-center space-y-5 shadow-xl dark:shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-500/20">
             <AlertCircle className="w-7 h-7" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               {isFrench ? "Authentification Requise" : "Authentication Required"}
             </h2>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
               {errorMsg || (isFrench ? "Votre lien d'accès a expiré ou vous n'êtes pas connecté." : "Your access link has expired or you are not currently logged in.")}
             </p>
           </div>
           <div className="pt-2 flex flex-col gap-2.5">
             <Link
               href="/tenant/login"
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-xs text-white transition text-center"
+              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-xs text-white transition text-center shadow-md"
             >
               {isFrench ? "Se Connecter avec vos Identifiants" : "Sign In with Your Credentials"}
             </Link>
             <Link
               href="/"
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold transition text-center"
+              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs text-slate-700 dark:text-slate-300 font-semibold transition text-center border border-slate-200 dark:border-slate-700"
             >
               {isFrench ? "Retour à l'Accueil" : "Return Home"}
             </Link>
@@ -355,19 +355,19 @@ function TenantPortalContent() {
     : "#";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
       {/* Top Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="font-bold text-base text-white tracking-tight">
-                Lease<span className="text-blue-500">Link</span>
+              <span className="font-bold text-base text-slate-900 dark:text-white tracking-tight">
+                Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
               </span>
-              <span className="text-[10px] text-blue-400 font-semibold ml-2 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold ml-2 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/20">
                 {isFrench ? "Espace Locataire" : "Tenant Space"}
               </span>
             </div>
@@ -385,23 +385,23 @@ function TenantPortalContent() {
 
             <Link
               href={tokenFromUrl ? `/tenant/receipts?token=${tokenFromUrl}` : `/tenant/receipts`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition shadow-xs"
               title={isFrench ? "Consulter toutes les quittances" : "View all receipts"}
             >
-              <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+              <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>{isFrench ? `Quittances (${payments.length})` : `Receipts (${payments.length})`}</span>
             </Link>
 
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-slate-300 font-medium truncate max-w-[150px]">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[150px]">
                 {data.tenant_name}
               </span>
             </div>
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>{isFrench ? "Déconnexion" : "Sign Out"}</span>
@@ -413,27 +413,27 @@ function TenantPortalContent() {
       {/* Main Container */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-slate-900 border border-blue-500/30 rounded-2xl p-6 sm:p-7 shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-blue-50/50 dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 sm:p-7 shadow-sm dark:shadow-xl relative overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 text-xs font-bold border border-emerald-300 dark:border-emerald-500/20">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{isFrench ? "Bail Actif • Espace Sécurisé" : "Active Tenancy • Secure Portal"}</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
                 {isFrench ? `Bienvenue chez vous, ${data.tenant_name} !` : `Welcome Home, ${data.tenant_name}!`}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300">
-                {isFrench ? "Résidence :" : "Residence:"} <strong className="text-white">{data.building_name}</strong> •{" "}
-                {isFrench ? "Logement :" : "Unit:"} <strong className="text-blue-400">{data.unit_number}</strong>
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                {isFrench ? "Résidence :" : "Residence:"} <strong className="text-slate-900 dark:text-white">{data.building_name}</strong> •{" "}
+                {isFrench ? "Logement :" : "Unit:"} <strong className="text-blue-600 dark:text-blue-400">{data.unit_number}</strong>
               </p>
             </div>
 
-            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 sm:text-right shrink-0">
-              <span className="text-[11px] text-slate-400 block font-medium">
+            <div className="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 sm:text-right shrink-0 shadow-xs">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-semibold">
                 {isFrench ? "Loyer Mensuel" : "Monthly Rent"}
               </span>
-              <span className="text-xl sm:text-2xl font-black text-emerald-400">
+              <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
                 {Number(data.rent_amount || 0).toLocaleString()} XAF
               </span>
             </div>
@@ -445,71 +445,71 @@ function TenantPortalContent() {
           {/* Left 2 Cols: Unit Specs, Living Details & Maintenance */}
           <div className="lg:col-span-2 space-y-6">
             {/* Unit Details Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                     <Home className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-white">
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                       {isFrench ? "Configuration & Caractéristiques" : "Your Unit Layout & Specs"}
                     </h2>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {isFrench ? "Description physique de votre logement" : "Physical breakdown of your apartment"}
                     </p>
                   </div>
                 </div>
 
-                <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-semibold">
+                <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold">
                   {data.unit_number}
                 </span>
               </div>
 
               {/* Layout Pills */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center space-y-1">
-                  <Sofa className="w-5 h-5 text-purple-400 mx-auto" />
-                  <span className="text-lg font-black text-white block">{data.parlors}</span>
-                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                  <Sofa className="w-5 h-5 text-purple-600 dark:text-purple-400 mx-auto" />
+                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.parlors}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
                     {isFrench ? "Salon(s)" : "Parlor(s)"}
                   </span>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center space-y-1">
-                  <Bed className="w-5 h-5 text-blue-400 mx-auto" />
-                  <span className="text-lg font-black text-white block">{data.rooms}</span>
-                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                  <Bed className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto" />
+                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.rooms}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
                     {isFrench ? "Chambre(s)" : "Bedroom(s)"}
                   </span>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center space-y-1">
-                  <Bath className="w-5 h-5 text-cyan-400 mx-auto" />
-                  <span className="text-lg font-black text-white block">{data.bathrooms}</span>
-                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                  <Bath className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mx-auto" />
+                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.bathrooms}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
                     {isFrench ? "Salle(s) de bain" : "Bathroom(s)"}
                   </span>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center space-y-1">
-                  <Utensils className="w-5 h-5 text-amber-400 mx-auto" />
-                  <span className="text-lg font-black text-white block">{data.kitchens}</span>
-                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                  <Utensils className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto" />
+                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.kitchens}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
                     {isFrench ? "Cuisine(s)" : "Kitchen(s)"}
                   </span>
                 </div>
               </div>
 
               {/* Property Location */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-3">
+                <MapPin className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
                 <div className="text-xs">
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider block">
                     {isFrench ? "Emplacement du Bien" : "Property Location"}
                   </span>
-                  <span className="font-semibold text-white">{data.building_name}</span>
-                  <p className="text-slate-400 mt-0.5">
+                  <span className="font-semibold text-slate-900 dark:text-white">{data.building_name}</span>
+                  <p className="text-slate-600 dark:text-slate-400 mt-0.5">
                     {data.building_address}
                     {data.building_city ? `, ${data.building_city}` : ""}
                   </p>
@@ -517,30 +517,30 @@ function TenantPortalContent() {
               </div>
 
               {data.notes && (
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs">
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider block mb-1">
                     {isFrench ? "Notes & Remarques sur le Logement" : "Apartment Notes & Features"}
                   </span>
-                  <p className="text-slate-300 italic">{data.notes}</p>
+                  <p className="text-slate-700 dark:text-slate-300 italic">{data.notes}</p>
                 </div>
               )}
             </div>
 
             {/* SECTION: Reparation & Maintenance Requests */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <span>{isFrench ? "Demandes de Réparations & Travaux" : "Repairs & Maintenance Requests"}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">
                         {requests.length}
                       </span>
                     </h2>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {isFrench
                         ? "Signalez les pannes de plomberie, électricité ou structure directement à votre bailleur"
                         : "Report plumbing, electrical, or structural issues directly to your landlord"}
@@ -560,19 +560,19 @@ function TenantPortalContent() {
 
               {/* Requests List */}
               {loadingRequests ? (
-                <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
                   <span>{isFrench ? "Chargement des tickets d'intervention..." : "Loading reparation tickets..."}</span>
                 </div>
               ) : requests.length === 0 ? (
-                <div className="p-6 rounded-xl bg-slate-950/60 border border-slate-800/80 text-center space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20">
+                <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
-                  <h4 className="text-xs font-bold text-white">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                     {isFrench ? "Aucun Problème Signalé" : "No Maintenance Issues Reported"}
                   </h4>
-                  <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
                     {isFrench
                       ? "Tout est en ordre ! En cas de fuite, panne d'électricité ou dégât, cliquez sur le bouton ci-dessus pour avertir votre bailleur avec photo, vidéo ou message vocal."
                       : "Everything is in order! If a pipe leaks, a light fails, or something breaks, click the button above to alert your landlord with a photo, video, or voice message."}
@@ -588,7 +588,7 @@ function TenantPortalContent() {
                     return (
                       <div
                         key={req.id}
-                        className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3 transition hover:border-slate-700/90"
+                        className="bg-slate-50/90 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 transition hover:border-slate-300 dark:hover:border-slate-700/90"
                       >
                         {/* Header: Title + Badges */}
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
@@ -604,12 +604,12 @@ function TenantPortalContent() {
                               >
                                 {isFrench ? urgencyMeta.fr : urgencyMeta.label}
                               </span>
-                              <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-800">
                                 {isFrench ? categoryMeta.fr : categoryMeta.label}
                               </span>
                             </div>
 
-                            <h3 className="text-sm font-bold text-white">{req.title}</h3>
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">{req.title}</h3>
                           </div>
 
                           <span className="text-[10px] text-slate-500 flex items-center gap-1 shrink-0 font-mono">
@@ -620,7 +620,7 @@ function TenantPortalContent() {
 
                         {/* Description */}
                         {req.description && (
-                          <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/50 p-2.5 rounded-lg border border-slate-800/60">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60">
                             {req.description}
                           </p>
                         )}
@@ -628,14 +628,14 @@ function TenantPortalContent() {
                         {/* Attachments (Photo, Video, Voice) */}
                         {(req.photo_url || req.video_url || req.voice_url) && (
                           <div className="pt-1 space-y-2.5">
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                               {isFrench ? "Pièces Jointes :" : "Attached Media:"}
                             </span>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                               {/* Attached Photo */}
                               {req.photo_url && (
-                                <div className="relative group rounded-xl overflow-hidden border border-slate-800 bg-slate-900 max-h-48">
+                                <div className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 max-h-48">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={req.photo_url}
@@ -643,15 +643,15 @@ function TenantPortalContent() {
                                     className="w-full h-36 object-cover cursor-pointer hover:opacity-90 transition"
                                     onClick={() => setPreviewImage(req.photo_url || null)}
                                   />
-                                  <div className="p-1.5 bg-slate-900/90 text-[10px] text-slate-300 flex items-center justify-between">
+                                  <div className="p-1.5 bg-white/90 dark:bg-slate-900/90 text-[10px] text-slate-700 dark:text-slate-300 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
                                     <span className="flex items-center gap-1">
-                                      <ImageIcon className="w-3 h-3 text-blue-400" />{" "}
+                                      <ImageIcon className="w-3 h-3 text-blue-500 dark:text-blue-400" />{" "}
                                       {isFrench ? "Photo jointe" : "Photo attached"}
                                     </span>
                                     <button
                                       type="button"
                                       onClick={() => setPreviewImage(req.photo_url || null)}
-                                      className="text-blue-400 hover:text-blue-300 font-semibold"
+                                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold"
                                     >
                                       {isFrench ? "Agrandir" : "Zoom"}
                                     </button>
@@ -661,14 +661,14 @@ function TenantPortalContent() {
 
                               {/* Attached Video */}
                               {req.video_url && (
-                                <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900">
+                                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900">
                                   <video
                                     src={req.video_url}
                                     controls
                                     className="w-full h-36 object-cover bg-black"
                                   />
-                                  <div className="p-1.5 bg-slate-900/90 text-[10px] text-slate-300 flex items-center gap-1">
-                                    <Video className="w-3 h-3 text-emerald-400" />{" "}
+                                  <div className="p-1.5 bg-white/90 dark:bg-slate-900/90 text-[10px] text-slate-700 dark:text-slate-300 flex items-center gap-1 border-t border-slate-200 dark:border-slate-800">
+                                    <Video className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />{" "}
                                     {isFrench ? "Vidéo jointe" : "Video attached"}
                                   </div>
                                 </div>
@@ -692,12 +692,12 @@ function TenantPortalContent() {
 
                         {/* Landlord Response Notes */}
                         {req.landlord_notes && (
-                          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200 space-y-1">
-                            <span className="font-semibold text-blue-300 flex items-center gap-1.5">
-                              <Info className="w-3.5 h-3.5 text-blue-400" />
+                          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 space-y-1">
+                            <span className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                              <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                               <span>{isFrench ? "Mise à jour du Bailleur / Technicien :" : "Landlord / Technician Update:"}</span>
                             </span>
-                            <p className="text-slate-200 italic pl-5">{req.landlord_notes}</p>
+                            <p className="text-slate-700 dark:text-slate-200 italic pl-5">{req.landlord_notes}</p>
                           </div>
                         )}
                       </div>
@@ -739,17 +739,17 @@ function TenantPortalContent() {
               );
 
               return (
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                         <Receipt className="w-4 h-4" />
                       </div>
                       <div>
-                        <h2 className="text-sm font-bold text-white">
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                           {isFrench ? "État des Loyers & Quittances" : "Rent Ledger & Receipts"}
                         </h2>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400">
                           {isFrench ? `Période : ${currentMonth}` : `Period: ${currentMonth}`}
                         </p>
                       </div>
@@ -759,10 +759,10 @@ function TenantPortalContent() {
                       <span
                         className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
                           isFullySettled
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
                             : paidThisMonth > 0
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                            : "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                            ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30"
+                            : "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30"
                         }`}
                       >
                         {isFullySettled
@@ -781,8 +781,8 @@ function TenantPortalContent() {
                   </div>
 
                   {advanceMonths.length > 0 && (
-                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                       <span>
                         {isFrench ? "Loyer d'avance déjà réglé pour : " : "Advance rent already covered for: "}
                         <strong>{advanceMonths.join(", ")}</strong>
@@ -792,20 +792,20 @@ function TenantPortalContent() {
 
                   {/* Financial Breakdown Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                         {isFrench ? "Loyer Convenu" : "Agreed Rent"}
                       </span>
-                      <span className="text-sm font-bold text-white font-mono">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">
                         {monthlyRent.toLocaleString()} XAF
                       </span>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                         {isFrench ? "Payé Ce Mois" : "Paid This Month"}
                       </span>
-                      <span className="text-sm font-bold text-emerald-400 font-mono">
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                         {paidThisMonth.toLocaleString()} XAF
                       </span>
                     </div>
@@ -813,16 +813,16 @@ function TenantPortalContent() {
                     <div
                       className={`p-3.5 rounded-xl border ${
                         balanceOwing > 0
-                          ? "bg-amber-500/5 border-amber-500/30"
-                          : "bg-emerald-500/5 border-emerald-500/30"
+                          ? "bg-amber-50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/30"
+                          : "bg-emerald-50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/30"
                       }`}
                     >
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+                      <span className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-semibold block">
                         {isFrench ? "Reste à Payer" : "Amount Owing"}
                       </span>
                       <span
                         className={`text-sm font-black font-mono ${
-                          balanceOwing > 0 ? "text-amber-400" : "text-emerald-400"
+                          balanceOwing > 0 ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
                         }`}
                       >
                         {balanceOwing > 0
@@ -854,9 +854,9 @@ function TenantPortalContent() {
 
                     <Link
                       href={tokenFromUrl ? `/tenant/receipts?token=${tokenFromUrl}` : `/tenant/receipts`}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition"
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
                     >
-                      <Receipt className="w-3.5 h-3.5 text-blue-400" />
+                      <Receipt className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                       <span>
                         {isFrench
                           ? `Page Dédiée des Quittances (${payments.length})`
@@ -868,26 +868,26 @@ function TenantPortalContent() {
 
                   {/* Recent Receipts List */}
                   {payments.length > 0 && (
-                    <div className="pt-2 border-t border-slate-800/80 space-y-2.5">
-                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-2.5">
+                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                         {isFrench ? "Quittances Numériques Récentes :" : "Recent Digital Receipts:"}
                       </span>
                       <div className="space-y-2">
                         {payments.slice(0, 3).map((p) => (
                           <div
                             key={p.id}
-                            className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                            className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
                           >
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-xs font-bold text-emerald-400">
+                                <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                   {p.receipt_number}
                                 </span>
-                                <span className="text-[10px] text-slate-400">
+                                <span className="text-[10px] text-slate-600 dark:text-slate-400">
                                   ({p.rent_month})
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-500 block">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-500 block">
                                 {isFrench
                                   ? `Payé par ${PAYMENT_METHOD_LABELS[p.payment_method]?.frShort || PAYMENT_METHOD_LABELS[p.payment_method]?.short || p.payment_method} le ${new Date(p.created_at).toLocaleDateString("fr-FR")}`
                                   : `Paid via ${PAYMENT_METHOD_LABELS[p.payment_method]?.short || p.payment_method} on ${new Date(p.created_at).toLocaleDateString()}`}
@@ -895,7 +895,7 @@ function TenantPortalContent() {
                             </div>
 
                             <div className="flex items-center gap-3">
-                              <span className="font-bold text-white font-mono">
+                              <span className="font-bold text-slate-900 dark:text-white font-mono">
                                 {Number(p.amount_paid).toLocaleString()} XAF
                               </span>
                               <button
@@ -903,7 +903,7 @@ function TenantPortalContent() {
                                   setSelectedReceipt(p);
                                   setShowReceiptModal(true);
                                 }}
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 hover:text-white transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                               >
                                 {isFrench ? "Voir Quittance" : "View Receipt"}
                               </button>
@@ -921,40 +921,40 @@ function TenantPortalContent() {
           {/* Right Col: Landlord Contact & Actions */}
           <div className="space-y-6">
             {/* Landlord Contact Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-              <div className="flex items-center gap-2.5 border-b border-slate-800 pb-4">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+              <div className="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <User className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-white">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                     {isFrench ? "Contact de Votre Bailleur" : "Your Landlord Contact"}
                   </h2>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
                     {isFrench ? "Gestion du logement & assistance" : "Property management reachout"}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs">
-                  <span className="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold">
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-semibold">
                     {isFrench ? "Nom du Bailleur" : "Landlord Name"}
                   </span>
-                  <span className="font-bold text-white text-sm">{data.landlord_name}</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">{data.landlord_name}</span>
                 </div>
 
                 {data.landlord_phone && (
-                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs flex items-center justify-between">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-semibold">
                         {isFrench ? "Numéro de Téléphone" : "Phone Number"}
                       </span>
-                      <span className="font-mono text-white">{data.landlord_phone}</span>
+                      <span className="font-mono text-slate-900 dark:text-white font-medium">{data.landlord_phone}</span>
                     </div>
                     <a
                       href={`tel:${data.landlord_phone}`}
-                      className="p-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition"
+                      className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-600/30 transition border border-blue-200 dark:border-transparent"
                       title={isFrench ? "Appeler le bailleur" : "Call Landlord"}
                     >
                       <Phone className="w-4 h-4" />
@@ -963,16 +963,16 @@ function TenantPortalContent() {
                 )}
 
                 {data.landlord_email && (
-                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs flex items-center justify-between">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-semibold">
                         {isFrench ? "E-mail" : "E-mail"}
                       </span>
-                      <span className="font-mono text-slate-300 truncate max-w-[170px]">{data.landlord_email}</span>
+                      <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[170px]">{data.landlord_email}</span>
                     </div>
                     <a
                       href={`mailto:${data.landlord_email}`}
-                      className="p-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition"
+                      className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-600/30 transition border border-blue-200 dark:border-transparent"
                       title={isFrench ? "Envoyer un e-mail" : "Email Landlord"}
                     >
                       <Mail className="w-4 h-4" />
@@ -998,9 +998,9 @@ function TenantPortalContent() {
                 {data.landlord_phone && (
                   <a
                     href={`tel:${data.landlord_phone}`}
-                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-xs text-white border border-slate-700 transition"
+                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold text-xs text-slate-800 hover:text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 transition"
                   >
-                    <Phone className="w-3.5 h-3.5 text-blue-400" />
+                    <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>{isFrench ? "Appel Téléphonique Direct" : "Direct Phone Call"}</span>
                   </a>
                 )}
@@ -1008,7 +1008,7 @@ function TenantPortalContent() {
                 <button
                   type="button"
                   onClick={handleOpenModal}
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 font-semibold text-xs transition cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-600/20 dark:hover:bg-amber-600/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 font-semibold text-xs transition cursor-pointer"
                 >
                   <Wrench className="w-3.5 h-3.5" />
                   <span>{isFrench ? "Signaler une Réparation" : "Report Maintenance Issue"}</span>
@@ -1017,9 +1017,9 @@ function TenantPortalContent() {
             </div>
 
             {/* Security Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-xs text-slate-400 space-y-2.5 shadow-xl">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 text-xs text-slate-600 dark:text-slate-400 space-y-2.5 shadow-sm">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{isFrench ? "Espace Sécurisé & Chiffré" : "Encrypted Session"}</span>
               </div>
               <p className="leading-relaxed text-[11px]">
@@ -1043,20 +1043,20 @@ function TenantPortalContent() {
           }}
         >
           <div
-            className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] h-auto min-h-0 select-text"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] h-auto min-h-0 select-text"
           >
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900/95 z-10">
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-600/20 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Wrench className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     {isFrench ? "Signaler une Réparation / Panne" : "Send Reparation Request"}
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    {isFrench ? "Logement :" : "Apartment:"} <strong className="text-slate-200">{data.unit_number}</strong> • {data.building_name}
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    {isFrench ? "Logement :" : "Apartment:"} <strong className="text-slate-900 dark:text-slate-200">{data.unit_number}</strong> • {data.building_name}
                   </p>
                 </div>
               </div>
@@ -1065,7 +1065,7 @@ function TenantPortalContent() {
                 type="button"
                 onClick={() => setShowRequestModal(false)}
                 disabled={submittingRequest}
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 title={isFrench ? "Fermer" : "Close"}
               >
                 <X className="w-5 h-5" />
@@ -1075,14 +1075,14 @@ function TenantPortalContent() {
             {/* Success State */}
             {lastSubmittedRequest ? (
               <div className="p-6 space-y-5 overflow-y-auto">
-                <div className="text-center space-y-2 p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+                <div className="text-center space-y-2 p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-500/30">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h4 className="text-base font-bold text-white">
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
                     {isFrench ? "Demande Envoyée avec Succès !" : "Request Sent Successfully!"}
                   </h4>
-                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs text-slate-700 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
                     {isFrench
                       ? `Votre ticket de réparation pour "${lastSubmittedRequest.title}" a bien été enregistré. Votre bailleur a été notifié.`
                       : `Your reparation ticket for "${lastSubmittedRequest.title}" has been logged. Your landlord has been notified.`}
@@ -1091,14 +1091,14 @@ function TenantPortalContent() {
 
                 {/* WhatsApp Direct Share Button */}
                 {landlordCleanPhone && (
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
                     <div className="flex items-start gap-2.5">
-                      <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                       <div className="text-xs">
-                        <span className="font-semibold text-white block">
+                        <span className="font-semibold text-slate-900 dark:text-white block">
                           {isFrench ? "Accélérer l'intervention via WhatsApp" : "Speed Up Intervention via WhatsApp"}
                         </span>
-                        <span className="text-slate-400">
+                        <span className="text-slate-600 dark:text-slate-400">
                           {isFrench
                             ? "Cliquez ci-dessous pour transmettre un récapitulatif pré-rempli directement à votre bailleur sur WhatsApp."
                             : "Click below to send a pre-filled summary directly to your landlord on WhatsApp."}
@@ -1122,7 +1122,7 @@ function TenantPortalContent() {
                   <button
                     type="button"
                     onClick={() => setShowRequestModal(false)}
-                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition"
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 transition"
                   >
                     {isFrench ? "Fermer la Fenêtre" : "Close Window"}
                   </button>
@@ -1133,7 +1133,7 @@ function TenantPortalContent() {
               <form onSubmit={handleSubmitMaintenance} className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 min-h-0 overscroll-contain">
                   {submitError && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{submitError}</span>
                     </div>
@@ -1141,8 +1141,8 @@ function TenantPortalContent() {
 
                   {/* 1. Category Picker */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      {isFrench ? "Catégorie du Problème" : "Problem Category"} <span className="text-rose-400">*</span>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      {isFrench ? "Catégorie du Problème" : "Problem Category"} <span className="text-rose-500 dark:text-rose-400">*</span>
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {(Object.keys(CATEGORY_LABELS) as MaintenanceCategory[]).map((cat) => {
@@ -1155,11 +1155,11 @@ function TenantPortalContent() {
                             onClick={() => setFormCategory(cat)}
                             className={`p-2.5 rounded-xl text-left border transition text-xs flex items-center gap-2 cursor-pointer ${
                               isSelected
-                                ? "bg-amber-500/20 border-amber-500 text-white font-bold"
-                                : "bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700"
+                                ? "bg-amber-500/20 border-amber-500 text-amber-900 dark:text-white font-bold"
+                                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
                             }`}
                           >
-                            <span className="text-amber-400 shrink-0">
+                            <span className="text-amber-500 dark:text-amber-400 shrink-0">
                               {cat === "plumbing" && <Droplets className="w-4 h-4" />}
                               {cat === "electrical" && <Zap className="w-4 h-4" />}
                               {cat === "structural" && <Home className="w-4 h-4" />}
@@ -1176,8 +1176,8 @@ function TenantPortalContent() {
 
                   {/* 2. Urgency Selector */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                      {isFrench ? "Niveau d'Urgence" : "Urgency Level"} <span className="text-rose-400">*</span>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      {isFrench ? "Niveau d'Urgence" : "Urgency Level"} <span className="text-rose-500 dark:text-rose-400">*</span>
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {(Object.keys(URGENCY_LABELS) as MaintenanceUrgency[]).map((urg) => {
@@ -1191,7 +1191,7 @@ function TenantPortalContent() {
                             className={`p-2 rounded-xl text-center border transition text-xs font-semibold cursor-pointer ${
                               isSelected
                                 ? `${meta.badgeClass} ring-2 ring-amber-500/50`
-                                : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
                             }`}
                           >
                             {isFrench ? meta.fr : meta.label}
@@ -1203,9 +1203,9 @@ function TenantPortalContent() {
 
                   {/* 3. Title */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                       {isFrench ? "Titre / Objet Court du Problème" : "Issue Summary / Short Title"}{" "}
-                      <span className="text-rose-400">*</span>
+                      <span className="text-rose-500 dark:text-rose-400">*</span>
                     </label>
                     <input
                       type="text"
@@ -1217,13 +1217,13 @@ function TenantPortalContent() {
                       }
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-amber-500 transition"
                     />
                   </div>
 
                   {/* 4. Description */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                       {isFrench ? "Description Détaillée du Problème" : "Detailed Description"}
                     </label>
                     <textarea
@@ -1235,7 +1235,7 @@ function TenantPortalContent() {
                       }
                       value={formDescription}
                       onChange={(e) => setFormDescription(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-amber-500 transition"
                     />
                   </div>
 
@@ -1256,17 +1256,17 @@ function TenantPortalContent() {
                   {/* 6. Media Uploads (Photo & Video) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     {/* Photo Upload */}
-                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2">
+                    <div className="bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                          <Camera className="w-3.5 h-3.5 text-blue-400" />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                           <span>{isFrench ? "Joindre une Photo" : "Attach Photo"}</span>
                         </span>
                         {formPhoto && (
                           <button
                             type="button"
                             onClick={() => setFormPhoto(null)}
-                            className="text-[10px] text-rose-400 hover:underline"
+                            className="text-[10px] text-rose-500 dark:text-rose-400 hover:underline"
                           >
                             {isFrench ? "Supprimer" : "Remove"}
                           </button>
@@ -1274,7 +1274,7 @@ function TenantPortalContent() {
                       </div>
 
                       {formPhoto ? (
-                        <div className="relative rounded-lg overflow-hidden border border-slate-800">
+                        <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={formPhoto}
@@ -1286,9 +1286,9 @@ function TenantPortalContent() {
                         <button
                           type="button"
                           onClick={() => fileInputPhotoRef.current?.click()}
-                          className="w-full py-3 rounded-lg border border-dashed border-slate-700/80 hover:border-blue-500/50 bg-slate-900/60 text-slate-400 hover:text-white text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer"
+                          className="w-full py-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/80 hover:border-blue-500/50 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer"
                         >
-                          <ImageIcon className="w-5 h-5 text-blue-400" />
+                          <ImageIcon className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                           <span>{isFrench ? "Prendre une photo ou importer" : "Take Photo or Upload"}</span>
                         </button>
                       )}
@@ -1303,17 +1303,17 @@ function TenantPortalContent() {
                     </div>
 
                     {/* Video Upload */}
-                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2">
+                    <div className="bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                          <Video className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <Video className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           <span>{isFrench ? "Joindre une Vidéo" : "Attach Video Clip"}</span>
                         </span>
                         {formVideo && (
                           <button
                             type="button"
                             onClick={() => setFormVideo(null)}
-                            className="text-[10px] text-rose-400 hover:underline"
+                            className="text-[10px] text-rose-500 dark:text-rose-400 hover:underline"
                           >
                             {isFrench ? "Supprimer" : "Remove"}
                           </button>
@@ -1321,7 +1321,7 @@ function TenantPortalContent() {
                       </div>
 
                       {formVideo ? (
-                        <div className="rounded-lg overflow-hidden border border-slate-800">
+                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
                           <video
                             src={formVideo}
                             controls
@@ -1332,9 +1332,9 @@ function TenantPortalContent() {
                         <button
                           type="button"
                           onClick={() => fileInputVideoRef.current?.click()}
-                          className="w-full py-3 rounded-lg border border-dashed border-slate-700/80 hover:border-emerald-500/50 bg-slate-900/60 text-slate-400 hover:text-white text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer"
+                          className="w-full py-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/80 hover:border-emerald-500/50 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer"
                         >
-                          <Video className="w-5 h-5 text-emerald-400" />
+                          <Video className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                           <span>{isFrench ? "Filmer ou importer une vidéo" : "Record or Upload Video"}</span>
                         </button>
                       )}
@@ -1351,12 +1351,12 @@ function TenantPortalContent() {
                 </div>
 
                 {/* Actions Footer */}
-                <div className="p-4 sm:p-5 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-900/95">
+                <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-50/95 dark:bg-slate-900/95">
                   <button
                     type="button"
                     onClick={() => setShowRequestModal(false)}
                     disabled={submittingRequest}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition cursor-pointer"
                   >
                     {isFrench ? "Annuler" : "Cancel"}
                   </button>
@@ -1400,7 +1400,7 @@ function TenantPortalContent() {
             />
             <button
               onClick={() => setPreviewImage(null)}
-              className="absolute -top-3 -right-3 p-2 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition"
+              className="absolute -top-3 -right-3 p-2 rounded-full bg-white dark:bg-slate-800 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-md"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1447,7 +1447,7 @@ export default function TenantPortalPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
         </div>
       }

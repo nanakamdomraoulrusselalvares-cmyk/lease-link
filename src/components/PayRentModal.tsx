@@ -191,18 +191,18 @@ export default function PayRentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6">
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="font-bold text-white text-sm">
+              <h2 className="font-bold text-slate-900 dark:text-white text-sm">
                 {isFrench ? "Payer le Loyer (Passerelle Sécurisée)" : "Pay Rent (Digital Gateway)"}
               </h2>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
                 {isFrench
                   ? `Période : ${periodLabel} • Quittance avec sceau délivrée immédiatement`
                   : `Period: ${periodLabel} • Instant Stamped Receipt Issued`}
@@ -213,7 +213,7 @@ export default function PayRentModal({
           {!isProcessing && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -225,23 +225,23 @@ export default function PayRentModal({
           <div className="p-8 sm:p-10 text-center space-y-6">
             <div className="relative w-20 h-20 mx-auto">
               <div className="w-20 h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center text-emerald-400">
+              <div className="absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                 <Smartphone className="w-8 h-8" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Traitement du Paiement en cours..." : "Processing Rent Payment..."}
               </h3>
-              <p className="text-xs text-emerald-400 font-mono animate-pulse">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono animate-pulse">
                 {simulationStep}
               </p>
-              <p className="text-[11px] text-slate-500 max-w-xs mx-auto pt-2">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto pt-2">
                 {isFrench ? (
                   <>
                     Simulation du paiement de{" "}
-                    <strong className="text-white">
+                    <strong className="text-slate-900 dark:text-white">
                       {numericAmount.toLocaleString()} XAF
                     </strong>{" "}
                     via {PAYMENT_METHOD_LABELS[paymentMethod].label}.
@@ -249,7 +249,7 @@ export default function PayRentModal({
                 ) : (
                   <>
                     Simulating payment of{" "}
-                    <strong className="text-white">
+                    <strong className="text-slate-900 dark:text-white">
                       {numericAmount.toLocaleString()} XAF
                     </strong>{" "}
                     via {PAYMENT_METHOD_LABELS[paymentMethod].label}.
@@ -262,16 +262,16 @@ export default function PayRentModal({
           /* Payment Form */
           <form onSubmit={handleStartPayment} className="p-6 space-y-4">
             {/* Rent Overview Strip */}
-            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
               <div className="space-y-0.5">
-                <span className="text-slate-400 block text-[11px]">
+                <span className="text-slate-500 dark:text-slate-400 block text-[11px]">
                   {isFrench ? "Loyer mensuel" : "Monthly Rent Rate"}
                 </span>
-                <span className="text-sm font-bold text-white font-mono">
+                <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">
                   {monthlyRent.toLocaleString()} XAF / {isFrench ? "mois" : "month"}
                 </span>
                 {previouslyPaidInMonth > 0 && (
-                  <span className="text-[10px] text-emerald-400 block">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block">
                     {isFrench
                       ? `Payé plus tôt ce mois : ${previouslyPaidInMonth.toLocaleString()} XAF`
                       : `Paid earlier this month: ${previouslyPaidInMonth.toLocaleString()} XAF`}
@@ -280,28 +280,28 @@ export default function PayRentModal({
               </div>
 
               <div className="text-right space-y-0.5">
-                <span className="text-slate-400 block text-[11px]">
+                <span className="text-slate-500 dark:text-slate-400 block text-[11px]">
                   {isFrench ? `Reste pour ${currentMonth}` : `Remaining for ${currentMonth}`}
                 </span>
-                <span className="text-base font-black text-emerald-400 font-mono">
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
                   {remainingDue.toLocaleString()} XAF
                 </span>
               </div>
             </div>
 
             {/* MULTI-MONTH SELECTOR (Default 1 Month, with option to add future months) */}
-            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                  <label className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>
                       {isFrench
                         ? "Pour combien de mois payez-vous ?"
                         : "How many months are you paying for?"}
                     </span>
                   </label>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
                     {isFrench
                       ? "Par défaut 1 mois. Vous pouvez avancer 2, 3 mois ou plus."
                       : "Default is 1 month. You can advance 2, 3, or more months."}
@@ -309,24 +309,24 @@ export default function PayRentModal({
                 </div>
 
                 {/* Month Stepper */}
-                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-xl p-1">
+                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl p-1 shadow-xs">
                   <button
                     type="button"
                     disabled={monthsCount <= 1}
                     onClick={() => setMonthsCount((prev) => Math.max(1, prev - 1))}
-                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center transition cursor-pointer text-xs"
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
                     title={isFrench ? "Diminuer d'un mois" : "Decrease month"}
                   >
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="px-2 font-mono font-bold text-xs text-blue-400 min-w-[55px] text-center">
+                  <span className="px-2 font-mono font-bold text-xs text-blue-600 dark:text-blue-400 min-w-[55px] text-center">
                     {monthsCount} {monthsCount === 1 ? (isFrench ? "Mois" : "Month") : (isFrench ? "Mois" : "Months")}
                   </span>
                   <button
                     type="button"
                     disabled={monthsCount >= 12}
                     onClick={() => setMonthsCount((prev) => Math.min(12, prev + 1))}
-                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center transition cursor-pointer text-xs"
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
                     title={isFrench ? "Ajouter un mois" : "Add another month"}
                   >
                     <Plus className="w-3 h-3" />
@@ -344,7 +344,7 @@ export default function PayRentModal({
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border ${
                       monthsCount === cnt
                         ? "bg-blue-600 text-white border-blue-500 shadow-sm"
-                        : "bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-800"
+                        : "bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800"
                     }`}
                   >
                     {cnt === 1
@@ -357,25 +357,25 @@ export default function PayRentModal({
               </div>
 
               {/* Months Breakdown Banner */}
-              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] space-y-1">
-                <div className="flex items-center justify-between text-slate-300">
-                  <span className="text-slate-400">
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/80 text-[11px] space-y-1">
+                <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                  <span className="text-slate-500 dark:text-slate-400">
                     {isFrench ? "Période sélectionnée :" : "Selected Period:"}
                   </span>
-                  <strong className="text-emerald-400 font-medium">
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-medium">
                     {periodLabel}
                   </strong>
                 </div>
-                <div className="flex items-center justify-between text-slate-300">
-                  <span className="text-slate-400">
+                <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                  <span className="text-slate-500 dark:text-slate-400">
                     {isFrench ? "Total standard exigible :" : "Total Standard Due:"}
                   </span>
-                  <strong className="text-white font-mono">
+                  <strong className="text-slate-900 dark:text-white font-mono">
                     {totalPeriodDue.toLocaleString()} XAF
                   </strong>
                 </div>
                 {monthsCount > 1 && (
-                  <div className="pt-1 text-[10px] text-blue-300/90 border-t border-slate-800/60 leading-tight">
+                  <div className="pt-1 text-[10px] text-blue-700 dark:text-blue-300/90 border-t border-slate-200 dark:border-slate-800/60 leading-tight">
                     {isFrench ? "Mois :" : "Months:"} {targetMonths.join(" • ")}
                   </div>
                 )}
@@ -383,21 +383,21 @@ export default function PayRentModal({
             </div>
 
             {/* Amount Input: Starts empty, no arrows, accepts any sum */}
-            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <label className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <span>
                     {isFrench
                       ? "Entrez le montant à payer (XAF) :"
                       : "Enter Amount to Pay (XAF):"}
                   </span>
-                  <span className="text-emerald-400 text-[10px]">*</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">*</span>
                 </label>
                 {amountInput && (
                   <button
                     type="button"
                     onClick={() => setAmountInput("")}
-                    className="text-[10px] text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                    className="text-[10px] text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition cursor-pointer"
                   >
                     {isFrench ? "Effacer" : "Clear"}
                   </button>
@@ -405,7 +405,7 @@ export default function PayRentModal({
               </div>
 
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-sm font-bold">
                   XAF
                 </span>
                 <input
@@ -417,7 +417,7 @@ export default function PayRentModal({
                     setAmountInput(e.target.value);
                     setErrorMsg(null);
                   }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-13 pr-4 py-2.5 text-white font-mono font-bold text-base focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-13 pr-4 py-2.5 text-slate-900 dark:text-white font-mono font-bold text-base focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition shadow-sm"
                   placeholder={
                     isFrench
                       ? `ex. ${totalPeriodDue.toLocaleString()}...`
@@ -436,7 +436,7 @@ export default function PayRentModal({
                 <button
                   type="button"
                   onClick={() => setAmountInput(String(totalPeriodDue))}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-semibold border border-emerald-500/30 transition cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold border border-emerald-200 dark:border-emerald-500/30 transition cursor-pointer"
                 >
                   {isFrench ? "Période Complète" : "Full Period"} ({totalPeriodDue.toLocaleString()})
                 </button>
@@ -445,7 +445,7 @@ export default function PayRentModal({
                   onClick={() =>
                     setAmountInput(String(Math.round(totalPeriodDue / 2)))
                   }
-                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[11px] font-medium border border-amber-500/30 transition cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[11px] font-medium border border-amber-200 dark:border-amber-500/30 transition cursor-pointer"
                 >
                   50% ({Math.round(totalPeriodDue / 2).toLocaleString()})
                 </button>
@@ -453,7 +453,7 @@ export default function PayRentModal({
                   <button
                     type="button"
                     onClick={() => setAmountInput(String(remainingDue))}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium border border-slate-700 transition cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                   >
                     {isFrench ? "1 Mois Seulement" : "1 Month Only"} ({remainingDue.toLocaleString()})
                   </button>
@@ -463,36 +463,36 @@ export default function PayRentModal({
               {/* Dynamic live calculation feedback */}
               <div className="pt-0.5 text-[11px]">
                 {!amountInput ? (
-                  <p className="text-slate-400">
+                  <p className="text-slate-500 dark:text-slate-400">
                     {isFrench
                       ? "Entrez le montant que vous souhaitez payer. Vous pouvez solder la totalité ou faire une avance partielle."
                       : "Enter the amount you wish to pay. You can settle in full or make a partial advance payment."}
                   </p>
                 ) : numericAmount > 0 ? (
                   isAdvance ? (
-                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-0.5">
+                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 space-y-0.5">
                       <p className="font-bold flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5" />
                         {isFrench
                           ? `Avance de loyer : Solde ${monthsCount} mois + avance ${(numericAmount - totalPeriodDue).toLocaleString()} XAF de crédit !`
                           : `Advance Rent: Settles ${monthsCount} month(s) + advances ${(numericAmount - totalPeriodDue).toLocaleString()} XAF in credit!`}
                       </p>
-                      <p className="text-[10px] text-emerald-400/80">
+                      <p className="text-[10px] text-emerald-700 dark:text-emerald-400/80">
                         {isFrench ? (
                           <>
                             Le statut devient directement :{" "}
-                            <strong className="text-white">Complètement Soldé</strong>.
+                            <strong className="text-slate-900 dark:text-white">Complètement Soldé</strong>.
                           </>
                         ) : (
                           <>
                             Status directly marks as{" "}
-                            <strong className="text-white">Completely Paid</strong>.
+                            <strong className="text-slate-900 dark:text-white">Completely Paid</strong>.
                           </>
                         )}
                       </p>
                     </div>
                   ) : isFull ? (
-                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300">
                       <p className="font-bold flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {isFrench
@@ -501,27 +501,27 @@ export default function PayRentModal({
                       </p>
                     </div>
                   ) : (
-                    <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-0.5">
+                    <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 space-y-0.5">
                       <p className="font-bold flex items-center gap-1">
                         <AlertCircle className="w-3.5 h-3.5" />
                         {isFrench
                           ? `Paiement Partiel : Paiement de ${numericAmount.toLocaleString()} XAF maintenant.`
                           : `Partially Paid: Paying ${numericAmount.toLocaleString()} XAF now.`}
                       </p>
-                      <p className="text-[10px] text-amber-300/80">
+                      <p className="text-[10px] text-amber-700 dark:text-amber-300/80">
                         {isFrench ? (
                           <>
                             Solde restant dû :{" "}
-                            <strong>{balanceAfter.toLocaleString()} XAF</strong>.
+                            <strong className="text-slate-900 dark:text-amber-200">{balanceAfter.toLocaleString()} XAF</strong>.
                             Le statut devient directement :{" "}
-                            <strong className="text-white">Partiellement Payé</strong>.
+                            <strong className="text-slate-900 dark:text-white">Partiellement Payé</strong>.
                           </>
                         ) : (
                           <>
                             Remaining balance owing:{" "}
-                            <strong>{balanceAfter.toLocaleString()} XAF</strong>.
+                            <strong className="text-slate-900 dark:text-amber-200">{balanceAfter.toLocaleString()} XAF</strong>.
                             Status directly marks as{" "}
-                            <strong className="text-white">Partially Paid</strong>.
+                            <strong className="text-slate-900 dark:text-white">Partially Paid</strong>.
                           </>
                         )}
                       </p>
@@ -533,7 +533,7 @@ export default function PayRentModal({
 
             {/* REAL PAYMENT METHODS ONLY (No Cash) */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300 block">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                 {isFrench
                   ? "Sélectionnez le mode de paiement (Pas d'espèces) :"
                   : "Select Real Payment Method (No Cash):"}
@@ -549,8 +549,8 @@ export default function PayRentModal({
                       onClick={() => setPaymentMethod(method)}
                       className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
                         isSelected
-                          ? "bg-slate-800 border-blue-500 text-white ring-1 ring-blue-500/50"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                          ? "bg-blue-50 dark:bg-slate-800 border-blue-500 text-blue-700 dark:text-white ring-1 ring-blue-500/50 shadow-sm"
+                          : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
                       <span className="text-[11px] font-bold">{meta.short}</span>
@@ -562,7 +562,7 @@ export default function PayRentModal({
 
             {/* Payer Phone */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300 block">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                 {isFrench
                   ? "Numéro Mobile / Compte téléphone :"
                   : "Mobile Number / Account Phone:"}
@@ -572,14 +572,14 @@ export default function PayRentModal({
                 value={payerPhone}
                 onChange={(e) => setPayerPhone(e.target.value)}
                 placeholder="e.g. 671234567"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-sm"
                 required
               />
             </div>
 
             {/* Error Message */}
             {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
@@ -590,7 +590,7 @@ export default function PayRentModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition cursor-pointer"
               >
                 {isFrench ? "Annuler" : "Cancel"}
               </button>
@@ -601,7 +601,7 @@ export default function PayRentModal({
                 className={`flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition cursor-pointer ${
                   numericAmount > 0
                     ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
-                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
                 }`}
               >
                 <span>

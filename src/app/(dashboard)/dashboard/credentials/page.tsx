@@ -240,12 +240,12 @@ function CredentialsContent() {
     }
   };
 
-    if (loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
         <div className="text-center space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-emerald-500 mx-auto" />
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             {isFrench ? "Chargement des identifiants locataires générés..." : "Loading generated tenant credentials..."}
           </p>
         </div>
@@ -254,7 +254,7 @@ function CredentialsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
       {/* Unified SaaS Dashboard Navigation Bar */}
       <DashboardNav
         user={user}
@@ -265,17 +265,17 @@ function CredentialsContent() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24 lg:pb-12">
         {/* Banner if redirected after assigning a tenant */}
         {isNewlyCreated && targetUnitId && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3.5 shadow-lg shadow-emerald-500/5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-start gap-3.5 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-bold text-emerald-300">
+              <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-300">
                 {isFrench
                   ? "Locataire assigné & identifiants générés avec succès !"
                   : "Tenant Assigned & Credentials Generated Successfully!"}
               </h3>
-              <p className="mt-0.5 text-xs text-emerald-200/80 leading-relaxed">
+              <p className="mt-0.5 text-xs text-emerald-800 dark:text-emerald-200/80 leading-relaxed">
                 {isFrench ? (
                   <>
                     Le logement a été marqué comme <strong>Occupé</strong> et les identifiants d'accès sécurisés ont été créés automatiquement. Vous pouvez les partager sur le WhatsApp du locataire en 1 clic ci-dessous.
@@ -293,14 +293,14 @@ function CredentialsContent() {
         {/* Page Title & KPI Summary */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold mb-2">
               <KeyRound className="w-3.5 h-3.5" />
               <span>{isFrench ? "Centre d'Accès & Accueil Locataires" : "Tenant Access & Onboarding Hub"}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
               {isFrench ? "Identifiants Locataires Générés" : "Generated Tenant Credentials"}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-medium">
               {isFrench
                 ? "Consultez et partagez les mots de passe, liens d'accès direct en 1 clic et messages d'intégration WhatsApp pré-rédigés pour tous vos locataires actifs."
                 : "View and share encrypted passwords, 1-click magic access links, and pre-composed WhatsApp onboarding messages for all your active tenants."}
@@ -309,20 +309,20 @@ function CredentialsContent() {
 
           {/* Quick Portfolio Stats */}
           <div className="flex items-center gap-3">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-sm">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <Users className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                   {isFrench ? "Locataires Actifs" : "Active Tenants"}
                 </span>
-                <span className="text-lg font-bold text-white">{totalOccupiedCount}</span>
+                <span className="text-lg font-bold text-slate-900 dark:text-white">{totalOccupiedCount}</span>
               </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-sm">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <DollarSign className="w-4 h-4" />
               </div>
               <div>
@@ -339,7 +339,7 @@ function CredentialsContent() {
 
         {/* Search & Filter Toolbar */}
         {totalOccupiedCount > 0 && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+          <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm dark:shadow-lg">
             {/* Live Search Input */}
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -348,7 +348,7 @@ function CredentialsContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={isFrench ? "Rechercher locataire, logement, tél, email..." : "Search tenant, unit, phone, email..."}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9.5 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-9.5 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition"
               />
             </div>
 
@@ -358,7 +358,7 @@ function CredentialsContent() {
               <select
                 value={selectedBuildingId}
                 onChange={(e) => setSelectedBuildingId(e.target.value)}
-                className="w-full sm:w-auto bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+                className="w-full sm:w-auto bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
               >
                 <option value="all">
                   {isFrench
@@ -384,7 +384,7 @@ function CredentialsContent() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="px-2.5 py-2 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  className="px-2.5 py-2 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   {isFrench ? "Effacer" : "Clear"}
                 </button>
@@ -395,15 +395,15 @@ function CredentialsContent() {
 
         {/* Empty State when NO occupied units exist in portfolio */}
         {totalOccupiedCount === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center space-y-4 max-w-xl mx-auto my-12 shadow-xl">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center space-y-4 max-w-xl mx-auto my-12 shadow-sm dark:shadow-xl">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
               <KeyRound className="w-8 h-8" />
             </div>
             <div className="space-y-1.5">
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Aucun Identifiant Locataire Généré Pour l'Instant" : "No Tenant Credentials Generated Yet"}
               </h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isFrench
                   ? "Lorsque vous assignez un locataire à un logement vacant dans vos bâtiments, LeaseLink génère automatiquement des mots de passe sécurisés, des liens d'accès direct en 1 clic et des messages WhatsApp prêts à l'envoi."
                   : "When you assign a tenant to any vacant unit in your buildings, LeaseLink automatically generates secure passwords, 1-click magic access links, and ready-to-send WhatsApp messages for them."}
@@ -421,12 +421,12 @@ function CredentialsContent() {
           </div>
         ) : filteredCredentials.length === 0 ? (
           /* Filter/Search No Match */
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
-            <h3 className="text-sm font-bold text-white">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center space-y-3 shadow-sm">
+            <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {isFrench ? "Aucun identifiant ne correspond à votre filtre" : "No Credentials Match Your Filter"}
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {isFrench
                 ? `Aucun locataire actif trouvé pour "${searchQuery}". Essayez de réinitialiser vos filtres.`
                 : `No active tenant found matching "${searchQuery}". Try clearing your search query.`}
@@ -436,7 +436,7 @@ function CredentialsContent() {
                 setSearchQuery("");
                 setSelectedBuildingId("all");
               }}
-              className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-white font-medium transition"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs text-slate-800 dark:text-white font-medium border border-slate-200 dark:border-slate-700 transition"
             >
               {isFrench ? "Réinitialiser les Filtres" : "Reset Filters"}
             </button>
@@ -453,14 +453,14 @@ function CredentialsContent() {
                 <div
                   key={cred.unit.id}
                   id={`tenant-credential-card-${cred.unit.id}`}
-                  className={`bg-slate-900 border rounded-2xl p-6 sm:p-7 shadow-xl transition space-y-6 ${
+                  className={`bg-white dark:bg-slate-900 border rounded-2xl p-6 sm:p-7 shadow-sm dark:shadow-xl transition space-y-6 ${
                     isTargeted
-                      ? "border-emerald-500/70 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20 ring-2 ring-emerald-500/20"
-                      : "border-slate-800 hover:border-slate-700/80"
+                      ? "border-emerald-500/70 bg-gradient-to-br from-emerald-50/50 via-white to-white dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/20 ring-2 ring-emerald-500/20"
+                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/80"
                   }`}
                 >
                   {/* Card Header: Tenant & Unit Info */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-5">
                     <div className="flex items-start sm:items-center gap-3.5">
                       {/* Initials Avatar */}
                       <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md shadow-emerald-700/20">
@@ -469,27 +469,27 @@ function CredentialsContent() {
 
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-lg sm:text-xl font-bold text-white">
+                          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                             {cred.tenantName}
                           </h2>
                           {isTargeted && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
                               {isFrench ? "Logement Sélectionné" : "Selected Unit"}
                             </span>
                           )}
-                          <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-semibold border border-slate-700">
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-semibold border border-slate-200 dark:border-slate-700">
                             {isFrench ? "Locataire Actif" : "Active Tenant"}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                          <span className="flex items-center gap-1 text-slate-300 font-medium">
-                            <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                          <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
+                            <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                             {cred.building.name}
                           </span>
                           <span>•</span>
-                          <span className="flex items-center gap-1 font-semibold text-white">
-                            <DoorOpen className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="flex items-center gap-1 font-semibold text-slate-900 dark:text-white">
+                            <DoorOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                             {cred.unit.unit_number}
                           </span>
                           {cred.building.city && (
@@ -504,18 +504,18 @@ function CredentialsContent() {
 
                     {/* Rent & Fast Edit Button */}
                     <div className="flex items-center gap-3 self-start sm:self-auto">
-                      <div className="px-3.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
-                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+                      <div className="px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                           {isFrench ? "Loyer Mensuel" : "Monthly Rent"}
                         </span>
-                        <span className="text-sm font-bold text-emerald-400">
+                        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                           {formatCurrency(Number(cred.unit.rent_amount || 0))}
                         </span>
                       </div>
 
                       <Link
                         href={`/dashboard/buildings`}
-                        className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-xs text-slate-300 hover:text-white border border-slate-700/80 transition"
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-700/80 transition"
                         title={isFrench ? "Voir le logement dans Immeubles" : "View Unit in Buildings"}
                       >
                         {isFrench ? "Modifier Logement" : "Edit Unit"}
@@ -524,17 +524,17 @@ function CredentialsContent() {
                   </div>
 
                   {/* Primary WhatsApp Action Bar */}
-                  <div className="bg-gradient-to-r from-emerald-950/40 via-slate-950 to-slate-950 border border-emerald-500/30 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="bg-emerald-50/60 dark:bg-gradient-to-r dark:from-emerald-950/40 dark:via-slate-950 dark:to-slate-950 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
-                      <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300">
-                        <MessageCircle className="w-4 h-4 text-emerald-400 fill-emerald-400/20" />
+                      <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        <MessageCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 fill-emerald-600/20 dark:fill-emerald-400/20" />
                         <span>{isFrench ? "Accueil WhatsApp Prêt à l'Envoi" : "Direct WhatsApp Onboarding Ready"}</span>
                       </div>
-                      <p className="text-xs text-slate-300 max-w-xl">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 max-w-xl">
                         {isFrench
                           ? "Envoyez les identifiants, caractéristiques du logement et le lien direct en 1-clic à "
                           : "Send credentials, apartment specs, and the direct 1-click magic link directly to "}
-                        <strong className="text-white">{cred.tenantPhone || (isFrench ? "le locataire" : "the tenant")}</strong>.
+                        <strong className="text-slate-900 dark:text-white">{cred.tenantPhone || (isFrench ? "le locataire" : "the tenant")}</strong>.
                       </p>
                     </div>
 
@@ -551,12 +551,12 @@ function CredentialsContent() {
 
                       <button
                         onClick={() => handleCopy(cred.whatsAppMessage, `full_msg_${cred.unit.id}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                       >
                         {copiedField === `full_msg_${cred.unit.id}` ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">{isFrench ? "Message Copié !" : "Message Copied!"}</span>
+                            <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span className="text-emerald-600 dark:text-emerald-400">{isFrench ? "Message Copié !" : "Message Copied!"}</span>
                           </>
                         ) : (
                           <>
@@ -568,7 +568,7 @@ function CredentialsContent() {
 
                       <button
                         onClick={() => togglePreview(cred.unit.id)}
-                        className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-medium border border-slate-800 transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl bg-white/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-medium border border-slate-200 dark:border-slate-800 transition cursor-pointer"
                       >
                         <span>{isPreviewExpanded ? (isFrench ? "Masquer l'Aperçu" : "Hide Preview") : (isFrench ? "Aperçu" : "Preview")}</span>
                         {isPreviewExpanded ? (
@@ -582,7 +582,7 @@ function CredentialsContent() {
 
                   {/* Expandable WhatsApp Message Preview */}
                   {isPreviewExpanded && (
-                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto selection:bg-emerald-600">
+                    <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-800 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto selection:bg-emerald-600">
                       {cred.whatsAppMessage}
                     </div>
                   )}
@@ -590,25 +590,25 @@ function CredentialsContent() {
                   {/* Generated Credentials Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Login Username / Email */}
-                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
                         <span className="flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-blue-400" />
+                          <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                           <span>{isFrench ? "Identifiant / E-mail du Locataire" : "Tenant Login ID / E-mail"}</span>
                         </span>
                         <button
                           onClick={() => handleCopy(cred.tenantEmail || cred.tenantPhone, `email_${cred.unit.id}`)}
-                          className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+                          className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
                           title={isFrench ? "Copier l'identifiant" : "Copy login ID"}
                         >
                           {copiedField === `email_${cred.unit.id}` ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
                         </button>
                       </div>
-                      <span className="font-mono text-xs font-bold text-white block truncate">
+                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-white block truncate">
                         {cred.tenantEmail || cred.tenantPhone || (isFrench ? "Aucun e-mail assigné" : "No email assigned")}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
@@ -617,17 +617,17 @@ function CredentialsContent() {
                     </div>
 
                     {/* Access Password */}
-                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
                         <span className="flex items-center gap-1.5">
-                          <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                          <KeyRound className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                           <span>{isFrench ? "Mot de Passe d'Accès" : "Access Password"}</span>
                         </span>
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => togglePasswordVisibility(cred.unit.id)}
-                            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+                            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
                             title={isPasswordVisible ? (isFrench ? "Masquer mot de passe" : "Hide password") : (isFrench ? "Afficher mot de passe" : "Show password")}
                           >
                             {isPasswordVisible ? (
@@ -638,18 +638,18 @@ function CredentialsContent() {
                           </button>
                           <button
                             onClick={() => handleCopy(cred.tenantPassword, `pass_${cred.unit.id}`)}
-                            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+                            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
                             title={isFrench ? "Copier mot de passe" : "Copy password"}
                           >
                             {copiedField === `pass_${cred.unit.id}` ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
                           </button>
                         </div>
                       </div>
-                      <span className="font-mono text-xs font-bold text-emerald-400 block tracking-wider">
+                      <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 block tracking-wider">
                         {isPasswordVisible ? cred.tenantPassword : "••••••••••••"}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
@@ -658,10 +658,10 @@ function CredentialsContent() {
                     </div>
 
                     {/* 1-Click Direct Magic Link */}
-                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
                         <span className="flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                           <span>{isFrench ? "Lien Direct en 1-Clic" : "1-Click Magic Link"}</span>
                         </span>
                         <div className="flex items-center gap-1">
@@ -669,25 +669,25 @@ function CredentialsContent() {
                             href={cred.directAccessUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-slate-800 transition"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
                             title={isFrench ? "Tester la vue portail dans un nouvel onglet" : "Test Portal View in new tab"}
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                           <button
                             onClick={() => handleCopy(cred.directAccessUrl, `link_${cred.unit.id}`)}
-                            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+                            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
                             title={isFrench ? "Copier le Lien Magique" : "Copy Magic Link"}
                           >
                             {copiedField === `link_${cred.unit.id}` ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
                           </button>
                         </div>
                       </div>
-                      <span className="font-mono text-xs text-blue-400 block truncate">
+                      <span className="font-mono text-xs text-blue-600 dark:text-blue-400 block truncate">
                         {cred.directAccessUrl}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
@@ -702,8 +702,8 @@ function CredentialsContent() {
         )}
 
         {/* Security & Guarantee Footer Notice */}
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 text-xs text-slate-400 flex items-start gap-3">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-400 flex items-start gap-3 shadow-sm">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             <strong>{isFrench ? "Sécurité & Contrôle d'Accès :" : "Security & Access Control:"}</strong>{" "}
             {isFrench
@@ -720,7 +720,7 @@ export default function TenantCredentialsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
           <RefreshCw className="w-8 h-8 animate-spin text-emerald-500" />
         </div>
       }

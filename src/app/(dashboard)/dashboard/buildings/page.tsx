@@ -494,10 +494,10 @@ export default function BuildingsManagementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
         <div className="text-center space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             {isFrench ? "Chargement du portefeuille immobilier..." : "Loading building portfolio..."}
           </p>
         </div>
@@ -506,7 +506,7 @@ export default function BuildingsManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
       {/* Unified SaaS Dashboard Navigation Bar */}
       <DashboardNav
         user={user}
@@ -519,23 +519,23 @@ export default function BuildingsManagementPage() {
         {/* Back Link & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1 hover:text-white transition"
+                className="inline-flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>{isFrench ? "Tableau de Bord" : "Dashboard"}</span>
               </Link>
               <span>/</span>
-              <span className="text-slate-200 font-medium">
+              <span className="text-slate-700 dark:text-slate-200 font-semibold">
                 {isFrench ? "Bâtiments & Logements" : "Buildings & Units"}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
               {isFrench ? "Gestion des Bâtiments & Logements" : "Buildings & Units Management"}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
               {isFrench
                 ? "Créez des bâtiments avec des logements vacants, puis personnalisez le loyer, salons, chambres, salles de bain et cuisines de chaque logement."
                 : "Create buildings with vacant units, then customize each unit's rent price, parlors, rooms, bathrooms, and kitchens."}
@@ -545,7 +545,7 @@ export default function BuildingsManagementPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard/maintenance"
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-500/30 text-xs font-semibold transition"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-600/10 dark:hover:bg-amber-600/20 dark:text-amber-400 dark:border-amber-500/30 text-xs font-semibold transition shadow-xs"
               title={isFrench ? "Voir les tickets de réparations & maintenance" : "View Repairs & Maintenance Tickets"}
             >
               <Wrench className="w-3.5 h-3.5" />
@@ -558,10 +558,10 @@ export default function BuildingsManagementPage() {
                 loadData();
               }}
               disabled={refreshing}
-              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs transition cursor-pointer"
+              className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs transition cursor-pointer shadow-xs"
               title={isFrench ? "Actualiser la liste des bâtiments" : "Refresh Buildings List"}
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-blue-400" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-blue-600 dark:text-blue-400" : ""}`} />
             </button>
 
             <button
@@ -720,26 +720,26 @@ export default function BuildingsManagementPage() {
 
         {/* SECTION: Building Creation Form (Floors & default specs removed) */}
         {showCreateForm && (
-          <section className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-blue-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-            <div className="flex items-center justify-between pb-6 border-b border-slate-800">
+          <section className="bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-slate-200 dark:border-blue-500/30 rounded-2xl p-6 sm:p-8 shadow-sm dark:shadow-2xl relative overflow-hidden">
+            <div className="flex items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-600/20 border border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-inner">
                   <Plus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                     {isFrench ? "Créer un Nouveau Bâtiment" : "Create New Building"}
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
                     {isFrench ? (
                       <>
                         Entrez les détails du bâtiment et le nombre de logements. Tous les logements seront créés comme{" "}
-                        <strong className="text-emerald-400">Vacants</strong>. Vous pourrez configurer le loyer individuel et les pièces immédiatement après.
+                        <strong className="text-emerald-600 dark:text-emerald-400">Vacants</strong>. Vous pourrez configurer le loyer individuel et les pièces immédiatement après.
                       </>
                     ) : (
                       <>
                         Enter the building details and number of units. All units will be created as{" "}
-                        <strong className="text-emerald-400">Vacant</strong>. You can configure individual rent and room specs right after creation.
+                        <strong className="text-emerald-600 dark:text-emerald-400">Vacant</strong>. You can configure individual rent and room specs right after creation.
                       </>
                     )}
                   </p>
@@ -748,15 +748,15 @@ export default function BuildingsManagementPage() {
 
               <button
                 onClick={() => setShowCreateForm(false)}
-                className="text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
+                className="text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 {isFrench ? "Annuler" : "Cancel"}
               </button>
             </div>
 
             {formError && (
-              <div className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <div className="mt-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
                 <div className="text-xs sm:text-sm">
                   <span className="font-bold block">{isFrench ? "Erreur" : "Error"}</span>
                   <span>{formError}</span>
@@ -768,9 +768,9 @@ export default function BuildingsManagementPage() {
               {/* Part 1: Building Identity */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2">
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     {isFrench ? "Nom du Bâtiment / Propriété" : "Building / Property Name"}{" "}
-                    <span className="text-rose-400">*</span>
+                    <span className="text-rose-500 dark:text-rose-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -782,13 +782,13 @@ export default function BuildingsManagementPage() {
                     }
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                    {isFrench ? "Type de Propriété" : "Property Type"} <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    {isFrench ? "Type de Propriété" : "Property Type"} <span className="text-rose-500 dark:text-rose-400">*</span>
                   </label>
                   <select
                     value={formData.property_type}
@@ -798,7 +798,7 @@ export default function BuildingsManagementPage() {
                         property_type: e.target.value as PropertyType,
                       })
                     }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition cursor-pointer"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition cursor-pointer"
                   >
                     <option value="apartment">
                       {isFrench ? "🏢 Immeuble d'Appartements" : "🏢 Apartment Complex"}
@@ -822,9 +822,9 @@ export default function BuildingsManagementPage() {
                 </div>
 
                 <div className="lg:col-span-2">
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     {isFrench ? "Adresse / Quartier" : "Street Address / Quarter"}{" "}
-                    <span className="text-rose-400">*</span>
+                    <span className="text-rose-500 dark:text-rose-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -834,13 +834,13 @@ export default function BuildingsManagementPage() {
                     }
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                       {isFrench ? "Ville" : "City"}
                     </label>
                     <input
@@ -848,11 +848,11 @@ export default function BuildingsManagementPage() {
                       placeholder="e.g. Douala"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                       {isFrench ? "Région / État" : "Region / State"}
                     </label>
                     <input
@@ -862,17 +862,17 @@ export default function BuildingsManagementPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, state_region: e.target.value })
                       }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Part 2: Number of Units & Custom Naming (Floor removed) */}
-              <div className="pt-4 border-t border-slate-800">
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
-                  <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
                     {isFrench
                       ? "Génération des Logements (Tous Générés Vacants)"
                       : "Units Provisioning (All Generated Vacant)"}
@@ -881,11 +881,11 @@ export default function BuildingsManagementPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
                       <span>
                         {isFrench ? "Nombre de Logements à Générer" : "Number of Units to Generate"}
                       </span>
-                      <span className="text-[11px] text-blue-400 font-semibold">
+                      <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
                         {isFrench ? `${remainingQuota} quota restant` : `${remainingQuota} quota left`}
                       </span>
                     </label>
@@ -900,23 +900,23 @@ export default function BuildingsManagementPage() {
                           total_units: Math.max(1, parseInt(e.target.value) || 1),
                         })
                       }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition"
                     />
                     <span className="text-[11px] text-slate-500 mt-1 block">
                       {isFrench ? (
                         <>
-                          Générés comme <strong className="text-emerald-400">Vacants</strong>
+                          Générés comme <strong className="text-emerald-600 dark:text-emerald-400">Vacants</strong>
                         </>
                       ) : (
                         <>
-                          Generated as <strong className="text-emerald-400">Vacant</strong>
+                          Generated as <strong className="text-emerald-600 dark:text-emerald-400">Vacant</strong>
                         </>
                       )}
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                       {isFrench ? "Préfixe de Nom des Logements" : "Unit Naming Prefix"}
                     </label>
                     <input
@@ -926,7 +926,7 @@ export default function BuildingsManagementPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, unit_prefix: e.target.value })
                       }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                     />
                     <span className="text-[11px] text-slate-500 mt-1 block">
                       {isFrench
@@ -936,7 +936,7 @@ export default function BuildingsManagementPage() {
                   </div>
 
                   <div className="sm:col-span-2 lg:col-span-1">
-                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                       {isFrench
                         ? "Notes / Équipements du Bâtiment (Facultatif)"
                         : "Building Notes / Amenities (Optional)"}
@@ -952,31 +952,31 @@ export default function BuildingsManagementPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, description: e.target.value })
                       }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Part 3: Units Generation Preview Box */}
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <Info className="w-4 h-4 text-blue-400" />
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span>
                       {isFrench
                         ? `Aperçu de la Génération Automatique : ${unitPreviewList.length} Logements`
                         : `Automatic Generation Preview: ${unitPreviewList.length} Units`}
                     </span>
                   </div>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
                     {isFrench
                       ? "Initialisé comme VACANT (Specs non configurées)"
                       : "Initialized as VACANT (Specs unconfigured)"}
                   </span>
                 </div>
 
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   {isFrench
                     ? "Les logements vacants suivants seront créés. Vous pourrez configurer le loyer, salons, chambres, salles de bain et cuisines de chaque logement après création :"
                     : "The following vacant units will be created. You can customize rent, parlors, rooms, bathrooms, and kitchens for each unit after creation:"}
@@ -986,11 +986,11 @@ export default function BuildingsManagementPage() {
                   {unitPreviewList.map((unitName, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs"
+                      className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs"
                     >
-                      <span className="font-semibold text-white">{unitName}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span className="text-[10px] uppercase font-bold text-emerald-400">
+                      <span className="font-semibold text-slate-900 dark:text-white">{unitName}</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                      <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
                         {isFrench ? "Vacant" : "Vacant"}
                       </span>
                     </div>
@@ -999,12 +999,12 @@ export default function BuildingsManagementPage() {
               </div>
 
               {/* Submit Action */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
                   disabled={submitting}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   {isFrench ? "Annuler" : "Cancel"}
                 </button>
@@ -1042,10 +1042,10 @@ export default function BuildingsManagementPage() {
         <section className="space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Votre Portefeuille Immobilier" : "Your Buildings Portfolio"}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {isFrench
                   ? "Consultez vos bâtiments, inspectez les logements occupés & vacants et personnalisez le loyer & l'agencement des pièces."
                   : "View your buildings, inspect occupied & vacant units, and customize unit rent & room configurations."}
@@ -1055,13 +1055,13 @@ export default function BuildingsManagementPage() {
             {buildings.length > 0 && (
               <div className="flex flex-wrap items-center gap-2.5">
                 {/* Global Status Filter Tabs */}
-                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-900 p-1 rounded-xl border border-slate-300 dark:border-slate-800">
                   <button
                     onClick={() => setPortfolioStatusFilter("all")}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                       portfolioStatusFilter === "all"
-                        ? "bg-slate-800 text-white shadow-sm"
-                        : "text-slate-400 hover:text-white"
+                        ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
                     {isFrench
@@ -1072,11 +1072,11 @@ export default function BuildingsManagementPage() {
                     onClick={() => setPortfolioStatusFilter("occupied")}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                       portfolioStatusFilter === "occupied"
-                        ? "bg-blue-600/30 text-blue-300 border border-blue-500/40 shadow-sm"
-                        : "text-slate-400 hover:text-blue-300"
+                        ? "bg-blue-50 dark:bg-blue-600/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/40 shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300"
                     }`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400" />
                     <span>
                       {isFrench ? `Occupés (${totalOccupiedUnits})` : `Occupied (${totalOccupiedUnits})`}
                     </span>
@@ -1085,11 +1085,11 @@ export default function BuildingsManagementPage() {
                     onClick={() => setPortfolioStatusFilter("vacant")}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                       portfolioStatusFilter === "vacant"
-                        ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                        : "text-slate-400 hover:text-emerald-300"
+                        ? "bg-emerald-50 dark:bg-emerald-600/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40 shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300"
                     }`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                     <span>
                       {isFrench ? `Vacants (${totalVacantUnits})` : `Vacant (${totalVacantUnits})`}
                     </span>
@@ -1098,13 +1098,13 @@ export default function BuildingsManagementPage() {
 
                 {/* Search Bar */}
                 <div className="relative w-full sm:w-60">
-                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder={isFrench ? "Filtrer par nom ou ville..." : "Filter by name or city..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
               </div>
@@ -1113,15 +1113,15 @@ export default function BuildingsManagementPage() {
 
           {buildings.length === 0 ? (
             /* Empty State */
-            <div className="bg-slate-900/60 border border-slate-800 border-dashed rounded-2xl p-10 sm:p-14 text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto shadow-inner">
+            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 border-dashed rounded-2xl p-10 sm:p-14 text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-600/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto shadow-inner">
                 <Building2 className="w-8 h-8" />
               </div>
               <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   {isFrench ? "Aucun Bâtiment Créé Pour l'Instant" : "No Buildings Created Yet"}
                 </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   {isFrench ? (
                     <>
                       Commencez par ajouter votre premier bâtiment. LeaseLink générera automatiquement les logements avec un statut <strong>Vacant</strong>, prêts à être configurés et assignés à des locataires.
@@ -1142,7 +1142,7 @@ export default function BuildingsManagementPage() {
               </button>
             </div>
           ) : filteredBuildings.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 text-xs bg-slate-900 rounded-xl border border-slate-800">
+            <div className="p-8 text-center text-slate-600 dark:text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
               {isFrench
                 ? `Aucun bâtiment ne correspond à "${searchQuery}" avec ${portfolioStatusFilter !== "all" ? `des logements ${portfolioStatusFilter === "occupied" ? "occupés" : "vacants"}` : "les critères actuels"}. Essayez d'effacer vos filtres.`
                 : `No buildings match "${searchQuery}" with ${portfolioStatusFilter !== "all" ? `${portfolioStatusFilter} units` : "current criteria"}. Try clearing your filters.`}
@@ -1169,23 +1169,23 @@ export default function BuildingsManagementPage() {
                 return (
                   <div
                     key={building.id}
-                    className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden transition"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm dark:shadow-xl overflow-hidden transition"
                   >
                     {/* Building Card Header */}
-                    <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 bg-slate-900/90">
+                    <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/90">
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2.5">
-                          <h3 className="text-lg sm:text-xl font-bold text-white">
+                          <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                             {building.name}
                           </h3>
-                          <span className="text-[11px] uppercase tracking-wider font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          <span className="text-[11px] uppercase tracking-wider font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
                             {building.property_type}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
                           <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                             <span>
                               {building.address}
                               {building.city ? `, ${building.city}` : ""}
@@ -1195,38 +1195,38 @@ export default function BuildingsManagementPage() {
                         </div>
 
                         {building.description && (
-                          <p className="text-xs text-slate-400 italic">
+                          <p className="text-xs text-slate-600 dark:text-slate-400 italic">
                             &quot;{building.description}&quot;
                           </p>
                         )}
                       </div>
 
                       {/* Right stats and expand button */}
-                      <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+                      <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200 dark:border-slate-800">
                         <div className="flex items-center gap-2">
-                          <div className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-center">
+                          <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center">
                             <span className="block text-[10px] text-slate-500 uppercase font-bold">
                               {isFrench ? "Logements" : "Units"}
                             </span>
-                            <span className="text-sm font-extrabold text-white">
+                            <span className="text-sm font-extrabold text-slate-900 dark:text-white">
                               {unitCount}
                             </span>
                           </div>
 
-                          <div className="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
-                            <span className="block text-[10px] text-blue-400 uppercase font-bold">
+                          <div className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-center">
+                            <span className="block text-[10px] text-blue-700 dark:text-blue-400 uppercase font-bold">
                               {isFrench ? "Occupés" : "Occupied"}
                             </span>
-                            <span className="text-sm font-extrabold text-blue-400">
+                            <span className="text-sm font-extrabold text-blue-700 dark:text-blue-400">
                               {occupiedCount}
                             </span>
                           </div>
 
-                          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                            <span className="block text-[10px] text-emerald-400 uppercase font-bold">
+                          <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-center">
+                            <span className="block text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-bold">
                               {isFrench ? "Vacants" : "Vacant"}
                             </span>
-                            <span className="text-sm font-extrabold text-emerald-400">
+                            <span className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400">
                               {vacantCount}
                             </span>
                           </div>
@@ -1234,7 +1234,7 @@ export default function BuildingsManagementPage() {
 
                         <button
                           onClick={() => toggleExpand(building.id)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 hover:text-slate-900 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                         >
                           <span>
                             {isExpanded
@@ -1242,9 +1242,9 @@ export default function BuildingsManagementPage() {
                               : isFrench ? `Voir les Logements (${unitCount})` : `View Units (${unitCount})`}
                           </span>
                           {isExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                            <ChevronUp className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                           ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                           )}
                         </button>
                       </div>
@@ -1252,39 +1252,39 @@ export default function BuildingsManagementPage() {
 
                     {/* Expandable Units Grid */}
                     {isExpanded && (
-                      <div className="p-5 sm:p-6 bg-slate-950/60 space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/70">
+                      <div className="p-5 sm:p-6 bg-slate-50/60 dark:bg-slate-950/60 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800/70">
                           <div className="space-y-0.5">
-                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                              <DoorOpen className="w-4 h-4 text-blue-400" />
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-300 uppercase tracking-wider">
+                              <DoorOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                               <span>{isFrench ? `Logements dans ${building.name}` : `Units in ${building.name}`}</span>
-                              <span className="text-slate-400 normal-case font-medium text-xs">
+                              <span className="text-slate-500 dark:text-slate-400 normal-case font-medium text-xs">
                                 ({occupiedCount} {isFrench ? "Occupés" : "Occupied"} • {vacantCount} {isFrench ? "Vacants" : "Vacant"})
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400">
                               {isFrench ? (
                                 <>
-                                  Cliquez sur <strong className="text-blue-400">"Modifier Pièces & Locataire"</strong> pour définir les caractéristiques ou assigner des locataires aux logements vacants.
+                                  Cliquez sur <strong className="text-blue-600 dark:text-blue-400">&quot;Modifier Pièces & Locataire&quot;</strong> pour définir les caractéristiques ou assigner des locataires aux logements vacants.
                                 </>
                               ) : (
                                 <>
-                                  Click <strong className="text-blue-400">&quot;Modify Specs & Tenant&quot;</strong> to set specs or assign tenants to vacant units.
+                                  Click <strong className="text-blue-600 dark:text-blue-400">&quot;Modify Specs & Tenant&quot;</strong> to set specs or assign tenants to vacant units.
                                 </>
                               )}
                             </p>
                           </div>
 
                           {/* Building Unit Filter Tabs */}
-                          <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start sm:self-auto shrink-0">
+                          <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-900 p-1 rounded-xl border border-slate-300 dark:border-slate-800 self-start sm:self-auto shrink-0">
                             <button
                               onClick={() =>
                                 setBuildingUnitFilters((prev) => ({ ...prev, [building.id]: "all" }))
                               }
                               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                                 currentFilter === "all"
-                                  ? "bg-slate-800 text-white shadow-sm"
-                                  : "text-slate-400 hover:text-white"
+                                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                               }`}
                             >
                               {isFrench ? `Tous (${unitCount})` : `All (${unitCount})`}
@@ -1295,11 +1295,11 @@ export default function BuildingsManagementPage() {
                               }
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                                 currentFilter === "occupied"
-                                  ? "bg-blue-600/30 text-blue-300 border border-blue-500/40 shadow-sm"
-                                  : "text-slate-400 hover:text-blue-300"
+                                  ? "bg-blue-50 dark:bg-blue-600/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/40 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300"
                               }`}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400" />
                               <span>{isFrench ? `Occupés (${occupiedCount})` : `Occupied (${occupiedCount})`}</span>
                             </button>
                             <button
@@ -1308,11 +1308,11 @@ export default function BuildingsManagementPage() {
                               }
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                                 currentFilter === "vacant"
-                                  ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                                  : "text-slate-400 hover:text-emerald-300"
+                                  ? "bg-emerald-50 dark:bg-emerald-600/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40 shadow-sm"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300"
                               }`}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                               <span>{isFrench ? `Vacants (${vacantCount})` : `Vacant (${vacantCount})`}</span>
                             </button>
                           </div>
@@ -1333,26 +1333,26 @@ export default function BuildingsManagementPage() {
                               return (
                                 <div
                                   key={unit.id}
-                                  className={`bg-slate-900 border rounded-xl p-4 space-y-3 transition flex flex-col justify-between ${
+                                  className={`bg-white dark:bg-slate-900 border rounded-xl p-4 space-y-3 transition flex flex-col justify-between shadow-sm ${
                                     isOccupied
-                                      ? "border-blue-500/30 hover:border-blue-500/60 shadow-lg shadow-blue-950/20"
-                                      : "border-slate-800 hover:border-slate-700/80"
+                                      ? "border-blue-300 dark:border-blue-500/30 hover:border-blue-400 dark:hover:border-blue-500/60 shadow-blue-500/5 dark:shadow-blue-950/20"
+                                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/80"
                                   }`}
                                 >
                                   <div className="space-y-2.5">
                                     {/* Top Row: Unit Name & Status */}
                                     <div className="flex items-center justify-between">
-                                      <span className="font-bold text-white text-sm">
+                                      <span className="font-bold text-slate-900 dark:text-white text-sm">
                                         {unit.unit_number}
                                       </span>
                                       {isOccupied ? (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 animate-pulse" />
                                           {isFrench ? "Occupé" : "Occupied"}
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                                           {isFrench ? "Vacant" : "Vacant"}
                                         </span>
                                       )}
@@ -1360,17 +1360,17 @@ export default function BuildingsManagementPage() {
 
                                     {/* Occupancy Details Box */}
                                     {isOccupied && unit.tenant_name ? (
-                                      <div className="p-2.5 rounded-lg bg-blue-950/40 border border-blue-500/20 space-y-1.5 text-xs">
+                                      <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-500/20 space-y-1.5 text-xs">
                                         <div className="flex items-center justify-between">
                                           <div className="flex items-center gap-1.5 truncate">
-                                            <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                            <span className="font-semibold text-white truncate text-[11px]">
+                                            <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            <span className="font-semibold text-slate-900 dark:text-white truncate text-[11px]">
                                               {unit.tenant_name}
                                             </span>
                                           </div>
                                           <Link
                                             href={`/dashboard/credentials?unitId=${unit.id}`}
-                                            className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 transition shrink-0"
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/30 transition shrink-0"
                                             title={isFrench ? "Voir les identifiants & partager sur WhatsApp" : "View credentials & WhatsApp share"}
                                           >
                                             <KeyRound className="w-3 h-3" />
@@ -1378,23 +1378,23 @@ export default function BuildingsManagementPage() {
                                           </Link>
                                         </div>
                                         {unit.tenant_phone && (
-                                          <div className="flex items-center gap-1 text-[11px] text-slate-400 truncate">
-                                            <Phone className="w-3 h-3 text-slate-500 shrink-0" />
+                                          <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 truncate">
+                                            <Phone className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
                                             <span className="truncate">{unit.tenant_phone}</span>
                                           </div>
                                         )}
                                       </div>
                                     ) : (
-                                      <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-xs">
-                                        <div className="flex items-center gap-1.5 text-emerald-400/90 truncate">
-                                          <DoorOpen className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                      <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/20 text-xs">
+                                        <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 truncate">
+                                          <DoorOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                           <span className="text-[11px] font-medium truncate">
-                                            {isFrench ? "Vacant • Disponible à la Location" : "Vacant • Available for Lease"}
+                                            {isFrench ? "Vacant • Disponible" : "Vacant • Available"}
                                           </span>
                                         </div>
                                         <button
                                           onClick={() => handleOpenEditUnit(unit, building.name)}
-                                          className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 hover:text-emerald-200 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30 transition shrink-0 cursor-pointer"
+                                          className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 bg-white dark:bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/30 transition shrink-0 cursor-pointer"
                                           title={isFrench ? "Assigner un locataire à ce logement" : "Assign a tenant to this unit"}
                                         >
                                           <UserPlus className="w-3 h-3" />
@@ -1404,19 +1404,19 @@ export default function BuildingsManagementPage() {
                                     )}
 
                                     {/* Rent Amount */}
-                                    <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80">
+                                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
                                         {isFrench ? "Prix du Loyer" : "Rent Price"}
                                       </span>
                                       {unit.rent_amount > 0 ? (
-                                        <span className="text-sm font-extrabold text-emerald-400">
+                                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
                                           {Number(unit.rent_amount).toLocaleString()} XAF
                                           <span className="text-[11px] text-slate-500 font-normal">
                                             {isFrench ? " / mois" : " / mo"}
                                           </span>
                                         </span>
                                       ) : (
-                                        <span className="text-xs text-amber-400/90 font-medium italic">
+                                        <span className="text-xs text-amber-600 dark:text-amber-400/90 font-medium italic">
                                           {isFrench ? "Loyer non défini" : "Rent not set"}
                                         </span>
                                       )}
@@ -1424,34 +1424,34 @@ export default function BuildingsManagementPage() {
 
                                     {/* Specifications Grid */}
                                     {hasConfiguredSpecs ? (
-                                      <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
-                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
-                                          <Sofa className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                      <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950/50 px-2 py-1 rounded border border-slate-200 dark:border-transparent">
+                                          <Sofa className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                                           <span>
                                             {unit.parlors ?? 0} {isFrench ? "Salon(s)" : "Parlor(s)"}
                                           </span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
-                                          <Bed className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950/50 px-2 py-1 rounded border border-slate-200 dark:border-transparent">
+                                          <Bed className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                                           <span>
                                             {unit.rooms ?? unit.bedrooms ?? 0} {isFrench ? "Chambre(s)" : "Room(s)"}
                                           </span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
-                                          <Bath className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950/50 px-2 py-1 rounded border border-slate-200 dark:border-transparent">
+                                          <Bath className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
                                           <span>
                                             {unit.bathrooms ?? 0} {isFrench ? "Douche(s)" : "Bath(s)"}
                                           </span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded">
-                                          <Utensils className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950/50 px-2 py-1 rounded border border-slate-200 dark:border-transparent">
+                                          <Utensils className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                                           <span>
                                             {unit.kitchens ?? 0} {isFrench ? "Cuisine(s)" : "Kitchen(s)"}
                                           </span>
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800 text-[11px] text-slate-500 italic text-center">
+                                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 italic text-center">
                                         {isFrench
                                           ? "Caractéristiques non définies (0 salon, chambre, douche, cuisine)"
                                           : "Specs not set yet (0 parlors, rooms, baths, kitchens)"}
@@ -1459,20 +1459,20 @@ export default function BuildingsManagementPage() {
                                     )}
 
                                     {unit.notes && (
-                                      <p className="text-[11px] text-slate-400 line-clamp-1 italic">
+                                      <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-1 italic">
                                         &quot;{unit.notes}&quot;
                                       </p>
                                     )}
                                   </div>
 
                                   {/* Actions: Modify Unit & Credentials Buttons */}
-                                  <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2">
+                                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center gap-2">
                                     <button
                                       onClick={() => handleOpenEditUnit(unit, building.name)}
                                       className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                                         isOccupied
-                                          ? "bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/20"
-                                          : "bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20"
+                                          ? "bg-blue-50 hover:bg-blue-600 dark:bg-blue-600/10 dark:hover:bg-blue-600 text-blue-700 hover:text-white dark:text-blue-400 dark:hover:text-white border border-blue-200 dark:border-blue-500/20"
+                                          : "bg-emerald-50 hover:bg-emerald-600 dark:bg-emerald-600/10 dark:hover:bg-emerald-600 text-emerald-700 hover:text-white dark:text-emerald-400 dark:hover:text-white border border-emerald-200 dark:border-emerald-500/20"
                                       }`}
                                     >
                                       <Edit3 className="w-3.5 h-3.5" />
@@ -1484,7 +1484,7 @@ export default function BuildingsManagementPage() {
                                     {isOccupied && unit.tenant_name && (
                                       <Link
                                         href={`/dashboard/credentials?unitId=${unit.id}`}
-                                        className="inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 text-xs font-semibold transition shrink-0"
+                                        className="inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 dark:bg-emerald-600/10 dark:hover:bg-emerald-600 text-emerald-700 hover:text-white dark:text-emerald-400 dark:hover:text-white border border-emerald-200 dark:border-emerald-500/20 text-xs font-semibold transition shrink-0"
                                         title={isFrench ? "Partager sur WhatsApp" : "Share on WhatsApp"}
                                       >
                                         <MessageCircle className="w-3.5 h-3.5" />
@@ -1497,8 +1497,8 @@ export default function BuildingsManagementPage() {
                             })}
                           </div>
                         ) : (
-                          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 text-center space-y-2">
-                            <p className="text-xs text-slate-400">
+                          <div className="p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
                               {isFrench
                                 ? `Aucun logement ${currentFilter === "occupied" ? "occupé" : currentFilter === "vacant" ? "vacant" : ""} trouvé dans ${building.name}.`
                                 : `No ${currentFilter} units found in ${building.name}.`}
@@ -1507,7 +1507,7 @@ export default function BuildingsManagementPage() {
                               onClick={() =>
                                 setBuildingUnitFilters((prev) => ({ ...prev, [building.id]: "all" }))
                               }
-                              className="text-xs text-blue-400 hover:underline font-semibold cursor-pointer"
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
                             >
                               {isFrench ? `Afficher tous les ${unitCount} logements` : `Show all ${unitCount} units`}
                             </button>
@@ -1535,31 +1535,31 @@ export default function BuildingsManagementPage() {
           onWheel={handleModalWheel}
         >
           <div
-            className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] h-auto min-h-0 select-text"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] h-auto min-h-0 select-text"
             onWheel={handleModalWheel}
           >
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900/95 z-10">
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-600/20 border border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <Edit3 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                     {isFrench
                       ? `Modifier le Logement : ${editingUnit.unit_number}`
                       : `Modify Unit: ${editingUnit.unit_number}`}
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    {isFrench ? "Propriété :" : "Property:"} <strong className="text-slate-200">{editingBuildingName}</strong> • {isFrench ? "Statut :" : "Status:"}{" "}
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    {isFrench ? "Propriété :" : "Property:"} <strong className="text-slate-900 dark:text-slate-200">{editingBuildingName}</strong> • {isFrench ? "Statut :" : "Status:"}{" "}
                     {unitForm.tenant_name?.trim() ? (
-                      <span className="font-bold text-blue-400">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">
                         {isFrench
                           ? `Occupé (${unitForm.tenant_name.trim()})`
                           : `Occupied (${unitForm.tenant_name.trim()})`}
                       </span>
                     ) : (
-                      <span className="font-bold text-emerald-400">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
                         {isFrench ? "Vacant (Disponible)" : "Vacant (Available)"}
                       </span>
                     )}
@@ -1571,7 +1571,7 @@ export default function BuildingsManagementPage() {
                 type="button"
                 onClick={() => setEditingUnit(null)}
                 disabled={savingUnit}
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 title={isFrench ? "Fermer (Échap)" : "Close (Esc)"}
               >
                 <X className="w-5 h-5" />
@@ -1579,7 +1579,7 @@ export default function BuildingsManagementPage() {
             </div>
 
             {unitEditError && (
-              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 shrink-0">
+              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 shrink-0">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{unitEditError}</span>
               </div>
@@ -1596,7 +1596,7 @@ export default function BuildingsManagementPage() {
               >
                 <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     {isFrench ? "Identifiant / Nom du Logement" : "Unit Identifier / Name"}
                   </label>
                   <input
@@ -1607,12 +1607,12 @@ export default function BuildingsManagementPage() {
                     onChange={(e) =>
                       setUnitForm({ ...unitForm, unit_number: e.target.value })
                     }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     {isFrench ? "Loyer Mensuel (XAF)" : "Monthly Rent (XAF)"}
                   </label>
                   <div className="relative">
@@ -1628,7 +1628,7 @@ export default function BuildingsManagementPage() {
                           rent_amount: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
                         })
                       }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </div>
@@ -1636,13 +1636,13 @@ export default function BuildingsManagementPage() {
 
               {/* Number of Palors, Rooms, Bathrooms, Kitchens */}
               <div className="pt-2">
-                <span className="block text-xs font-semibold text-white uppercase tracking-wider mb-2.5">
+                <span className="block text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-2.5">
                   {isFrench ? "Agencement & Caractéristiques" : "Unit Layout & Specs"}
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {/* Parlors */}
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-purple-400 font-medium">
+                  <div className="bg-slate-50 dark:bg-slate-950/70 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400 font-medium">
                       <Sofa className="w-3.5 h-3.5" />
                       <span>{isFrench ? "Salons" : "Parlors"}</span>
                     </div>
@@ -1657,7 +1657,7 @@ export default function BuildingsManagementPage() {
                           parlors: Math.max(0, parseInt(e.target.value) || 0),
                         })
                       }
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-slate-900 dark:text-white text-center focus:outline-none focus:border-blue-500"
                     />
                     <span className="text-[10px] text-slate-500 block text-center">
                       {isFrench ? "Salons" : "Salons"}
@@ -1665,8 +1665,8 @@ export default function BuildingsManagementPage() {
                   </div>
 
                   {/* Rooms */}
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-blue-400 font-medium">
+                  <div className="bg-slate-50 dark:bg-slate-950/70 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
                       <Bed className="w-3.5 h-3.5" />
                       <span>{isFrench ? "Chambres" : "Rooms"}</span>
                     </div>
@@ -1681,7 +1681,7 @@ export default function BuildingsManagementPage() {
                           rooms: Math.max(0, parseInt(e.target.value) || 0),
                         })
                       }
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-slate-900 dark:text-white text-center focus:outline-none focus:border-blue-500"
                     />
                     <span className="text-[10px] text-slate-500 block text-center">
                       {isFrench ? "Chambres" : "Bedrooms"}
@@ -1689,8 +1689,8 @@ export default function BuildingsManagementPage() {
                   </div>
 
                   {/* Bathrooms */}
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-medium">
+                  <div className="bg-slate-50 dark:bg-slate-950/70 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-cyan-600 dark:text-cyan-400 font-medium">
                       <Bath className="w-3.5 h-3.5" />
                       <span>{isFrench ? "Douches" : "Bathrooms"}</span>
                     </div>
@@ -1706,7 +1706,7 @@ export default function BuildingsManagementPage() {
                           bathrooms: Math.max(0, parseFloat(e.target.value) || 0),
                         })
                       }
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-slate-900 dark:text-white text-center focus:outline-none focus:border-blue-500"
                     />
                     <span className="text-[10px] text-slate-500 block text-center">
                       {isFrench ? "Salles de bain" : "Baths"}
@@ -1714,8 +1714,8 @@ export default function BuildingsManagementPage() {
                   </div>
 
                   {/* Kitchens */}
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-amber-400 font-medium">
+                  <div className="bg-slate-50 dark:bg-slate-950/70 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
                       <Utensils className="w-3.5 h-3.5" />
                       <span>{isFrench ? "Cuisines" : "Kitchens"}</span>
                     </div>
@@ -1730,7 +1730,7 @@ export default function BuildingsManagementPage() {
                           kitchens: Math.max(0, parseInt(e.target.value) || 0),
                         })
                       }
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-white text-center focus:outline-none focus:border-blue-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1.5 text-sm font-bold text-slate-900 dark:text-white text-center focus:outline-none focus:border-blue-500"
                     />
                     <span className="text-[10px] text-slate-500 block text-center">
                       {isFrench ? "Cuisines" : "Kitchens"}
@@ -1741,7 +1741,7 @@ export default function BuildingsManagementPage() {
 
               {/* Optional Notes */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                   {isFrench ? "Notes / Particularités du Logement (Facultatif)" : "Unit Notes / Particularities (Optional)"}
                 </label>
                 <input
@@ -1753,22 +1753,22 @@ export default function BuildingsManagementPage() {
                   }
                   value={unitForm.notes || ""}
                   onChange={(e) => setUnitForm({ ...unitForm, notes: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition"
+                  className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
 
               {/* ASSIGN TENANT SECTION */}
-              <div className="pt-3 border-t border-slate-800/80 space-y-3">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                       <UserPlus className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                         {isFrench ? "Assigner le Logement à un Locataire" : "Assign Unit to Tenant"}
                       </h4>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400">
                         {isFrench
                           ? "Laisser vide si vacant. Remplissez pour générer les identifiants et le lien WhatsApp."
                           : "Default empty for vacant units. Fill details to generate credentials & WhatsApp link."}
@@ -1780,7 +1780,7 @@ export default function BuildingsManagementPage() {
                     <button
                       type="button"
                       onClick={handleUnassignTenantInModal}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-2 py-1 rounded-lg border border-rose-500/30 transition cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 px-2 py-1 rounded-lg border border-rose-200 dark:border-rose-500/30 transition cursor-pointer"
                       title={isFrench ? "Effacer les données du locataire et rendre le logement vacant" : "Clear tenant information and make unit vacant"}
                     >
                       <UserMinus className="w-3 h-3" />
@@ -1789,14 +1789,14 @@ export default function BuildingsManagementPage() {
                   )}
                 </div>
 
-                <div className="bg-slate-950/80 border border-slate-800/90 rounded-xl p-4 space-y-3.5">
+                <div className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/90 rounded-xl p-4 space-y-3.5">
                   {/* Tenant Full Name */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                       {isFrench ? "Nom Complet du Locataire" : "Tenant Full Name"}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                         <Users className="w-4 h-4" />
                       </div>
                       <input
@@ -1806,7 +1806,7 @@ export default function BuildingsManagementPage() {
                         onChange={(e) =>
                           setUnitForm({ ...unitForm, tenant_name: e.target.value })
                         }
-                        className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 transition"
                       />
                     </div>
                   </div>
@@ -1814,11 +1814,11 @@ export default function BuildingsManagementPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Tenant WhatsApp Phone */}
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                         {isFrench ? "Numéro de Téléphone WhatsApp" : "WhatsApp Phone Number"}
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                           <Phone className="w-4 h-4" />
                         </div>
                         <input
@@ -1828,7 +1828,7 @@ export default function BuildingsManagementPage() {
                           onChange={(e) =>
                             setUnitForm({ ...unitForm, tenant_phone: e.target.value })
                           }
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 transition"
                         />
                       </div>
                       <span className="text-[10px] text-slate-500 mt-1 block">
@@ -1838,11 +1838,11 @@ export default function BuildingsManagementPage() {
 
                     {/* Tenant Email */}
                     <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                         {isFrench ? "E-mail de Connexion du Locataire" : "Tenant Login E-mail"}
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                           <Mail className="w-4 h-4" />
                         </div>
                         <input
@@ -1852,7 +1852,7 @@ export default function BuildingsManagementPage() {
                           onChange={(e) =>
                             setUnitForm({ ...unitForm, tenant_email: e.target.value })
                           }
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 transition"
                         />
                       </div>
                       <span className="text-[10px] text-slate-500 mt-1 block">
@@ -1862,8 +1862,8 @@ export default function BuildingsManagementPage() {
                   </div>
 
                   {Boolean(unitForm.tenant_name?.trim() || unitForm.tenant_phone?.trim()) && (
-                    <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                    <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                       <span>
                         {isFrench
                           ? "L'enregistrement générera automatiquement les identifiants et vous redirigera vers le partage WhatsApp !"
@@ -1875,9 +1875,9 @@ export default function BuildingsManagementPage() {
               </div>
 
               {/* Summary Pill Preview */}
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>{isFrench ? "Résumé :" : "Summary:"}</span>
-                <span className="font-semibold text-blue-400">
+                <span className="font-semibold text-blue-600 dark:text-blue-400">
                   {unitForm.parlors} {isFrench ? "Salon(s)" : "Parlor(s)"} • {unitForm.rooms} {isFrench ? "Chambre(s)" : "Room(s)"} • {unitForm.bathrooms} {isFrench ? "Douche(s)" : "Bath(s)"} • {unitForm.kitchens} {isFrench ? "Cuisine(s)" : "Kitchen(s)"}
                   {unitForm.rent_amount > 0 ? ` • ${Number(unitForm.rent_amount).toLocaleString()} XAF` : ""}
                   {unitForm.tenant_name?.trim()
@@ -1889,12 +1889,12 @@ export default function BuildingsManagementPage() {
               </div>
 
               {/* Actions Footer (Pinned at bottom of modal) */}
-              <div className="p-4 sm:p-5 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-900/95">
+              <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-50/95 dark:bg-slate-900/95">
                 <button
                   type="button"
                   onClick={() => setEditingUnit(null)}
                   disabled={savingUnit}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
                 >
                   {isFrench ? "Annuler" : "Cancel"}
                 </button>
