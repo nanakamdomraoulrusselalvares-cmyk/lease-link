@@ -597,29 +597,33 @@ export default function BuildingsManagementPage() {
         {/* Summary Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
           {/* Card 1: Total Buildings */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md">
+            <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-400 font-bold">
               <span>{isFrench ? "Total Bâtiments" : "Total Buildings"}</span>
-              <Building2 className="w-4 h-4 text-blue-400" />
+              <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Building2 className="w-4 h-4" />
+              </div>
             </div>
-            <div className="mt-2.5 text-2xl sm:text-3xl font-extrabold text-white">
+            <div className="mt-2.5 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
               {buildings.length}
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-500 font-medium">
               {isFrench ? "Propriétés du portefeuille" : "Properties in portfolio"}
             </p>
           </div>
 
           {/* Card 2: Total Units */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md">
+            <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-400 font-bold">
               <span>{isFrench ? "Total Logements" : "Total Units"}</span>
-              <Home className="w-4 h-4 text-purple-400" />
+              <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <Home className="w-4 h-4" />
+              </div>
             </div>
-            <div className="mt-2.5 text-2xl sm:text-3xl font-extrabold text-white">
+            <div className="mt-2.5 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
               {totalUnitsInPortfolio}
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-500 font-medium">
               {isFrench ? `Quota : ${planUnitLimit} logements max` : `Allowance: ${planUnitLimit} max units`}
             </p>
           </div>
@@ -629,28 +633,26 @@ export default function BuildingsManagementPage() {
             onClick={() =>
               setPortfolioStatusFilter(portfolioStatusFilter === "occupied" ? "all" : "occupied")
             }
-            className={`bg-slate-900 border rounded-2xl p-4 sm:p-5 shadow-xl border-l-4 border-l-blue-500 transition cursor-pointer hover:border-slate-700 ${
+            className={`bg-blue-50/70 dark:bg-slate-900 border-2 rounded-2xl p-4 sm:p-5 shadow-md border-l-4 border-l-blue-600 transition cursor-pointer hover:border-blue-400 ${
               portfolioStatusFilter === "occupied"
-                ? "ring-2 ring-blue-500/50 bg-blue-950/20 border-blue-500/40"
-                : "border-slate-800"
+                ? "ring-2 ring-blue-500/50 bg-blue-100/80 border-blue-400"
+                : "border-blue-200 dark:border-slate-800"
             }`}
             title={isFrench ? "Cliquer pour filtrer par logements occupés" : "Click to filter by occupied units"}
           >
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-semibold text-blue-300">
-                {isFrench ? "Logements Occupés" : "Occupied Units"}
-              </span>
-              <UserCheck className="w-4 h-4 text-blue-400" />
+            <div className="flex items-center justify-between text-xs text-blue-800 dark:text-slate-400 font-bold">
+              <span>{isFrench ? "Logements Occupés" : "Occupied Units"}</span>
+              <UserCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="mt-2.5 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-blue-400">
+              <span className="text-2xl sm:text-3xl font-black text-blue-950 dark:text-blue-400 font-mono">
                 {totalOccupiedUnits}
               </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30">
                 {occupancyRate}%
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">
+            <p className="mt-1 text-[11px] text-blue-700 dark:text-slate-400 font-semibold">
               {isFrench ? `${totalOccupiedUnits} avec locataire assigné` : `${totalOccupiedUnits} with assigned tenant`}
             </p>
           </div>
@@ -660,59 +662,57 @@ export default function BuildingsManagementPage() {
             onClick={() =>
               setPortfolioStatusFilter(portfolioStatusFilter === "vacant" ? "all" : "vacant")
             }
-            className={`bg-slate-900 border rounded-2xl p-4 sm:p-5 shadow-xl border-l-4 border-l-emerald-500 transition cursor-pointer hover:border-slate-700 ${
+            className={`bg-emerald-50/70 dark:bg-slate-900 border-2 rounded-2xl p-4 sm:p-5 shadow-md border-l-4 border-l-emerald-600 transition cursor-pointer hover:border-emerald-400 ${
               portfolioStatusFilter === "vacant"
-                ? "ring-2 ring-emerald-500/50 bg-emerald-950/20 border-emerald-500/40"
-                : "border-slate-800"
+                ? "ring-2 ring-emerald-500/50 bg-emerald-100/80 border-emerald-400"
+                : "border-emerald-200 dark:border-slate-800"
             }`}
             title={isFrench ? "Cliquer pour filtrer par logements vacants" : "Click to filter by vacant units"}
           >
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-semibold text-emerald-300">
-                {isFrench ? "Logements Vacants" : "Vacant Units"}
-              </span>
-              <DoorOpen className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center justify-between text-xs text-emerald-800 dark:text-slate-400 font-bold">
+              <span>{isFrench ? "Logements Vacants" : "Vacant Units"}</span>
+              <DoorOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="mt-2.5 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-950 dark:text-emerald-400 font-mono">
                 {totalVacantUnits}
               </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30">
                 {vacancyRate}%
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">
+            <p className="mt-1 text-[11px] text-emerald-700 dark:text-slate-400 font-semibold">
               {isFrench ? `${totalVacantUnits} disponibles à la location` : `${totalVacantUnits} available for lease`}
             </p>
           </div>
 
           {/* Card 5: Quota Remaining */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl col-span-2 md:col-span-1">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-amber-50/70 dark:bg-slate-900 border-2 border-amber-300 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md col-span-2 md:col-span-1">
+            <div className="flex items-center justify-between text-xs text-amber-900 dark:text-slate-400 font-bold">
               <span>{isFrench ? "Quota Restant" : "Quota Remaining"}</span>
-              <Layers className="w-4 h-4 text-amber-400" />
+              <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="mt-2.5 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-extrabold text-white">
+              <span className="text-2xl sm:text-3xl font-black text-amber-950 dark:text-white font-mono">
                 {remainingQuota}
               </span>
-              <span className="text-xs text-slate-400 font-mono">
+              <span className="text-xs text-amber-800 dark:text-slate-400 font-mono font-bold">
                 {totalUnitsInPortfolio}/{planUnitLimit}
               </span>
             </div>
-            <div className="mt-2 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div className="mt-2 w-full bg-amber-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   quotaPercentage > 85
                     ? "bg-rose-500"
                     : quotaPercentage > 60
                     ? "bg-amber-500"
-                    : "bg-blue-500"
+                    : "bg-blue-600"
                 }`}
                 style={{ width: `${quotaPercentage}%` }}
               />
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-amber-800 dark:text-slate-500 font-semibold">
               {isFrench ? `${quotaPercentage}% du forfait utilisé` : `${quotaPercentage}% of plan allowance used`}
             </p>
           </div>

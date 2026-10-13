@@ -90,9 +90,9 @@ export default function HomePage() {
       ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
       {/* Navigation Header */}
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2.5 group">
@@ -100,26 +100,26 @@ export default function HomePage() {
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="font-extrabold text-xl text-white tracking-tight">
-                  Lease<span className="text-blue-500">Link</span>
+                <span className="font-extrabold text-xl text-slate-900 dark:text-white tracking-tight">
+                  Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
                 </span>
-                <span className="hidden sm:inline-block ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-widest">
+                <span className="hidden sm:inline-block ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 uppercase tracking-widest">
                   PropTech 2026
                 </span>
               </div>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-400">
-              <a href="#features" className="hover:text-white transition">
+            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-700 dark:text-slate-400">
+              <a href="#features" className="hover:text-blue-600 dark:hover:text-white transition">
                 {isFrench ? "Fonctionnalités" : "Features"}
               </a>
-              <a href="#showcase" className="hover:text-white transition">
+              <a href="#showcase" className="hover:text-blue-600 dark:hover:text-white transition">
                 {isFrench ? "Aperçu en Direct" : "Live Demo"}
               </a>
-              <a href="#pricing" className="hover:text-white transition">
+              <a href="#pricing" className="hover:text-blue-600 dark:hover:text-white transition">
                 {isFrench ? "Tarifs" : "Pricing"}
               </a>
-              <a href="#faq" className="hover:text-white transition">
+              <a href="#faq" className="hover:text-blue-600 dark:hover:text-white transition">
                 FAQ
               </a>
             </nav>
@@ -131,7 +131,7 @@ export default function HomePage() {
 
             <Link
               href="/tenant/login"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition"
             >
               <Users className="w-3.5 h-3.5" />
               <span>{isFrench ? "Espace Locataire" : "Tenant Portal"}</span>
@@ -139,7 +139,7 @@ export default function HomePage() {
 
             <Link
               href="/login"
-              className="text-xs sm:text-sm font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 transition"
+              className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-white px-2.5 py-1.5 transition"
             >
               {isFrench ? "Connexion" : "Sign In"}
             </Link>
@@ -156,15 +156,15 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 sm:pt-20 sm:pb-28 border-b border-slate-800/80">
+      <section className="relative overflow-hidden pt-12 pb-20 sm:pt-20 sm:pb-28 border-b border-slate-200 dark:border-slate-800/80 bg-gradient-to-b from-blue-50/60 via-slate-100 to-slate-100 dark:from-blue-900/10 dark:via-slate-950 dark:to-slate-950">
         {/* Ambient Glow */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-sky-400/5 blur-3xl pointer-events-none rounded-full" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-slate-950 to-slate-950 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-slate-950/0 to-slate-950/0 pointer-events-none" />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-7">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold shadow-sm hover:border-blue-500/40 transition">
-            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold shadow-sm">
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
             <span>
               {isFrench
                 ? "Dites adieu aux carnets et reçus papier perdus"
@@ -172,19 +172,19 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Main Title */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1]">
+          {/* Main Title: Crisp Slate-900 in Light Mode, White in Dark Mode */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
             {isFrench ? (
               <>
                 Gestion Locative Intelligente <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 dark:from-blue-400 dark:via-sky-300 dark:to-indigo-300 bg-clip-text text-transparent">
                   pour les Bailleurs Modernes.
                 </span>
               </>
             ) : (
               <>
                 Next-Gen Property Operations <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 dark:from-blue-400 dark:via-sky-300 dark:to-indigo-300 bg-clip-text text-transparent">
                   for High-Performing Landlords.
                 </span>
               </>
@@ -192,13 +192,13 @@ export default function HomePage() {
           </h1>
 
           {/* Subtitle */}
-          <p className="max-w-3xl mx-auto text-base sm:text-xl text-slate-400 leading-relaxed font-normal">
+          <p className="max-w-3xl mx-auto text-base sm:text-xl text-slate-700 dark:text-slate-400 leading-relaxed font-medium">
             {isFrench
               ? "Centralisez vos immeubles, logements et locataires dans une Progressive Web App en temps réel. Enregistrez les loyers en 1 clic, délivrez des quittances certifiées avec cachet et traitez les réclamations sans tracas."
               : "Bring your properties, units, and tenant ledgers into a real-time Progressive Web App. Log payments in seconds, dispatch stamped digital receipts, and resolve maintenance tickets with zero friction."}
           </p>
 
-          {/* CTAs */}
+          {/* CTAs with Bold Visual Weight in Light Mode */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link
               href="/register"
@@ -210,37 +210,37 @@ export default function HomePage() {
 
             <a
               href="#showcase"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-sm flex items-center justify-center gap-2 transition"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border-2 border-slate-300 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
             >
               <span>{isFrench ? "Explorer la Démo Interactive" : "Explore Interactive Demo"}</span>
-              <Sliders className="w-4 h-4 text-blue-400" />
+              <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </a>
 
             <Link
               href="/tenant/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-500/30 font-bold text-sm flex items-center justify-center gap-2 transition"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border-2 border-emerald-400 dark:border-emerald-500/30 font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
             >
-              <Users className="w-4 h-4 text-emerald-400" />
+              <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>{isFrench ? "Espace Locataire" : "Tenant Portal"}</span>
             </Link>
           </div>
 
-          {/* Reassurance Badges */}
-          <div className="pt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs text-slate-400 border-t border-slate-850 max-w-4xl mx-auto">
+          {/* Reassurance Badges: High Contrast & Visible */}
+          <div className="pt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs text-slate-800 dark:text-slate-300 font-semibold border-t border-slate-200 dark:border-slate-800 max-w-4xl mx-auto">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{isFrench ? "Essai Gratuit 30 Jours" : "30-Day Free Trial"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-blue-400" />
+              <Smartphone className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
               <span>{isFrench ? "PWA Mobile & Bureau (Hors-ligne)" : "Mobile & Desktop PWA"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Send className="w-4 h-4 text-emerald-400" />
+              <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{isFrench ? "Quittances WhatsApp Instantanées" : "Instant WhatsApp Receipts"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-sky-400" />
+              <ShieldCheck className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
               <span>{isFrench ? "Isolation Stricte RLS" : "Encrypted RLS Isolation"}</span>
             </div>
           </div>

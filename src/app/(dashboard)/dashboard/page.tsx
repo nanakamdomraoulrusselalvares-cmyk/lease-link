@@ -411,33 +411,33 @@ export default function LandlordHomePage() {
 
             {/* Occupied vs Vacant Units Portfolio Breakdown */}
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="bg-slate-950/70 p-3.5 rounded-xl border border-blue-500/20">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <div className="flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+              <div className="bg-blue-50 dark:bg-slate-950/70 p-3.5 rounded-xl border-2 border-blue-200 dark:border-blue-500/20">
+                <div className="flex items-center justify-between text-xs text-blue-700 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>{isFrench ? "Occupés" : "Occupied"}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-bold text-blue-800 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10 px-1.5 py-0.5 rounded">
                     {occupancyRate}%
                   </span>
                 </div>
-                <div className="mt-1.5 text-lg font-bold text-blue-400">
-                  {occupiedUnits} <span className="text-xs text-slate-500 font-normal">{isFrench ? "Logements" : "Units"}</span>
+                <div className="mt-1.5 text-lg font-black text-blue-950 dark:text-blue-400">
+                  {occupiedUnits} <span className="text-xs text-blue-700 dark:text-slate-500 font-normal">{isFrench ? "Logements" : "Units"}</span>
                 </div>
               </div>
 
-              <div className="bg-slate-950/70 p-3.5 rounded-xl border border-emerald-500/20">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <div className="flex items-center gap-1.5">
-                    <DoorOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="bg-emerald-50 dark:bg-slate-950/70 p-3.5 rounded-xl border-2 border-emerald-200 dark:border-emerald-500/20">
+                <div className="flex items-center justify-between text-xs text-emerald-800 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <DoorOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>{isFrench ? "Vacants" : "Vacant"}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-bold text-emerald-900 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded">
                     {vacancyRate}%
                   </span>
                 </div>
-                <div className="mt-1.5 text-lg font-bold text-emerald-400">
-                  {vacantUnits} <span className="text-xs text-slate-500 font-normal">{isFrench ? "Logements" : "Units"}</span>
+                <div className="mt-1.5 text-lg font-black text-emerald-950 dark:text-emerald-400">
+                  {vacantUnits} <span className="text-xs text-emerald-700 dark:text-slate-500 font-normal">{isFrench ? "Logements" : "Units"}</span>
                 </div>
               </div>
             </div>
@@ -563,40 +563,40 @@ export default function LandlordHomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <Link
               href="/dashboard/buildings"
-              className="bg-slate-900 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/80 rounded-xl p-4 transition group cursor-pointer"
+              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-lg bg-blue-600/10 group-hover:bg-blue-600 border border-blue-500/20 group-hover:border-blue-500 text-blue-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-600/10 group-hover:bg-blue-600 border border-blue-200 dark:border-blue-500/20 group-hover:border-blue-500 text-blue-600 dark:text-blue-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
                 <Building2 className="w-4 h-4" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white text-xs group-hover:text-blue-400 transition">
+                <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                   {isFrench ? "Immeubles" : "Buildings"}
                 </h3>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                <span className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/20">
                   {isFrench ? "Prêt" : "Ready"}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                 {isFrench ? "Gérer & créer des logements →" : "Manage & create units →"}
               </p>
             </Link>
 
             <Link
               href="/dashboard/buildings"
-              className="bg-slate-900 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-800/80 rounded-xl p-4 transition group cursor-pointer"
+              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-purple-500 dark:hover:border-purple-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-lg bg-purple-600/10 group-hover:bg-purple-600 border border-purple-500/20 group-hover:border-purple-500 text-purple-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+              <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-600/10 group-hover:bg-purple-600 border border-purple-200 dark:border-purple-500/20 group-hover:border-purple-500 text-purple-600 dark:text-purple-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
                 <Home className="w-4 h-4" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white text-xs group-hover:text-purple-400 transition">
+                <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-purple-600 dark:group-hover:text-purple-400 transition">
                   {isFrench ? "Logements" : "Units"}
                 </h3>
-                <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
+                <span className="text-[10px] text-purple-800 dark:text-purple-400 font-bold bg-purple-100 dark:bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-300 dark:border-purple-500/20">
                   {totalUnits} {isFrench ? "Total" : "Total"}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                 {occupiedUnits} {isFrench ? "Occupés" : "Occupied"} • {vacantUnits} {isFrench ? "Vacants" : "Vacant"} &rarr;
               </p>
             </Link>
@@ -604,20 +604,20 @@ export default function LandlordHomePage() {
             <Link
               href="/dashboard/credentials"
               id="dashboard-tenants-credentials-card"
-              className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800/80 rounded-xl p-4 transition group cursor-pointer"
+              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-lg bg-emerald-600/10 group-hover:bg-emerald-600 border border-emerald-500/20 group-hover:border-emerald-500 text-emerald-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-600/10 group-hover:bg-emerald-600 border border-emerald-200 dark:border-emerald-500/20 group-hover:border-emerald-500 text-emerald-600 dark:text-emerald-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
                 <Users className="w-4 h-4" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white text-xs group-hover:text-emerald-400 transition">
+                <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
                   {isFrench ? "Locataires" : "Tenants"}
                 </h3>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                <span className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/20">
                   {occupiedUnits} {isFrench ? "Actifs" : "Active"}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                 {isFrench ? "Baux & codes d'accès →" : "Lease & credentials →"}
               </p>
             </Link>
@@ -625,20 +625,20 @@ export default function LandlordHomePage() {
             <Link
               href="/dashboard/payments"
               id="dashboard-payments-card"
-              className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800/80 rounded-xl p-4 transition group cursor-pointer"
+              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-lg bg-emerald-600/10 group-hover:bg-emerald-600 border border-emerald-500/20 group-hover:border-emerald-500 text-emerald-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-600/10 group-hover:bg-blue-600 border border-blue-200 dark:border-blue-500/20 group-hover:border-blue-500 text-blue-600 dark:text-blue-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
                 <Receipt className="w-4 h-4" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white text-xs group-hover:text-emerald-400 transition">
+                <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                   {isFrench ? "Paiements" : "Payments"}
                 </h3>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                <span className="text-[10px] text-blue-800 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-300 dark:border-blue-500/20">
                   {isFrench ? "Quittances" : "Ledgers"}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                 {isFrench ? "Suivi loyers & quittances →" : "Rent status & receipts →"}
               </p>
             </Link>
@@ -646,30 +646,30 @@ export default function LandlordHomePage() {
             <Link
               href="/dashboard/maintenance"
               id="dashboard-repairs-card"
-              className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-800/80 rounded-xl p-4 transition group cursor-pointer col-span-2 sm:col-span-1"
+              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer col-span-2 sm:col-span-1"
             >
-              <div className="w-9 h-9 rounded-lg bg-amber-600/10 group-hover:bg-amber-600 border border-amber-500/20 group-hover:border-amber-500 text-amber-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+              <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-600/10 group-hover:bg-amber-600 border border-amber-200 dark:border-amber-500/20 group-hover:border-amber-500 text-amber-600 dark:text-amber-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
                 <Wrench className="w-4 h-4" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white text-xs group-hover:text-amber-400 transition">
+                <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
                   {isFrench ? "Réparations" : "Repairs"}
                 </h3>
                 {pendingRequests.length > 0 ? (
-                  <span className="text-[10px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-full animate-pulse">
+                  <span className="text-[10px] text-amber-900 dark:text-amber-300 font-bold bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 px-2 py-0.5 rounded-full animate-pulse">
                     {pendingRequests.length} {isFrench ? "En Attente" : "Pending"}
                   </span>
                 ) : maintenanceRequests.length > 0 ? (
-                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 px-2 py-0.5 rounded-full">
                     {maintenanceRequests.length} {isFrench ? "Total" : "Total"}
                   </span>
                 ) : (
-                  <span className="text-[10px] text-slate-400 font-bold bg-slate-800 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-slate-600 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                     0 {isFrench ? "Ticket" : "Tickets"}
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                 {pendingRequests.length > 0
                   ? isFrench
                     ? `${pendingRequests.length} panne${pendingRequests.length > 1 ? "s" : ""} à traiter →`

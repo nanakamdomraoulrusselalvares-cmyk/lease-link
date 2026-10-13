@@ -312,18 +312,20 @@ function PaymentsContent() {
           </div>
         </div>
 
-        {/* Financial KPI Dashboard Strip */}
+        {/* Financial KPI Dashboard Strip: Rich Colors in both Light & Dark Mode */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Expected Rent */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4.5 space-y-1">
-            <div className="flex items-center justify-between text-slate-400 text-[11px] font-semibold uppercase">
+          <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50/50 dark:bg-slate-900 border-2 border-blue-200 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-blue-800 dark:text-slate-400 text-[11px] font-bold uppercase">
               <span>{isFrench ? "Loyer Mensuel Attendu" : "Expected Monthly"}</span>
-              <DollarSign className="w-4 h-4 text-blue-400" />
+              <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <DollarSign className="w-4 h-4" />
+              </div>
             </div>
-            <span className="text-2xl font-black text-white font-mono block">
-              {totalExpectedRent.toLocaleString()} <span className="text-xs text-slate-500 font-normal">XAF</span>
+            <span className="text-2xl font-black text-blue-950 dark:text-white font-mono block">
+              {totalExpectedRent.toLocaleString()} <span className="text-xs text-blue-700 dark:text-slate-500 font-normal">XAF</span>
             </span>
-            <span className="text-[10px] text-slate-400 block">
+            <span className="text-[10px] text-blue-700 dark:text-slate-400 block font-semibold">
               {isFrench
                 ? `Sur ${statuses.length} logements occupés`
                 : `Across ${statuses.length} occupied units`}
@@ -331,15 +333,17 @@ function PaymentsContent() {
           </div>
 
           {/* Collected Rent */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4.5 space-y-1">
-            <div className="flex items-center justify-between text-slate-400 text-[11px] font-semibold uppercase">
+          <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-50/40 dark:bg-slate-900 border-2 border-emerald-300 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-emerald-900 dark:text-slate-400 text-[11px] font-bold uppercase">
               <span>{isFrench ? "Total Encaissé" : "Collected So Far"}</span>
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <TrendingUp className="w-4 h-4" />
+              </div>
             </div>
-            <span className="text-2xl font-black text-emerald-400 font-mono block">
-              {totalCollectedRent.toLocaleString()} <span className="text-xs text-slate-500 font-normal">XAF</span>
+            <span className="text-2xl font-black text-emerald-900 dark:text-emerald-400 font-mono block">
+              {totalCollectedRent.toLocaleString()} <span className="text-xs text-emerald-700 dark:text-slate-500 font-normal">XAF</span>
             </span>
-            <span className="text-[10px] text-emerald-400/80 block">
+            <span className="text-[10px] text-emerald-900 dark:text-emerald-400/80 block font-bold">
               {totalExpectedRent > 0
                 ? isFrench
                   ? `Taux de recouvrement : ${((totalCollectedRent / totalExpectedRent) * 100).toFixed(0)}%`
@@ -352,28 +356,26 @@ function PaymentsContent() {
 
           {/* Outstanding Arrears (Owing) */}
           <div
-            className={`rounded-2xl p-4.5 space-y-1 border ${
+            className={`rounded-2xl p-4.5 space-y-2 border-2 shadow-sm ${
               totalOwingBalance > 0
-                ? "bg-amber-500/5 border-amber-500/30"
-                : "bg-slate-900 border-slate-800"
+                ? "bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50/40 border-amber-300 dark:bg-amber-500/5 dark:border-amber-500/30"
+                : "bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-800"
             }`}
           >
-            <div className="flex items-center justify-between text-slate-400 text-[11px] font-semibold uppercase">
+            <div className="flex items-center justify-between text-amber-900 dark:text-slate-400 text-[11px] font-bold uppercase">
               <span>{isFrench ? "Arriérés & Soldes Dus" : "Total Balance Owing"}</span>
-              <AlertTriangle
-                className={`w-4 h-4 ${
-                  totalOwingBalance > 0 ? "text-amber-400" : "text-slate-500"
-                }`}
-              />
+              <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
             </div>
             <span
               className={`text-2xl font-black font-mono block ${
-                totalOwingBalance > 0 ? "text-amber-400" : "text-emerald-400"
+                totalOwingBalance > 0 ? "text-amber-950 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
               }`}
             >
-              {totalOwingBalance.toLocaleString()} <span className="text-xs text-slate-500 font-normal">XAF</span>
+              {totalOwingBalance.toLocaleString()} <span className="text-xs text-amber-700 dark:text-slate-500 font-normal">XAF</span>
             </span>
-            <span className="text-[10px] text-slate-400 block">
+            <span className="text-[10px] text-amber-900 dark:text-slate-400 block font-bold">
               {totalOwingTenants > 0
                 ? isFrench
                   ? `${totalOwingTenants} locataires avec solde dû`
@@ -385,28 +387,30 @@ function PaymentsContent() {
           </div>
 
           {/* Tenant Compliance Stats */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4.5 space-y-1">
-            <div className="flex items-center justify-between text-slate-400 text-[11px] font-semibold uppercase">
+          <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-purple-50/40 dark:bg-slate-900 border-2 border-purple-200 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-purple-900 dark:text-slate-400 text-[11px] font-bold uppercase">
               <span>{isFrench ? "Statut de Règlement" : "Settlement Status"}</span>
-              <Users className="w-4 h-4 text-purple-400" />
+              <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <Users className="w-4 h-4" />
+              </div>
             </div>
-            <div className="flex items-baseline gap-2 pt-1">
-              <span className="text-xl font-bold text-emerald-400">
+            <div className="flex items-baseline gap-2 pt-0.5">
+              <span className="text-xl font-black text-emerald-800 dark:text-emerald-400">
                 {totalPaidTenants} {isFrench ? "Soldés" : "Paid"}
               </span>
-              <span className="text-slate-600">•</span>
-              <span className="text-xl font-bold text-amber-400">
+              <span className="text-slate-400 dark:text-slate-600 font-bold">•</span>
+              <span className="text-xl font-black text-amber-800 dark:text-amber-400">
                 {totalOwingTenants} {isFrench ? "En retard" : "Owing"}
               </span>
             </div>
             {totalOverdueTenants > 0 ? (
-              <span className="text-[10px] text-rose-400 font-bold block animate-pulse">
+              <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold block animate-pulse">
                 {isFrench
                   ? `⚠ ${totalOverdueTenants} en retard (délai dépassé)`
                   : `⚠ ${totalOverdueTenants} overdue (past due date)`}
               </span>
             ) : (
-              <span className="text-[10px] text-emerald-400 block">
+              <span className="text-[10px] text-emerald-800 dark:text-emerald-400 block font-semibold">
                 {isFrench ? "Aucun retard critique" : "No critical overdue penalties"}
               </span>
             )}
@@ -414,10 +418,10 @@ function PaymentsContent() {
         </div>
 
         {/* Toolbar: Search, Property Filter & Status Pills */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
+        <div className="bg-white dark:bg-slate-900/80 border-2 border-slate-300 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-md">
           {/* Search Bar */}
           <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
@@ -427,7 +431,7 @@ function PaymentsContent() {
                   ? "Rechercher par locataire, logement, téléphone..."
                   : "Search tenant name, unit, phone..."
               }
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9.5 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9.5 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
             />
           </div>
 
@@ -436,7 +440,7 @@ function PaymentsContent() {
             <select
               value={selectedBuildingId}
               onChange={(e) => setSelectedBuildingId(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
             >
               <option value="all">
                 {isFrench
@@ -451,13 +455,13 @@ function PaymentsContent() {
             </select>
 
             {/* Status Filter Buttons */}
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-300 dark:border-slate-800 text-xs">
               <button
                 onClick={() => setStatusFilter("all")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   statusFilter === "all"
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 {isFrench ? "Tous" : "All"}
@@ -465,10 +469,10 @@ function PaymentsContent() {
 
               <button
                 onClick={() => setStatusFilter("owing")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   statusFilter === "owing"
-                    ? "bg-amber-500/20 text-amber-300 font-bold"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-transparent shadow-xs"
+                    : "text-amber-800 dark:text-slate-400 hover:text-amber-900 dark:hover:text-white"
                 }`}
               >
                 {isFrench ? `En Retard / Solde (${totalOwingTenants})` : `Owing (${totalOwingTenants})`}
@@ -476,10 +480,10 @@ function PaymentsContent() {
 
               <button
                 onClick={() => setStatusFilter("paid")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   statusFilter === "paid"
-                    ? "bg-emerald-500/20 text-emerald-300 font-bold"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-transparent shadow-xs"
+                    : "text-emerald-800 dark:text-slate-400 hover:text-emerald-900 dark:hover:text-white"
                 }`}
               >
                 {isFrench ? `Soldés (${totalPaidTenants})` : `Paid (${totalPaidTenants})`}
@@ -488,10 +492,10 @@ function PaymentsContent() {
               {totalOverdueTenants > 0 && (
                 <button
                   onClick={() => setStatusFilter("overdue")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                     statusFilter === "overdue"
-                      ? "bg-rose-500/20 text-rose-300 font-bold"
-                      : "text-rose-400 hover:text-rose-300"
+                      ? "bg-rose-100 dark:bg-rose-500/20 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-transparent shadow-xs"
+                      : "text-rose-700 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300"
                   }`}
                 >
                   {isFrench ? `Dépassement (${totalOverdueTenants})` : `Overdue (${totalOverdueTenants})`}
@@ -577,42 +581,42 @@ function PaymentsContent() {
               return (
                 <div
                   key={tenantStatus.unit_id}
-                  className={`bg-slate-900 border rounded-2xl p-5 sm:p-6 shadow-xl transition space-y-5 ${
+                  className={`bg-white dark:bg-slate-900 border-2 rounded-2xl p-5 sm:p-6 shadow-md transition space-y-5 ${
                     isOverdue
-                      ? "border-rose-500/40 bg-gradient-to-r from-slate-900 via-slate-900 to-rose-950/10"
+                      ? "border-rose-400 bg-gradient-to-r from-rose-50/50 via-white to-white dark:from-slate-900 dark:via-slate-900 dark:to-rose-950/10"
                       : isPartial
-                      ? "border-amber-500/40 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/10"
-                      : "border-slate-800 hover:border-slate-700"
+                      ? "border-amber-400 bg-gradient-to-r from-amber-50/50 via-white to-white dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/10"
+                      : "border-slate-300 dark:border-slate-800 hover:border-blue-400 dark:hover:border-slate-700"
                   }`}
                 >
                   {/* Top Bar: Tenant, Apartment, Status Pill */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-4">
                     <div className="flex items-start sm:items-center gap-3.5">
                       {/* Avatar */}
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-slate-800 text-white font-extrabold text-base flex items-center justify-center shrink-0 shadow-md">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-extrabold text-base flex items-center justify-center shrink-0 shadow-md">
                         {tenantStatus.tenant_name.substring(0, 2).toUpperCase()}
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-base sm:text-lg font-bold text-white">
+                          <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                             {tenantStatus.tenant_name}
                           </h2>
 
                           {/* Status Badge */}
                           {isPaid ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" />
+                            <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 border-2 border-emerald-400 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-400 text-xs font-bold flex items-center gap-1 shadow-xs">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                               <span>{isFrench ? "Intégralement Payé (Soldé)" : "Paid in Full"}</span>
                             </span>
                           ) : isPartial ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
+                            <span className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border-2 border-amber-400 dark:border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-bold flex items-center gap-1 shadow-xs">
+                              <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
                               <span>{isFrench ? "Paiement Partiel (Solde Dû)" : "Partial Payment (Owing)"}</span>
                             </span>
                           ) : isOverdue ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold flex items-center gap-1 animate-pulse">
-                              <AlertTriangle className="w-3 h-3" />
+                            <span className="px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-500/20 border-2 border-rose-400 dark:border-rose-500/40 text-rose-900 dark:text-rose-300 text-xs font-bold flex items-center gap-1 animate-pulse shadow-xs">
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-300" />
                               <span>
                                 {isFrench
                                   ? `En retard de ${tenantStatus.days_late} Jours`
@@ -620,15 +624,15 @@ function PaymentsContent() {
                               </span>
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-medium">
+                            <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-300 text-xs font-bold">
                               {isFrench ? "Non Payé • Exigible le 5" : "Unpaid • Due 5th"}
                             </span>
                           )}
 
                           {/* Advance Months Badge */}
                           {tenantStatus.advance_months_paid && tenantStatus.advance_months_paid.length > 0 && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[10px] font-bold flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-blue-400" />
+                            <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-500/15 border-2 border-blue-300 dark:border-blue-500/30 text-blue-900 dark:text-blue-300 text-xs font-bold flex items-center gap-1 shadow-xs">
+                              <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                               <span>
                                 {isFrench
                                   ? `Avance payée : ${tenantStatus.advance_months_paid.join(", ")}`
@@ -638,18 +642,18 @@ function PaymentsContent() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                          <span className="text-white font-medium">
+                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mt-1">
+                          <span className="text-slate-900 dark:text-white font-bold">
                             {tenantStatus.building_name}
                           </span>
                           <span>•</span>
-                          <span className="text-blue-400 font-semibold">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold">
                             {isFrench ? `Logement ${tenantStatus.unit_number}` : `Unit ${tenantStatus.unit_number}`}
                           </span>
                           {tenantStatus.tenant_phone && (
                             <>
                               <span>•</span>
-                              <span className="font-mono text-slate-400">
+                              <span className="font-mono text-slate-700 dark:text-slate-400 font-semibold">
                                 {tenantStatus.tenant_phone}
                               </span>
                             </>
@@ -665,20 +669,20 @@ function PaymentsContent() {
                           href={reminderWhatsAppUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-300 hover:text-white text-xs font-semibold transition"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition cursor-pointer"
                           title="WhatsApp Tenant"
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />
+                          <MessageCircle className="w-3.5 h-3.5 text-white" />
                           <span>WhatsApp</span>
                         </a>
                       )}
 
                       <button
                         onClick={() => openRecordModal(tenantStatus)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-md shadow-emerald-600/20 transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition cursor-pointer"
                         title={isFrench ? "Enregistrer un paiement en espèces" : "Record physical cash handed over by tenant"}
                       >
-                        <DollarSign className="w-3.5 h-3.5" />
+                        <DollarSign className="w-3.5 h-3.5 text-white" />
                         <span>{isFrench ? "Enregistrer Espèces" : "Record Cash Payment"}</span>
                       </button>
                     </div>
@@ -686,49 +690,49 @@ function PaymentsContent() {
 
                   {/* Financial Overview Metrics */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="p-3 bg-slate-950/70 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                    <div className="p-3 bg-slate-100 dark:bg-slate-950/70 rounded-xl border border-slate-300 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-600 dark:text-slate-500 uppercase font-bold block">
                         {isFrench ? "Loyer Mensuel" : "Monthly Rent"}
                       </span>
-                      <span className="text-sm font-bold text-white font-mono">
+                      <span className="text-sm font-black text-slate-900 dark:text-white font-mono">
                         {tenantStatus.monthly_rent.toLocaleString()} XAF
                       </span>
                     </div>
 
-                    <div className="p-3 bg-slate-950/70 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                    <div className="p-3 bg-emerald-50/80 dark:bg-slate-950/70 rounded-xl border-2 border-emerald-300 dark:border-slate-800">
+                      <span className="text-[10px] text-emerald-900 dark:text-slate-500 uppercase font-bold block">
                         {isFrench ? "Payé ce Mois" : "Paid This Month"}
                       </span>
-                      <span className="text-sm font-bold text-emerald-400 font-mono">
+                      <span className="text-sm font-black text-emerald-800 dark:text-emerald-400 font-mono">
                         {tenantStatus.amount_paid_current_month.toLocaleString()} XAF
                       </span>
                     </div>
 
                     <div
-                      className={`p-3 rounded-xl border ${
+                      className={`p-3 rounded-xl border-2 ${
                         isOwing
-                          ? "bg-amber-500/10 border-amber-500/30"
-                          : "bg-slate-950/70 border-slate-800"
+                          ? "bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30"
+                          : "bg-slate-50 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800"
                       }`}
                     >
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+                      <span className={`text-[10px] uppercase font-bold block ${isOwing ? "text-amber-900 dark:text-slate-400" : "text-slate-600 dark:text-slate-500"}`}>
                         {isFrench ? "Solde Restant Dû" : "Amount Owing (Solde)"}
                       </span>
                       <span
                         className={`text-sm font-black font-mono ${
-                          isOwing ? "text-amber-400" : "text-emerald-400"
+                          isOwing ? "text-amber-950 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
                         }`}
                       >
                         {tenantStatus.balance_owing_current_month.toLocaleString()} XAF
                       </span>
                     </div>
 
-                    <div className="p-3 bg-slate-950/70 rounded-xl border border-slate-800 flex flex-col justify-between">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                    <div className="p-3 bg-blue-50/80 dark:bg-slate-950/70 rounded-xl border-2 border-blue-200 dark:border-slate-800 flex flex-col justify-between">
+                      <span className="text-[10px] text-blue-900 dark:text-slate-500 uppercase font-bold block">
                         {isFrench ? "Quittances Émises" : "Receipts Issued"}
                       </span>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-white">
+                        <span className="font-black text-blue-950 dark:text-white font-mono">
                           {tenantStatus.payments.length}{" "}
                           {isFrench
                             ? tenantStatus.payments.length > 1
@@ -741,7 +745,7 @@ function PaymentsContent() {
                         {tenantStatus.payments.length > 0 && (
                           <button
                             onClick={() => setInspectTenantReceipts(tenantStatus)}
-                            className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold underline cursor-pointer"
+                            className="text-[11px] text-blue-700 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-bold underline cursor-pointer"
                           >
                             {isFrench ? "Voir Tout" : "View All"}
                           </button>
@@ -752,12 +756,12 @@ function PaymentsContent() {
 
                   {/* Latest Payment / Receipt Strip */}
                   {tenantStatus.payments.length > 0 ? (
-                    <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
                       <div className="flex items-center gap-2">
-                        <Receipt className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-slate-400">
+                        <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="text-slate-700 dark:text-slate-400 font-medium">
                           {isFrench ? "Dernier Paiement : " : "Latest Payment: "}
-                          <strong className="text-white font-mono">
+                          <strong className="text-slate-900 dark:text-white font-mono font-bold">
                             {tenantStatus.last_receipt_number}
                           </strong>{" "}
                           ({tenantStatus.payments[0].rent_month}){" "}
@@ -773,9 +777,9 @@ function PaymentsContent() {
                           setSelectedReceipt(tenantStatus.payments[0]);
                           setShowReceiptModal(true);
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition cursor-pointer self-start sm:self-auto"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-700 dark:text-slate-200 text-xs font-bold border-2 border-blue-200 dark:border-slate-700 transition cursor-pointer self-start sm:self-auto shadow-xs"
                       >
-                        <Eye className="w-3.5 h-3.5 text-blue-400" />
+                        <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                         <span>{isFrench ? "Voir la Quittance" : "Inspect Latest Receipt"}</span>
                       </button>
                     </div>
