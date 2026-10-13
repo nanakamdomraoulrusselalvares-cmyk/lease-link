@@ -163,7 +163,7 @@ export default function HomePage() {
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-7">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold tracking-wide shadow-sm">
             <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
             <span>
               {isFrench
@@ -177,14 +177,14 @@ export default function HomePage() {
             {isFrench ? (
               <>
                 Gestion Locative Intelligente <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 dark:from-blue-400 dark:via-sky-300 dark:to-indigo-300 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 dark:from-blue-400 dark:via-sky-300 dark:to-indigo-300 bg-clip-text text-transparent">
                   pour les Bailleurs Modernes.
                 </span>
               </>
             ) : (
               <>
                 Next-Gen Property Operations <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 dark:from-blue-400 dark:via-sky-300 dark:to-indigo-300 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 dark:from-blue-400 dark:via-sky-300 dark:to-indigo-300 bg-clip-text text-transparent">
                   for High-Performing Landlords.
                 </span>
               </>
@@ -192,17 +192,17 @@ export default function HomePage() {
           </h1>
 
           {/* Subtitle */}
-          <p className="max-w-3xl mx-auto text-base sm:text-xl text-slate-700 dark:text-slate-400 leading-relaxed font-medium">
+          <p className="max-w-3xl mx-auto text-base sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
             {isFrench
               ? "Centralisez vos immeubles, logements et locataires dans une Progressive Web App en temps réel. Enregistrez les loyers en 1 clic, délivrez des quittances certifiées avec cachet et traitez les réclamations sans tracas."
               : "Bring your properties, units, and tenant ledgers into a real-time Progressive Web App. Log payments in seconds, dispatch stamped digital receipts, and resolve maintenance tickets with zero friction."}
           </p>
 
-          {/* CTAs with Bold Visual Weight in Light Mode */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          {/* CTAs with Strict WCAG Contrast Hierarchy */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
             <Link
               href="/register"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isFrench ? "Démarrer l'Essai Gratuit de 30 Jours" : "Start 30-Day Free Trial"}</span>
               <ArrowRight className="w-4 h-4" />
@@ -210,7 +210,7 @@ export default function HomePage() {
 
             <a
               href="#showcase"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border-2 border-slate-300 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-300 hover:border-slate-400 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isFrench ? "Explorer la Démo Interactive" : "Explore Interactive Demo"}</span>
               <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -218,7 +218,7 @@ export default function HomePage() {
 
             <Link
               href="/tenant/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border-2 border-emerald-400 dark:border-emerald-500/30 font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border-2 border-emerald-400 dark:border-emerald-600/40 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>{isFrench ? "Espace Locataire" : "Tenant Portal"}</span>
@@ -226,7 +226,7 @@ export default function HomePage() {
           </div>
 
           {/* Reassurance Badges: High Contrast & Visible */}
-          <div className="pt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs text-slate-800 dark:text-slate-300 font-semibold border-t border-slate-200 dark:border-slate-800 max-w-4xl mx-auto">
+          <div className="pt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs text-slate-800 dark:text-slate-300 font-semibold border-t border-slate-200 dark:border-slate-800 max-w-4xl mx-auto">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{isFrench ? "Essai Gratuit 30 Jours" : "30-Day Free Trial"}</span>
@@ -250,16 +250,16 @@ export default function HomePage() {
       {/* Interactive Platform Showcase (Live Demo Sandbox) */}
       <section id="showcase" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold mb-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold mb-3 shadow-sm">
             <Sliders className="w-3.5 h-3.5" />
             <span>{isFrench ? "Aperçu de la Plateforme en Direct" : "Live Product Showcase"}</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
             {isFrench
               ? "Une Expérience Conçue pour la Vitesse et la Précision"
               : "Engineered for Clarity, Speed, and Compliance"}
           </h2>
-          <p className="mt-2 text-sm sm:text-base text-slate-400">
+          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
             {isFrench
               ? "Testez les différents modules de LeaseLink directement depuis cet aperçu interactif."
               : "Interact with LeaseLink's core operational views below."}
@@ -664,18 +664,18 @@ export default function HomePage() {
       </section>
 
       {/* Core Feature Pillars */}
-      <section id="features" className="py-20 border-t border-slate-800 bg-slate-950/50">
+      <section id="features" className="py-20 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
               {isFrench ? "Fonctionnalités Clés" : "Core Capabilities"}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1">
               {isFrench
                 ? "Conçu pour Éliminer Toutes les Frictions Locatives"
                 : "Engineered to Eliminate Landlord Friction"}
             </h2>
-            <p className="mt-2 text-sm sm:text-base text-slate-400">
+            <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
               {isFrench
                 ? "De l'attribution des logements jusqu'au recouvrement et l'entretien, gérez tout depuis votre smartphone ou votre ordinateur."
                 : "From unit occupancy to rent ledgers and emergency repair requests, handle your operations effortlessly."}
@@ -684,14 +684,14 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* 1. Multi-building architecture */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-blue-500/40 hover:-translate-y-1 transition duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-5">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-7 shadow-sm hover:border-blue-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-5">
                 <Building2 className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Architecture Multi-Immeubles" : "Multi-Building Hierarchy"}
               </h3>
-              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isFrench
                   ? "Créez et supervisez vos immeubles, résidences et cités en toute autonomie. Définissez les loyers, chambres, balcons et suivez le taux d'occupation en temps réel."
                   : "Structure properties across distinct addresses and campuses. Configure individual units, monthly rates, and monitor real-time occupancy rates."}
@@ -699,14 +699,14 @@ export default function HomePage() {
             </div>
 
             {/* 2. Official stamped receipts */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-emerald-500/40 hover:-translate-y-1 transition duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-5">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-7 shadow-sm hover:border-emerald-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-5">
                 <Receipt className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Quittances Certifiées avec Cachet" : "Stamped Digital Quittances"}
               </h3>
-              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isFrench
                   ? "Enregistrez les paiements Mobile Money ou espèces. Générez automatiquement des quittances certifiées avec cachet officiel, QR code et partagez-les en 1 clic sur WhatsApp."
                   : "Record cash and Mobile Money collections with zero delay. Generate certified receipts with authentic landlord stamps, printable PDFs, and instant WhatsApp dispatch."}
@@ -714,14 +714,14 @@ export default function HomePage() {
             </div>
 
             {/* 3. Community alerts */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-sky-500/40 hover:-translate-y-1 transition duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-5">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-7 shadow-sm hover:border-sky-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-5">
                 <BellRing className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Notifications d'Arrivée & Départ" : "Arrival & Departure Alerts"}
               </h3>
-              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isFrench
                   ? "Notification automatique ciblée : dès qu'un locataire emménage ou quitte un logement, les résidents de son immeuble sont automatiquement informés pour la sécurité de la communauté."
                   : "Targeted building alerts: automatically inform residents of a specific building when a new neighbor moves in or departs, preserving neighborhood cohesion."}
@@ -729,14 +729,14 @@ export default function HomePage() {
             </div>
 
             {/* 4. Maintenance Desk */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-rose-500/40 hover:-translate-y-1 transition duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-5">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-7 shadow-sm hover:border-rose-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-5">
                 <Wrench className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Guichet des Réparations & Travaux" : "Repairs & Maintenance Desk"}
               </h3>
-              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isFrench
                   ? "Les locataires transmettent leurs tickets avec photos, vidéos et notes vocales. Suivez le statut de l'intervention et transmettez le rapport directement aux techniciens."
                   : "Tenants report issues with pictures, videos, and voice notes. Track repair progression and dispatch directly to your trusted plumbers and electricians."}
@@ -744,14 +744,14 @@ export default function HomePage() {
             </div>
 
             {/* 5. Credential Vault */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-amber-500/40 hover:-translate-y-1 transition duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-5">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-7 shadow-sm hover:border-amber-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-5">
                 <Lock className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Coffre-fort des Accès Locataires" : "Tenant Credential Vault"}
               </h3>
-              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isFrench
                   ? "Générez des mots de passe sécurisés et des liens d'accès direct. Transmettez les fiches d'accueil par WhatsApp en un seul clic sans configuration complexe."
                   : "Generate secure passwords and 1-click login tokens for each tenant. Send personalized access messages directly over WhatsApp with full encryption."}
@@ -759,14 +759,14 @@ export default function HomePage() {
             </div>
 
             {/* 6. PWA Mobile-First */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-indigo-500/40 hover:-translate-y-1 transition duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-5">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-7 shadow-sm hover:border-indigo-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-5">
                 <Smartphone className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {isFrench ? "Application Mobile PWA & Hors-Ligne" : "Offline-First Mobile PWA"}
               </h3>
-              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isFrench
                   ? "Installez l'application en un tap sur iPhone ou Android. Continuez de consulter vos biens et fiches locataires même en cas de coupure de réseau."
                   : "Install in one tap on iOS and Android without app store downloads. Cache property records locally to access ledgers even when internet connectivity drops."}
@@ -777,28 +777,28 @@ export default function HomePage() {
       </section>
 
       {/* Interactive Pricing Calculator & Subscription Plans */}
-      <section id="pricing" className="py-20 bg-slate-900/40 border-t border-slate-800">
+      <section id="pricing" className="py-20 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
               {isFrench ? "Formules & Tarification" : "Pricing & Plans"}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1">
               {isFrench ? "Tarifs Clairs, sans Frais Cachés" : "Transparent Plans Tailored to Your Units"}
             </h2>
-            <p className="mt-2 text-sm sm:text-base text-slate-400">
+            <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
               {isFrench
                 ? "Toutes nos formules sont valables 30 jours, sans engagement et renouvelables à tout moment."
                 : "All plans run on flexible 30-day billing with zero lock-in. Scale up or down as your portfolio evolves."}
             </p>
 
             {/* Interactive Capacity Slider */}
-            <div className="mt-8 p-5 bg-slate-900 border border-slate-800 rounded-2xl max-w-xl mx-auto text-left shadow-lg">
+            <div className="mt-8 p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl mx-auto text-left shadow-md">
               <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-slate-300">
+                <span className="text-slate-800 dark:text-slate-300">
                   {isFrench ? "Combien de logements gérez-vous ?" : "How many units do you manage?"}
                 </span>
-                <span className="text-blue-400 text-sm font-black">{unitCountSlider} {isFrench ? "Logements" : "Units"}</span>
+                <span className="text-blue-600 dark:text-blue-400 text-sm font-black">{unitCountSlider} {isFrench ? "Logements" : "Units"}</span>
               </div>
 
               <input
@@ -810,9 +810,9 @@ export default function HomePage() {
                 className="w-full mt-3 accent-blue-600 cursor-pointer"
               />
 
-              <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
+              <div className="mt-3 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <span>{isFrench ? "Formule recommandée :" : "Recommended tier:"}</span>
-                <span className="font-bold text-white bg-blue-500/20 text-blue-300 px-2.5 py-0.5 rounded-full border border-blue-500/30">
+                <span className="font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/20 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30">
                   {isFrench && suggestedPlan.nameFr ? suggestedPlan.nameFr : suggestedPlan.name} ({suggestedPlan.unitRange})
                 </span>
               </div>
@@ -826,12 +826,12 @@ export default function HomePage() {
               return (
                 <div
                   key={plan.id}
-                  className={`bg-slate-900 rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 relative shadow-xl ${
+                  className={`bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 relative shadow-md ${
                     isSelected
                       ? "border-2 border-blue-500 shadow-blue-500/10 scale-[1.02]"
                       : plan.isFreeTrial
-                      ? "border border-amber-500/40"
-                      : "border border-slate-800 hover:border-slate-700"
+                      ? "border-2 border-amber-500/60"
+                      : "border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   {isSelected && (
@@ -842,46 +842,46 @@ export default function HomePage() {
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
                         {isFrench && plan.nameFr ? plan.nameFr : plan.name}
                       </h3>
                       {plan.badge && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">
                           {isFrench && plan.badgeFr ? plan.badgeFr : plan.badge}
                         </span>
                       )}
                     </div>
 
                     <div className="mt-4">
-                      <div className="text-2xl sm:text-3xl font-black text-white">
+                      <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                         {isFrench
                           ? plan.unitRange.replace("Up to", "Jusqu'à").replace("units", "logements")
                           : plan.unitRange}
                       </div>
-                      <span className="text-xs text-slate-400 mt-1 block">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">
                         {isFrench ? "Durée 30 jours renouvelable" : "30-day active validity"}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-3 leading-relaxed">
                       {isFrench && plan.taglineFr ? plan.taglineFr : plan.tagline}
                     </p>
 
-                    <div className="mt-6 pt-5 border-t border-slate-800/80 space-y-2.5 text-xs text-slate-300">
+                    <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800/80 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>{isFrench ? "Quittances certifiées illimitées" : "Unlimited digital receipts"}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>{isFrench ? "Accès locataires WhatsApp" : "WhatsApp tenant logins"}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>{isFrench ? "Guichet des réclamations" : "Repairs ticketing desk"}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>{isFrench ? "Notifications d'arrivée" : "Community arrival alerts"}</span>
                       </div>
                     </div>
@@ -892,10 +892,10 @@ export default function HomePage() {
                       href="/register"
                       className={`w-full block text-center py-3 rounded-xl font-bold text-xs transition cursor-pointer ${
                         isSelected
-                          ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25"
+                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25"
                           : plan.isFreeTrial
-                          ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          : "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                          ? "bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-2 border-amber-400 dark:border-amber-500/30"
+                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
                       }`}
                     >
                       {plan.isFreeTrial
@@ -915,13 +915,13 @@ export default function HomePage() {
       </section>
 
       {/* FAQ Accordion Section */}
-      <section id="faq" className="py-20 border-t border-slate-800">
+      <section id="faq" className="py-20 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
               {isFrench ? "Questions Fréquentes" : "Frequently Asked Questions"}
             </span>
-            <h2 className="text-3xl font-extrabold text-white mt-1">
+            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
               {isFrench ? "Tout ce que Vous Devez Savoir" : "Everything You Need to Know"}
             </h2>
           </div>
@@ -932,23 +932,23 @@ export default function HomePage() {
               return (
                 <div
                   key={idx}
-                  className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition"
+                  className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden transition shadow-sm"
                 >
                   <button
                     type="button"
                     onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                    className="w-full p-5 text-left font-bold text-sm sm:text-base text-white flex items-center justify-between gap-4 cursor-pointer"
+                    className="w-full p-5 text-left font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center justify-between gap-4 cursor-pointer"
                   >
                     <span>{faq.q}</span>
                     <ChevronDown
-                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                        isOpen ? "rotate-180 text-blue-400" : ""
+                      className={`w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 transition-transform duration-200 ${
+                        isOpen ? "rotate-180 text-blue-600 dark:text-blue-400" : ""
                       }`}
                     />
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 pb-5 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-850 pt-3">
+                    <div className="px-5 pb-5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed border-t border-slate-200 dark:border-slate-800 pt-3">
                       {faq.a}
                     </div>
                   )}
@@ -960,14 +960,14 @@ export default function HomePage() {
       </section>
 
       {/* Call to Action Banner */}
-      <section className="py-16 bg-gradient-to-b from-slate-950 to-blue-950/30 border-t border-slate-800">
+      <section className="py-16 bg-gradient-to-b from-blue-50/80 to-slate-100 dark:from-slate-950 dark:to-blue-950/30 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
             {isFrench
               ? "Prêt à Moderniser la Gestion de vos Biens ?"
               : "Ready to Supercharge Your Rental Operations?"}
           </h2>
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-400">
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
             {isFrench
               ? "Rejoignez les bailleurs qui ont éliminé les litiges de paiement et les quittances papier."
               : "Join forward-thinking landlords who have automated rent collection and eliminated paper disputes."}
@@ -975,14 +975,14 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link
               href="/register"
-              className="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition hover:scale-[1.02]"
+              className="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isFrench ? "Créer un Compte Gratuitement" : "Create Free Account Now"}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/login"
-              className="px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-sm flex items-center justify-center gap-2 transition"
+              className="px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-200 border-2 border-slate-300 hover:border-slate-400 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isFrench ? "Connexion Bailleur" : "Landlord Sign In"}</span>
             </Link>
@@ -991,7 +991,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-10 bg-slate-950 mt-auto">
+      <footer className="border-t border-slate-200 dark:border-slate-800/80 py-10 bg-white dark:bg-slate-950 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2.5">
@@ -999,29 +999,29 @@ export default function HomePage() {
                 <Building2 className="w-4 h-4 text-white" />
               </div>
               <div>
-                <span className="font-bold text-base text-white tracking-tight">
-                  Lease<span className="text-blue-500">Link</span>
+                <span className="font-bold text-base text-slate-900 dark:text-white tracking-tight">
+                  Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
                 </span>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   &copy; 2026 LeaseLink Inc. {isFrench ? "Tous droits réservés." : "All rights reserved."}
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
-              <Link href="/tenant/login" className="hover:text-emerald-400 transition font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-600 dark:text-slate-400">
+              <Link href="/tenant/login" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition font-medium">
                 {isFrench ? "Espace Locataire" : "Tenant Portal"}
               </Link>
-              <Link href="/login" className="hover:text-white transition font-medium">
+              <Link href="/login" className="hover:text-slate-900 dark:hover:text-white transition font-medium">
                 {isFrench ? "Connexion Bailleur" : "Landlord Login"}
               </Link>
-              <Link href="/register" className="hover:text-white transition font-medium">
+              <Link href="/register" className="hover:text-slate-900 dark:hover:text-white transition font-medium">
                 {isFrench ? "Créer un Compte" : "Register"}
               </Link>
-              <a href="#features" className="hover:text-white transition">
+              <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition font-medium">
                 {isFrench ? "Fonctionnalités" : "Features"}
               </a>
-              <a href="#pricing" className="hover:text-white transition">
+              <a href="#pricing" className="hover:text-slate-900 dark:hover:text-white transition font-medium">
                 {isFrench ? "Tarifs" : "Pricing"}
               </a>
             </div>
