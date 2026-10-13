@@ -242,7 +242,7 @@ function CredentialsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
         <div className="text-center space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-emerald-500 mx-auto" />
           <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -254,7 +254,7 @@ function CredentialsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
       {/* Unified SaaS Dashboard Navigation Bar */}
       <DashboardNav
         user={user}

@@ -2,6 +2,18 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  color-scheme: light;
+}
+
+html.dark {
   --background: #0b1120;
   --foreground: #f8fafc;
   --card: #0f172a;
@@ -10,22 +22,7 @@
   --primary-foreground: #ffffff;
   --muted: #64748b;
   --border: #334155;
-}
-
-/* ========================================================================= */
-/* 1. BRIGHT / LIGHT MODE ARCHITECTURAL PALETTE                              */
-/* ========================================================================= */
-html.light,
-[data-theme="light"] {
-  color-scheme: light;
-  --background: #f1f5f9; /* Architectural cool slate canvas (#f1f5f9) - NOT flat bleached white! */
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --muted: #64748b;
-  --border: #cbd5e1;
+  color-scheme: dark;
 }
 
 /* Prevent Horizontal Page Wobble & Scrollbar Layout Shifts */
@@ -38,8 +35,8 @@ html {
 }
 
 body {
-  background-color: #0b1120;
-  color: #f1f5f9;
+  background-color: var(--background);
+  color: var(--foreground);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   min-height: 100vh;
   width: 100%;
@@ -49,451 +46,32 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Bright Mode Base Body & Canvas */
-html.light body,
-html.light .min-h-screen {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-
-/* ========================================================================= */
-/* 2. BRIGHT MODE APP SHELL & NAVIGATION                                     */
-/* ========================================================================= */
-html.light header {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-bottom: 1px solid #cbd5e1 !important;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-/* Header brand title in light mode */
-html.light header .text-white {
-  color: #0f172a !important;
-}
-
-/* Top Desktop Segmented Navigation Tray in Bright Mode */
-html.light nav[aria-label="Dashboard primary navigation"] {
-  background-color: #e2e8f0 !important;
-  border: 1px solid #cbd5e1 !important;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06) !important;
-}
-
-/* Inactive Navigation Links */
-html.light nav[aria-label="Dashboard primary navigation"] a:not([class*="bg-blue"]) {
-  color: #334155 !important;
-}
-html.light nav[aria-label="Dashboard primary navigation"] a:not([class*="bg-blue"]) svg {
-  color: #64748b !important;
-}
-
-/* Hovered Inactive Navigation Links */
-html.light nav[aria-label="Dashboard primary navigation"] a:not([class*="bg-blue"]):hover {
-  color: #0f172a !important;
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
-}
-html.light nav[aria-label="Dashboard primary navigation"] a:not([class*="bg-blue"]):hover svg {
-  color: #2563eb !important;
-}
-
-/* Active Navigation Link in Bright Mode */
-html.light nav[aria-label="Dashboard primary navigation"] a[class*="bg-blue"] {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3) !important;
-}
-html.light nav[aria-label="Dashboard primary navigation"] a[class*="bg-blue"] svg,
-html.light nav[aria-label="Dashboard primary navigation"] a[class*="bg-blue"] span {
-  color: #ffffff !important;
-}
-
-/* Mobile Fixed Bottom Navigation Bar in Bright Mode */
-html.light nav[aria-label="Mobile bottom navigation"] {
-  background-color: rgba(255, 255, 255, 0.98) !important;
-  border-top: 1px solid #cbd5e1 !important;
-  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08) !important;
-}
-html.light nav[aria-label="Mobile bottom navigation"] a {
-  color: #64748b !important;
-}
-html.light nav[aria-label="Mobile bottom navigation"] a svg {
-  color: #64748b !important;
-}
-html.light nav[aria-label="Mobile bottom navigation"] a[class*="text-blue"] {
-  color: #2563eb !important;
-}
-html.light nav[aria-label="Mobile bottom navigation"] a[class*="text-blue"] svg {
-  color: #2563eb !important;
-}
-
-/* ========================================================================= */
-/* 3. SOLID COLORED BUTTONS ONLY: GUARANTEED WHITE TEXT & ICONS             */
-/* ========================================================================= */
-/* Specific button & link backgrounds that MUST have white text */
-html.light button.bg-blue-600,
-html.light a.bg-blue-600,
-html.light button[class*="bg-blue-600"],
-html.light a[class*="bg-blue-600"],
-html.light button[class*="from-blue-600"],
-html.light a[class*="from-blue-600"],
-html.light button[class*="bg-emerald-600"],
-html.light a[class*="bg-emerald-600"],
-html.light button[class*="bg-rose-600"],
-html.light a[class*="bg-rose-600"],
-html.light span[class*="bg-blue-600"],
-html.light span[class*="bg-emerald-600"] {
-  color: #ffffff !important;
-}
-
-html.light button.bg-blue-600 *,
-html.light a.bg-blue-600 *,
-html.light button[class*="bg-blue-600"] *,
-html.light a[class*="bg-blue-600"] *,
-html.light button[class*="from-blue-600"] *,
-html.light a[class*="from-blue-600"] *,
-html.light button[class*="bg-emerald-600"] *,
-html.light a[class*="bg-emerald-600"] *,
-html.light button[class*="bg-rose-600"] *,
-html.light a[class*="bg-rose-600"] *,
-html.light span[class*="bg-blue-600"] *,
-html.light span[class*="bg-emerald-600"] * {
-  color: #ffffff !important;
-}
-
-/* Active Bright mode pill button in ThemeSwitcher */
-html.light .bg-amber-400,
-html.light .bg-amber-400 * {
-  color: #451a03 !important;
-}
-
-/* ========================================================================= */
-/* 4. HEADINGS & TYPOGRAPHY: NEVER BLEACHED WHITE                           */
-/* ========================================================================= */
-html.light h1,
-html.light h2,
-html.light h3,
-html.light h4,
-html.light h5,
-html.light h6 {
-  color: #0f172a !important; /* Always deep charcoal! */
-}
-
-/* Headings with text-white must turn to deep charcoal on light surfaces */
-html.light .text-white:not(button):not(button *):not(a[class*="bg-blue-"]):not(a[class*="bg-blue-"] *):not(a[class*="from-blue-"]):not(a[class*="from-blue-"] *):not(a[class*="bg-emerald-"]):not(a[class*="bg-emerald-"] *):not(.badge-white):not([class*="bg-gradient-to-br from-blue-600"]) {
-  color: #0f172a !important;
-}
-
-/* Logo icon inside header: white icon on blue background */
-html.light header .w-10.h-10 svg,
-html.light header .w-9.h-9 svg {
-  color: #ffffff !important;
-}
-
-/* Primary, Secondary & Subtitle Text: High Contrast & 100% Readable */
-html.light .text-slate-900 {
-  color: #0f172a !important;
-}
-html.light .text-slate-800 {
-  color: #1e293b !important;
-}
-html.light .text-slate-700 {
-  color: #334155 !important;
-}
-html.light .text-slate-600 {
-  color: #475569 !important;
-}
-html.light .text-slate-500 {
-  color: #64748b !important;
-}
-html.light .text-slate-400 {
-  color: #475569 !important;
-}
-html.light .text-slate-300 {
-  color: #334155 !important;
-}
-html.light .text-slate-200 {
-  color: #1e293b !important;
-}
-html.light .text-slate-100 {
-  color: #0f172a !important;
-}
-
-/* Heading Gradient in Bright Mode */
-html.light .bg-clip-text {
-  background-image: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4338ca 100%) !important;
-  -webkit-background-clip: text !important;
-  color: transparent !important;
-}
-
-/* ========================================================================= */
-/* 5. VIBRANT SPECIALTY BANNERS & ACCENT CARDS (RICH COLORS IN BRIGHT MODE)  */
-/* ========================================================================= */
-/* Royal Blue Hero & Welcome Banners */
-html.light [class*="from-blue-950"] {
-  background-color: #eff6ff !important;
-  background-image: linear-gradient(135deg, #eff6ff 0%, #dbeafe 60%, #e0e7ff 100%) !important;
-  border: 1px solid #93c5fd !important;
-  box-shadow: 0 4px 20px -2px rgba(59, 130, 246, 0.12) !important;
-}
-
-html.light [class*="from-blue-950"] h1,
-html.light [class*="from-blue-950"] h2 {
-  color: #1e3a8a !important; /* Deep Royal Navy Blue */
-}
-
-html.light [class*="from-blue-950"] p,
-html.light [class*="from-blue-950"] .text-slate-300 {
-  color: #1e40af !important; /* Rich Sapphire Blue */
-}
-
-/* Emerald / Active Tenancy Cards */
-html.light [class*="from-emerald-950"],
-html.light [class*="bg-emerald-950"],
-html.light [class*="bg-emerald-900"] {
-  background-color: #ecfdf5 !important;
-  background-image: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
-  border: 1px solid #6ee7b7 !important;
-  color: #065f46 !important;
-}
-
-/* Amber / Pending Rent & Notice Cards */
-html.light [class*="from-amber-950"],
-html.light [class*="bg-amber-950"] {
-  background-color: #fffbeb !important;
-  background-image: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
-  border: 1px solid #fcd34d !important;
-  color: #92400e !important;
-}
-
-/* Rose / Urgent Repairs & Alerts Cards */
-html.light [class*="from-rose-950"],
-html.light [class*="bg-rose-950"] {
-  background-color: #fff1f2 !important;
-  background-image: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
-  border: 1px solid #fda4af !important;
-  color: #9f1239 !important;
-}
-
-/* ========================================================================= */
-/* 6. STATUS BADGES & ACCENT PILLS (PUNCHY, RICH COLORS)                     */
-/* ========================================================================= */
-html.light [class*="bg-emerald-500/"] {
-  background-color: #ecfdf5 !important;
-  border: 1px solid #6ee7b7 !important;
-  color: #047857 !important;
-}
-html.light [class*="bg-emerald-500/"] * {
-  color: #047857 !important;
-}
-
-html.light [class*="bg-blue-500/"],
-html.light [class*="bg-blue-600/"] {
-  background-color: #eff6ff !important;
-  border: 1px solid #93c5fd !important;
-  color: #1d4ed8 !important;
-}
-html.light [class*="bg-blue-500/"] *,
-html.light [class*="bg-blue-600/"] * {
-  color: #1d4ed8 !important;
-}
-
-html.light [class*="bg-amber-500/"] {
-  background-color: #fffbeb !important;
-  border: 1px solid #fcd34d !important;
-  color: #b45309 !important;
-}
-html.light [class*="bg-amber-500/"] * {
-  color: #b45309 !important;
-}
-
-html.light [class*="bg-rose-500/"] {
-  background-color: #fff1f2 !important;
-  border: 1px solid #fda4af !important;
-  color: #be123c !important;
-}
-html.light [class*="bg-rose-500/"] * {
-  color: #be123c !important;
-}
-
-html.light [class*="bg-purple-500/"] {
-  background-color: #faf5ff !important;
-  border: 1px solid #d8b4fe !important;
-  color: #7e22ce !important;
-}
-html.light [class*="bg-purple-500/"] * {
-  color: #7e22ce !important;
-}
-
-html.light [class*="bg-sky-500/"] {
-  background-color: #f0f9ff !important;
-  border: 1px solid #7dd3fc !important;
-  color: #0369a1 !important;
-}
-html.light [class*="bg-sky-500/"] * {
-  color: #0369a1 !important;
-}
-
-/* ========================================================================= */
-/* 7. TEXT COLOR CLASSES FOR AAA CONTRAST                                   */
-/* ========================================================================= */
-html.light [class*="text-emerald-400"],
-html.light [class*="text-emerald-300"] {
-  color: #047857 !important;
-}
-html.light [class*="text-amber-400"],
-html.light [class*="text-amber-300"] {
-  color: #b45309 !important;
-}
-html.light [class*="text-orange-400"],
-html.light [class*="text-orange-300"] {
-  color: #c2410c !important;
-}
-html.light [class*="text-blue-400"],
-html.light [class*="text-blue-300"] {
-  color: #1d4ed8 !important;
-}
-html.light [class*="text-rose-400"],
-html.light [class*="text-rose-300"] {
-  color: #be123c !important;
-}
-html.light [class*="text-purple-400"],
-html.light [class*="text-purple-300"] {
-  color: #7e22ce !important;
-}
-html.light [class*="text-cyan-400"],
-html.light [class*="text-sky-400"] {
-  color: #0369a1 !important;
-}
-
-/* ========================================================================= */
-/* 8. CARDS, SURFACES & BORDERS (CLEAR VISUAL DEPTH AGAINST #f1f5f9)         */
-/* ========================================================================= */
-/* Light Mode Tinted Specialty Surfaces - NEVER FORCE TO WHITE */
-html.light [class*="bg-blue-50"] {
-  background-color: #eff6ff !important;
-}
-html.light [class*="bg-emerald-50"] {
-  background-color: #ecfdf5 !important;
-}
-html.light [class*="bg-amber-50"] {
-  background-color: #fffbeb !important;
-}
-html.light [class*="bg-rose-50"] {
-  background-color: #fff1f2 !important;
-}
-html.light [class*="bg-purple-50"] {
-  background-color: #faf5ff !important;
-}
-html.light [class*="bg-sky-50"] {
-  background-color: #f0f9ff !important;
-}
-
-/* Neutral Slate Cards */
-html.light .bg-slate-900:not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]):not([class*="bg-sky"]):not([class*="bg-slate-100"]):not([class*="bg-slate-50"]),
-html.light [class*="bg-slate-900/"]:not(.fixed):not([class*="text-"]):not([class*="border-"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]):not([class*="bg-sky"]) {
-  background-color: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 14px rgba(15, 23, 42, 0.05) !important;
-}
-
-html.light .bg-slate-950:not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]):not([class*="bg-sky"]):not([class*="bg-slate-100"]):not([class*="bg-slate-50"]),
-html.light [class*="bg-slate-950/"]:not(.fixed):not([class*="text-"]):not([class*="border-"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]):not([class*="bg-sky"]) {
-  background-color: #f8fafc !important;
-  border: 1px solid #cbd5e1 !important;
-}
-
-html.light .bg-slate-800:not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]):not([class*="bg-sky"]):not([class*="bg-slate-100"]):not([class*="bg-slate-50"]) {
-  background-color: #e2e8f0 !important;
-  border: 1px solid #cbd5e1 !important;
-}
-
-html.light .border-slate-800,
-html.light .border-slate-700,
-html.light [class*="border-slate-800"],
-html.light [class*="border-slate-700"] {
-  border-color: #cbd5e1 !important;
-}
-
-html.light .divide-slate-800 > :not(:last-child),
-html.light [class*="divide-slate-800"] > :not(:last-child) {
-  border-color: #e2e8f0 !important;
-}
-
-/* ========================================================================= */
-/* 9. INPUTS, TEXTAREAS, SELECTS & MODALS                                    */
-/* ========================================================================= */
-html.light input:not([type="checkbox"]):not([type="radio"]),
-html.light select,
-html.light textarea,
-html.light option {
-  background-color: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  color: #0f172a !important;
-}
-
-html.light input::placeholder,
-html.light textarea::placeholder {
-  color: #64748b !important;
-}
-
-html.light input:focus,
-html.light select:focus,
-html.light textarea:focus {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
-}
-
-/* Modal Backdrops */
-html.light .fixed.inset-0,
-html.light [class*="fixed"][class*="inset-0"] {
-  background-color: rgba(15, 23, 42, 0.6) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-/* Modal Content Box */
-html.light .fixed.inset-0 .bg-slate-900,
-html.light [class*="fixed"][class*="inset-0"] .bg-slate-900 {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* ========================================================================= */
-/* 10. HARDWARE ACCELERATION & SCROLLBARS                                    */
-/* ========================================================================= */
-header {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b1120;
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 9999px;
-  border: 2px solid #0b1120;
+  border: 2px solid #f1f5f9;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94a3b8;
 }
 
-html.light ::-webkit-scrollbar-track {
-  background: #eef2f6;
+html.dark ::-webkit-scrollbar-track {
+  background: #0b1120;
 }
-html.light ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border: 2px solid #eef2f6;
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border: 2px solid #0b1120;
 }
-html.light ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Background freeze when modal is open */

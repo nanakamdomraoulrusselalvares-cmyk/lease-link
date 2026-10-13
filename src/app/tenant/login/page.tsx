@@ -64,7 +64,7 @@ function TenantLoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 selection:bg-blue-500 selection:text-white relative">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 selection:bg-blue-500 selection:text-white relative">
       {/* Top right language & theme switches */}
       <div className="absolute top-5 right-5 z-20 flex items-center gap-2">
         <LanguageSwitcher variant="pill" />

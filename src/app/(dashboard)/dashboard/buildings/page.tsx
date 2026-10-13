@@ -494,7 +494,7 @@ export default function BuildingsManagementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
         <div className="text-center space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
           <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -506,7 +506,7 @@ export default function BuildingsManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
       {/* Unified SaaS Dashboard Navigation Bar */}
       <DashboardNav
         user={user}
