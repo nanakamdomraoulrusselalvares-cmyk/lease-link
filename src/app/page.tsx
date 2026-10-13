@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -11,6 +12,20 @@ import {
   Smartphone,
   WifiOff,
   Sparkles,
+  ChevronDown,
+  TrendingUp,
+  CreditCard,
+  Users,
+  BellRing,
+  Lock,
+  FileCheck2,
+  Zap,
+  ExternalLink,
+  ChevronRight,
+  Send,
+  Sliders,
+  DollarSign,
+  Download,
 } from "lucide-react";
 import { AVAILABLE_PLANS } from "@/types/database";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -19,20 +34,96 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 export default function HomePage() {
   const { isFrench } = useLanguage();
+  const [activePreviewTab, setActivePreviewTab] = useState<"ledger" | "buildings" | "receipt" | "repairs">("ledger");
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [unitCountSlider, setUnitCountSlider] = useState<number>(24);
+
+  // Dynamic plan finder based on slider
+  const suggestedPlan =
+    AVAILABLE_PLANS.find((p) => unitCountSlider <= p.maxUnits) ||
+    AVAILABLE_PLANS[AVAILABLE_PLANS.length - 1];
+
+  const faqs = isFrench
+    ? [
+        {
+          q: "Comment fonctionne l'essai gratuit de 30 jours ?",
+          a: "Dès votre inscription, votre compte est immédiatement activé avec la formule Essai Gratuit (jusqu'à 5 logements). Vous bénéficiez d'un accès complet sans aucune carte bancaire requise. À la fin des 30 jours, vous pouvez choisir la formule adaptée à votre portefeuille.",
+        },
+        {
+          q: "Les locataires doivent-ils installer une application depuis Play Store ou App Store ?",
+          a: "Non ! LeaseLink est une Progressive Web App (PWA). Les locataires accèdent à leur espace via un lien sécurisé envoyé par WhatsApp ou SMS. Ils peuvent l'ajouter en 1 clic sur leur écran d'accueil sans occuper de stockage sur leur téléphone.",
+        },
+        {
+          q: "Comment sont générées les quittances de loyer ?",
+          a: "Dès que vous enregistrez un encaissement (Espèces, Orange Money, MTN Mobile Money, Virement), LeaseLink génère instantanément une quittance certifiée conforme avec QR code, tampon officiel et signature du bailleur, prête à être partagée sur WhatsApp ou téléchargée en PDF.",
+        },
+        {
+          q: "Mes locataires reçoivent-ils des notifications lors de l'arrivée de nouveaux voisins ?",
+          a: "Oui ! Lorsqu'un nouveau locataire est assigné à un logement dans un immeuble spécifique, le système notifie automatiquement les locataires de ce même bâtiment pour leur souhaiter la bienvenue et préserver l'harmonie de la communauté.",
+        },
+        {
+          q: "Puis-je gérer plusieurs immeubles situés dans différentes villes ?",
+          a: "Absolument. Vous pouvez structurer votre portefeuille par immeubles, résidences ou cités, avec des devises, adresses et régimes locatifs distincts sous un seul et même tableau de bord centralisé.",
+        },
+      ]
+    : [
+        {
+          q: "How does the 30-day free trial work?",
+          a: "Upon registration, your account is instantly activated with the Free Trial tier (up to 5 units). You get complete, unconstrained access with zero credit card required. After 30 days, simply select the tier matching your property size.",
+        },
+        {
+          q: "Do tenants have to download an app from an app store?",
+          a: "No! LeaseLink is an instant Progressive Web App (PWA). Tenants log in via an encrypted magic link or WhatsApp credentials. They can pin it to their home screen with one tap without consuming phone storage.",
+        },
+        {
+          q: "How are certified rent receipts generated?",
+          a: "The moment a payment is recorded (Cash, Orange Money, MTN MoMo, Bank Transfer), LeaseLink instantly produces a tamper-proof receipt bearing an official seal, QR code, and landlord signature, ready for instant WhatsApp dispatch or PDF download.",
+        },
+        {
+          q: "Are tenants informed when new neighbors move into their building?",
+          a: "Yes! Whenever a tenant is assigned to a unit in a specific building, automated notifications announce the arrival to fellow residents of that building, fostering community safety and transparent building management.",
+        },
+        {
+          q: "Can I manage multiple buildings across different locations?",
+          a: "Absolutely. You can group your portfolio across distinct properties, duplexes, or student residences, each with independent rent schedules, addresses, and ledgers in a single unified dashboard.",
+        },
+      ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
-      {/* Navigation */}
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
+      {/* Navigation Header */}
+      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Building2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl text-white tracking-tight">
-              Lease<span className="text-blue-500">Link</span>
-            </span>
-          </Link>
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-400 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform duration-300">
+                <Building2 className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <span className="font-extrabold text-xl text-white tracking-tight">
+                  Lease<span className="text-blue-500">Link</span>
+                </span>
+                <span className="hidden sm:inline-block ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-widest">
+                  PropTech 2026
+                </span>
+              </div>
+            </Link>
+
+            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-400">
+              <a href="#features" className="hover:text-white transition">
+                {isFrench ? "Fonctionnalités" : "Features"}
+              </a>
+              <a href="#showcase" className="hover:text-white transition">
+                {isFrench ? "Aperçu en Direct" : "Live Demo"}
+              </a>
+              <a href="#pricing" className="hover:text-white transition">
+                {isFrench ? "Tarifs" : "Pricing"}
+              </a>
+              <a href="#faq" className="hover:text-white transition">
+                FAQ
+              </a>
+            </nav>
+          </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher variant="pill" />
@@ -40,259 +131,905 @@ export default function HomePage() {
 
             <Link
               href="/tenant/login"
-              className="text-xs sm:text-sm font-semibold text-emerald-400 hover:text-emerald-300 px-2 py-1 transition"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition"
             >
-              {isFrench ? "Espace Locataire" : "Tenant Space"}
+              <Users className="w-3.5 h-3.5" />
+              <span>{isFrench ? "Espace Locataire" : "Tenant Portal"}</span>
             </Link>
+
             <Link
               href="/login"
-              className="text-xs sm:text-sm font-semibold text-slate-300 hover:text-white px-2 py-1 transition hidden sm:inline"
+              className="text-xs sm:text-sm font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 transition"
             >
-              {isFrench ? "Connexion Bailleur" : "Landlord Sign In"}
+              {isFrench ? "Connexion" : "Sign In"}
             </Link>
+
             <Link
               href="/register"
-              className="text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white px-3.5 sm:px-4 py-2 rounded-xl shadow-md transition flex items-center gap-1.5"
+              className="text-xs sm:text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-3.5 sm:px-4 py-2 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-1.5 group cursor-pointer"
             >
-              <span>{isFrench ? "Commencer" : "Get Started"}</span>
-              <ArrowRight className="w-4 h-4 hidden sm:inline" />
+              <span>{isFrench ? "Essai Gratuit" : "Start Free"}</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-20 sm:pt-24 sm:pb-28 border-b border-slate-800/80">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950 pointer-events-none" />
+      <section className="relative overflow-hidden pt-12 pb-20 sm:pt-20 sm:pb-28 border-b border-slate-800/80">
+        {/* Ambient Glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-sky-400/5 blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-slate-950 to-slate-950 pointer-events-none" />
 
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-7">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold shadow-sm hover:border-blue-500/40 transition">
+            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
             <span>
               {isFrench
-                ? "Dites adieu aux carnets et reçus papier"
-                : "Say Goodbye to Paper Property Ledgers"}
+                ? "Dites adieu aux carnets et reçus papier perdus"
+                : "Say Goodbye to Lost Paper Ledgers & Handwritten Receipts"}
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
+          {/* Main Title */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1]">
             {isFrench ? (
               <>
-                Gestion Locative Numérique <br />
-                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
-                  Conçue pour les Bailleurs Modernes
+                Gestion Locative Intelligente <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+                  pour les Bailleurs Modernes.
                 </span>
               </>
             ) : (
               <>
-                Digital Property Management <br />
-                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
-                  Built for Modern Landlords
+                Next-Gen Property Operations <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+                  for High-Performing Landlords.
                 </span>
               </>
             )}
           </h1>
 
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-400 leading-relaxed">
+          {/* Subtitle */}
+          <p className="max-w-3xl mx-auto text-base sm:text-xl text-slate-400 leading-relaxed font-normal">
             {isFrench
-              ? "Transférez vos immeubles, logements et locataires vers une Progressive Web App en temps réel. Enregistrez les loyers, délivrez des quittances certifiées et traitez les réparations en toute simplicité."
-              : "Transition your buildings, units, and tenants to a real-time Progressive Web App. Log monthly rent payments, resolve tenant tickets, and access your portfolio from anywhere."}
+              ? "Centralisez vos immeubles, logements et locataires dans une Progressive Web App en temps réel. Enregistrez les loyers en 1 clic, délivrez des quittances certifiées avec cachet et traitez les réclamations sans tracas."
+              : "Bring your properties, units, and tenant ledgers into a real-time Progressive Web App. Log payments in seconds, dispatch stamped digital receipts, and resolve maintenance tickets with zero friction."}
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link
               href="/register"
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
             >
-              <span>{isFrench ? "Essai Gratuit de 30 Jours" : "Start 30-Day Free Trial"}</span>
+              <span>{isFrench ? "Démarrer l'Essai Gratuit de 30 Jours" : "Start 30-Day Free Trial"}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link
-              href="/login"
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-semibold text-sm flex items-center justify-center gap-2 transition"
+
+            <a
+              href="#showcase"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-sm flex items-center justify-center gap-2 transition"
             >
-              <span>{isFrench ? "Connexion Bailleur" : "Landlord Sign In"}</span>
-            </Link>
+              <span>{isFrench ? "Explorer la Démo Interactive" : "Explore Interactive Demo"}</span>
+              <Sliders className="w-4 h-4 text-blue-400" />
+            </a>
+
             <Link
               href="/tenant/login"
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-500/30 font-semibold text-sm flex items-center justify-center gap-2 transition"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-500/30 font-bold text-sm flex items-center justify-center gap-2 transition"
             >
-              <span>{isFrench ? "Portail Locataire" : "Tenant Portal"}</span>
+              <Users className="w-4 h-4 text-emerald-400" />
+              <span>{isFrench ? "Espace Locataire" : "Tenant Portal"}</span>
             </Link>
           </div>
 
-          {/* Quick selling points */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-6 text-xs text-slate-400">
-            <div className="flex items-center gap-1.5">
+          {/* Reassurance Badges */}
+          <div className="pt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs text-slate-400 border-t border-slate-850 max-w-4xl mx-auto">
+            <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <span>{isFrench ? "Essai Gratuit 30 Jours" : "30-Day Free Trial"}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-blue-400" />
-              <span>{isFrench ? "PWA Mobile & Bureau" : "Mobile-First PWA"}</span>
+              <span>{isFrench ? "PWA Mobile & Bureau (Hors-ligne)" : "Mobile & Desktop PWA"}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <WifiOff className="w-4 h-4 text-amber-400" />
-              <span>{isFrench ? "Mode Hors-Ligne" : "Offline-Ready Design"}</span>
+            <div className="flex items-center gap-2">
+              <Send className="w-4 h-4 text-emerald-400" />
+              <span>{isFrench ? "Quittances WhatsApp Instantanées" : "Instant WhatsApp Receipts"}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-sky-400" />
-              <span>{isFrench ? "Sécurité des Données RLS" : "Row-Level Data Security"}</span>
+              <span>{isFrench ? "Isolation Stricte RLS" : "Encrypted RLS Isolation"}</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Interactive Platform Showcase (Live Demo Sandbox) */}
+      <section id="showcase" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold mb-3">
+            <Sliders className="w-3.5 h-3.5" />
+            <span>{isFrench ? "Aperçu de la Plateforme en Direct" : "Live Product Showcase"}</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
+            {isFrench
+              ? "Une Expérience Conçue pour la Vitesse et la Précision"
+              : "Engineered for Clarity, Speed, and Compliance"}
+          </h2>
+          <p className="mt-2 text-sm sm:text-base text-slate-400">
+            {isFrench
+              ? "Testez les différents modules de LeaseLink directement depuis cet aperçu interactif."
+              : "Interact with LeaseLink's core operational views below."}
+          </p>
+        </div>
+
+        {/* Mac-Style Window Container */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden ring-1 ring-slate-800/80">
+          {/* Window Header */}
+          <div className="px-5 py-3.5 bg-slate-950/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
+              <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block" />
+              <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
+              <span className="text-xs text-slate-400 font-mono ml-2">app.leaselink.cm/dashboard</span>
+            </div>
+
+            {/* Interactive Tabs */}
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("ledger")}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  activePreviewTab === "ledger"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Registre Loyers" : "Rent Ledger"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("buildings")}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  activePreviewTab === "buildings"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Immeubles" : "Buildings"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("receipt")}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  activePreviewTab === "receipt"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <FileCheck2 className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Quittance Certifiée" : "Certified Receipt"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("repairs")}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  activePreviewTab === "repairs"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Réclamations" : "Repairs Desk"}</span>
+              </button>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+              <span>{isFrench ? "Synchronisation en direct" : "Live Real-Time Sync"}</span>
+            </div>
+          </div>
+
+          {/* Window Canvas */}
+          <div className="p-6 sm:p-8 bg-slate-950/60 min-h-[460px]">
+            {/* TAB 1: LIVE RENT LEDGER */}
+            {activePreviewTab === "ledger" && (
+              <div className="space-y-6">
+                {/* Stats Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
+                    <span className="text-xs text-slate-400 font-medium block">
+                      {isFrench ? "Total Loyers Collectés (Ce Mois)" : "Total Collected This Month"}
+                    </span>
+                    <span className="text-2xl font-black text-emerald-400 mt-1 block">
+                      2,850,000 XAF
+                    </span>
+                    <div className="mt-2 text-[11px] text-emerald-400 flex items-center gap-1">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      <span>{isFrench ? "94.2% du portefeuille encaissé" : "94.2% collection rate"}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
+                    <span className="text-xs text-slate-400 font-medium block">
+                      {isFrench ? "Paiements en Attente" : "Pending Balance"}
+                    </span>
+                    <span className="text-2xl font-black text-amber-400 mt-1 block">
+                      175,000 XAF
+                    </span>
+                    <span className="mt-2 text-[11px] text-slate-400 block">
+                      {isFrench ? "2 locataires à relancer" : "2 tenants to remind"}
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
+                    <span className="text-xs text-slate-400 font-medium block">
+                      {isFrench ? "Quittances Émises" : "Receipts Dispatched"}
+                    </span>
+                    <span className="text-2xl font-black text-blue-400 mt-1 block">
+                      24 / 26
+                    </span>
+                    <span className="mt-2 text-[11px] text-slate-400 block">
+                      {isFrench ? "100% avec cachet certifié" : "100% stamped & verified"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Ledger Table */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                  <div className="px-5 py-3 border-b border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-400">
+                    <span>{isFrench ? "Encaissements Récents" : "Recent Rent Collections"}</span>
+                    <span>{isFrench ? "Octobre 2026" : "October 2026"}</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-800 text-xs">
+                    <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-850/50 transition">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                          4B
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">Jean-Pierre Kamga</p>
+                          <p className="text-slate-400 text-[11px]">
+                            Résidence La Paix • {isFrench ? "Logement 4B" : "Unit 4B"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-black text-emerald-400 text-sm">120,000 XAF</p>
+                          <p className="text-[10px] text-slate-400">MTN Mobile Money • #TX-8921</p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-[10px] flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{isFrench ? "Quittance #LL-982" : "Receipt #LL-982"}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-850/50 transition">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                          12
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">Dr. Sylvie Mengue</p>
+                          <p className="text-slate-400 text-[11px]">
+                            Cité Universitaire • {isFrench ? "Studio 12" : "Studio 12"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-black text-emerald-400 text-sm">180,000 XAF</p>
+                          <p className="text-[10px] text-slate-400">Orange Money • #OM-4410</p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-[10px] flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{isFrench ? "Quittance #LL-983" : "Receipt #LL-983"}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-850/50 transition">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+                          02
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">Alain Tcheuko</p>
+                          <p className="text-slate-400 text-[11px]">
+                            Villa Horizon • {isFrench ? "Duplex 2" : "Duplex 2"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-black text-emerald-400 text-sm">350,000 XAF</p>
+                          <p className="text-[10px] text-slate-400">{isFrench ? "Espèces Encaissées" : "Cash Collected"}</p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-[10px] flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{isFrench ? "Quittance #LL-984" : "Receipt #LL-984"}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: BUILDINGS & UNITS */}
+            {activePreviewTab === "buildings" && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-blue-500/40 transition">
+                    <div className="flex items-start justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                        {isFrench ? "100% Occupé" : "100% Occupied"}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-white text-base mt-3">Résidence La Paix</h3>
+                    <p className="text-slate-400 text-xs">Bonamoussadi, Douala</p>
+                    <div className="mt-4 pt-3 border-t border-slate-800 text-xs flex justify-between">
+                      <span className="text-slate-400">{isFrench ? "12 Logements" : "12 Units"}</span>
+                      <span className="font-bold text-white">1,440,000 XAF/m</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-blue-500/40 transition">
+                    <div className="flex items-start justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20">
+                        {isFrench ? "90% Occupé" : "90% Occupied"}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-white text-base mt-3">Cité Universitaire</h3>
+                    <p className="text-slate-400 text-xs">Ngoa-Ekélé, Yaoundé</p>
+                    <div className="mt-4 pt-3 border-t border-slate-800 text-xs flex justify-between">
+                      <span className="text-slate-400">{isFrench ? "10 Logements" : "10 Units"}</span>
+                      <span className="font-bold text-white">1,060,000 XAF/m</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-blue-500/40 transition">
+                    <div className="flex items-start justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                        {isFrench ? "100% Occupé" : "100% Occupied"}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-white text-base mt-3">Villa Horizon</h3>
+                    <p className="text-slate-400 text-xs">Bastos, Yaoundé</p>
+                    <div className="mt-4 pt-3 border-t border-slate-800 text-xs flex justify-between">
+                      <span className="text-slate-400">{isFrench ? "4 Duplex" : "4 Duplexes"}</span>
+                      <span className="font-bold text-white">1,400,000 XAF/m</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center justify-between">
+                  <span>
+                    💡{" "}
+                    {isFrench
+                      ? "Chaque bâtiment dispose de son propre registre des locataires et de notifications d'arrivée/départ automatiques."
+                      : "Each building contains its dedicated tenant directory and automated community move-in/move-out alerts."}
+                  </span>
+                  <Link href="/register" className="font-bold underline ml-2 shrink-0">
+                    {isFrench ? "Créer un Immeuble" : "Add Property"}
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: CERTIFIED RECEIPT PREVIEW */}
+            {activePreviewTab === "receipt" && (
+              <div className="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+                {/* Certified Stamp */}
+                <div className="absolute top-6 right-6 border-2 border-emerald-500 text-emerald-400 rounded-xl px-3 py-1 font-mono font-black text-xs uppercase tracking-wider rotate-6 bg-emerald-950/20">
+                  ✓ {isFrench ? "CERTIFIÉ PAYÉ" : "VERIFIED PAID"}
+                </div>
+
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+                    <Receipt className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-base">
+                      {isFrench ? "Quittance Officielle de Loyer" : "Official Rent Receipt"}
+                    </h4>
+                    <p className="text-xs text-slate-400">Réf : #LL-2026-OCT-0941 • LeaseLink Engine</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3 text-xs">
+                  <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isFrench ? "Bailleur :" : "Landlord:"}</span>
+                    <span className="font-semibold text-white">Cabinet Immobilier K. & Associés</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isFrench ? "Locataire :" : "Tenant:"}</span>
+                    <span className="font-semibold text-white">Jean-Pierre Kamga</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isFrench ? "Logement & Immeuble :" : "Unit & Property:"}</span>
+                    <span className="font-semibold text-white">Apt 4B • Résidence La Paix</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-800/60">
+                    <span className="text-slate-400">{isFrench ? "Période réclamée :" : "Rent Period:"}</span>
+                    <span className="font-semibold text-white">01 Octobre 2026 - 31 Octobre 2026</span>
+                  </div>
+                  <div className="flex justify-between py-2 bg-slate-950 px-3 rounded-lg mt-2">
+                    <span className="text-slate-300 font-bold">{isFrench ? "Montant Versé :" : "Amount Paid:"}</span>
+                    <span className="text-emerald-400 font-black text-sm">120,000 XAF</span>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-slate-400">
+                    {isFrench ? "Authentifié par QR Code & Empreinte RLS" : "Authenticated with QR Code & Digital Signature"}
+                  </span>
+                  <div className="flex gap-2">
+                    <span className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold flex items-center gap-1 cursor-pointer">
+                      <Send className="w-3 h-3" />
+                      <span>WhatsApp</span>
+                    </span>
+                    <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-200 font-bold flex items-center gap-1 cursor-pointer">
+                      <Download className="w-3 h-3" />
+                      <span>PDF</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: REPAIRS & MAINTENANCE DESK */}
+            {activePreviewTab === "repairs" && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <Wrench className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold border border-rose-500/20">
+                          {isFrench ? "Urgence Élevée" : "High Urgency"}
+                        </span>
+                        <span className="text-xs text-slate-400">Apt 2B • Résidence La Paix</span>
+                      </div>
+                      <h4 className="font-bold text-white text-sm mt-1">
+                        {isFrench ? "Fuite d'eau sous l'évier de la cuisine" : "Under-sink water leak in kitchen"}
+                      </h4>
+                      <p className="text-slate-400 text-xs mt-0.5">
+                        {isFrench
+                          ? "Photo attachée • Note vocale du locataire (0:45s) • Assigné au Plombier Mbarga"
+                          : "Photo attached • Tenant voice note (0:45s) • Assigned to Plumber Mbarga"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold self-start sm:self-center">
+                    {isFrench ? "En cours de traitement" : "In Progress"}
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20">
+                          {isFrench ? "Électricité" : "Electrical"}
+                        </span>
+                        <span className="text-xs text-slate-400">Studio 08 • Cité Universitaire</span>
+                      </div>
+                      <h4 className="font-bold text-white text-sm mt-1">
+                        {isFrench ? "Disjoncteur différentiel qui saute" : "Circuit breaker trip on heavy load"}
+                      </h4>
+                      <p className="text-slate-400 text-xs mt-0.5">
+                        {isFrench ? "Intervention effectuée • Vérifié par le locataire" : "Technician resolved • Confirmed by tenant"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold self-start sm:self-center">
+                    {isFrench ? "Résolu ✓" : "Resolved ✓"}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {/* Core Feature Pillars */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-            {isFrench
-              ? "Tout ce dont un Bailleur a Besoin dans la Poche"
-              : "Everything a Landlord Needs in One Pocket"}
-          </h2>
-          <p className="mt-2 text-sm text-slate-400">
-            {isFrench
-              ? "Une plateforme unifiée pour remplacer les carnets papier, les reçus perdus et les messages WhatsApp dispersés."
-              : "A cohesive suite to replace paper notebooks, lost receipts, and chaotic text messages."}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg hover:border-slate-700 transition">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-4">
-              <Building2 className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">
-              {isFrench ? "Immeubles & Logements" : "Buildings & Units"}
-            </h3>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
+      <section id="features" className="py-20 border-t border-slate-800 bg-slate-950/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              {isFrench ? "Fonctionnalités Clés" : "Core Capabilities"}
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
               {isFrench
-                ? "Gérez plusieurs immeubles et cités. Paramétrez les logements, les montants des loyers et surveillez l'état d'occupation en temps réel."
-                : "Track multiple buildings across locations. Define individual units, rent rates, and track occupancy status at a glance."}
+                ? "Conçu pour Éliminer Toutes les Frictions Locatives"
+                : "Engineered to Eliminate Landlord Friction"}
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-slate-400">
+              {isFrench
+                ? "De l'attribution des logements jusqu'au recouvrement et l'entretien, gérez tout depuis votre smartphone ou votre ordinateur."
+                : "From unit occupancy to rent ledgers and emergency repair requests, handle your operations effortlessly."}
             </p>
           </div>
 
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg hover:border-slate-700 transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
-              <Receipt className="w-6 h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* 1. Multi-building architecture */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-blue-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-5">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                {isFrench ? "Architecture Multi-Immeubles" : "Multi-Building Hierarchy"}
+              </h3>
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {isFrench
+                  ? "Créez et supervisez vos immeubles, résidences et cités en toute autonomie. Définissez les loyers, chambres, balcons et suivez le taux d'occupation en temps réel."
+                  : "Structure properties across distinct addresses and campuses. Configure individual units, monthly rates, and monitor real-time occupancy rates."}
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white">
-              {isFrench ? "Registre des Encaissements & Quittances" : "Rent Collection Ledger"}
-            </h3>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              {isFrench
-                ? "Enregistrez les paiements en espèces ou Mobile Money. Générez automatiquement des quittances certifiées avec cachet et tampon officiel."
-                : "Log payments in real time. Know who has paid, who is pending, and keep an undeniable digital payment history for tax records."}
-            </p>
-          </div>
 
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg hover:border-slate-700 transition">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
-              <Wrench className="w-6 h-6" />
+            {/* 2. Official stamped receipts */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-emerald-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-5">
+                <Receipt className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                {isFrench ? "Quittances Certifiées avec Cachet" : "Stamped Digital Quittances"}
+              </h3>
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {isFrench
+                  ? "Enregistrez les paiements Mobile Money ou espèces. Générez automatiquement des quittances certifiées avec cachet officiel, QR code et partagez-les en 1 clic sur WhatsApp."
+                  : "Record cash and Mobile Money collections with zero delay. Generate certified receipts with authentic landlord stamps, printable PDFs, and instant WhatsApp dispatch."}
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white">
-              {isFrench ? "Demandes de Réparation & Entretien" : "Maintenance Tickets"}
-            </h3>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              {isFrench
-                ? "Recevez et traitez les réclamations de vos locataires avec photos, vidéos et notes vocales, sans confusion ni appels manqués."
-                : "Receive and resolve repair tickets directly from tenants without messy phone call logs or missed repairs."}
-            </p>
+
+            {/* 3. Community alerts */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-sky-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-5">
+                <BellRing className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                {isFrench ? "Notifications d'Arrivée & Départ" : "Arrival & Departure Alerts"}
+              </h3>
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {isFrench
+                  ? "Notification automatique ciblée : dès qu'un locataire emménage ou quitte un logement, les résidents de son immeuble sont automatiquement informés pour la sécurité de la communauté."
+                  : "Targeted building alerts: automatically inform residents of a specific building when a new neighbor moves in or departs, preserving neighborhood cohesion."}
+              </p>
+            </div>
+
+            {/* 4. Maintenance Desk */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-rose-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-5">
+                <Wrench className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                {isFrench ? "Guichet des Réparations & Travaux" : "Repairs & Maintenance Desk"}
+              </h3>
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {isFrench
+                  ? "Les locataires transmettent leurs tickets avec photos, vidéos et notes vocales. Suivez le statut de l'intervention et transmettez le rapport directement aux techniciens."
+                  : "Tenants report issues with pictures, videos, and voice notes. Track repair progression and dispatch directly to your trusted plumbers and electricians."}
+              </p>
+            </div>
+
+            {/* 5. Credential Vault */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-amber-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-5">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                {isFrench ? "Coffre-fort des Accès Locataires" : "Tenant Credential Vault"}
+              </h3>
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {isFrench
+                  ? "Générez des mots de passe sécurisés et des liens d'accès direct. Transmettez les fiches d'accueil par WhatsApp en un seul clic sans configuration complexe."
+                  : "Generate secure passwords and 1-click login tokens for each tenant. Send personalized access messages directly over WhatsApp with full encryption."}
+              </p>
+            </div>
+
+            {/* 6. PWA Mobile-First */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-7 shadow-xl hover:border-indigo-500/40 hover:-translate-y-1 transition duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-5">
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                {isFrench ? "Application Mobile PWA & Hors-Ligne" : "Offline-First Mobile PWA"}
+              </h3>
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {isFrench
+                  ? "Installez l'application en un tap sur iPhone ou Android. Continuez de consulter vos biens et fiches locataires même en cas de coupure de réseau."
+                  : "Install in one tap on iOS and Android without app store downloads. Cache property records locally to access ledgers even when internet connectivity drops."}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Subscription Plans */}
-      <section className="py-16 bg-slate-900/40 border-t border-slate-800">
+      {/* Interactive Pricing Calculator & Subscription Plans */}
+      <section id="pricing" className="py-20 bg-slate-900/40 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-semibold uppercase tracking-wider text-blue-400">
-              {isFrench ? "Formules d'Abonnement" : "Subscription Tiers"}
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              {isFrench ? "Formules & Tarification" : "Pricing & Plans"}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
-              {isFrench
-                ? "Formules Flexibles 30 Jours selon la Capacité"
-                : "Flexible 30-Day Unit Capacity Plans"}
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
+              {isFrench ? "Tarifs Clairs, sans Frais Cachés" : "Transparent Plans Tailored to Your Units"}
             </h2>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm sm:text-base text-slate-400">
               {isFrench
-                ? "Toutes les formules sont valables 30 jours et renouvelables à tout moment. Commencez gratuitement dès aujourd'hui."
-                : "All plans are active for 30 days and can be renewed before expiration. Start free today."}
+                ? "Toutes nos formules sont valables 30 jours, sans engagement et renouvelables à tout moment."
+                : "All plans run on flexible 30-day billing with zero lock-in. Scale up or down as your portfolio evolves."}
             </p>
+
+            {/* Interactive Capacity Slider */}
+            <div className="mt-8 p-5 bg-slate-900 border border-slate-800 rounded-2xl max-w-xl mx-auto text-left shadow-lg">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-300">
+                  {isFrench ? "Combien de logements gérez-vous ?" : "How many units do you manage?"}
+                </span>
+                <span className="text-blue-400 text-sm font-black">{unitCountSlider} {isFrench ? "Logements" : "Units"}</span>
+              </div>
+
+              <input
+                type="range"
+                min="1"
+                max="100"
+                value={unitCountSlider}
+                onChange={(e) => setUnitCountSlider(Number(e.target.value))}
+                className="w-full mt-3 accent-blue-600 cursor-pointer"
+              />
+
+              <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
+                <span>{isFrench ? "Formule recommandée :" : "Recommended tier:"}</span>
+                <span className="font-bold text-white bg-blue-500/20 text-blue-300 px-2.5 py-0.5 rounded-full border border-blue-500/30">
+                  {isFrench && suggestedPlan.nameFr ? suggestedPlan.nameFr : suggestedPlan.name} ({suggestedPlan.unitRange})
+                </span>
+              </div>
+            </div>
           </div>
 
+          {/* Pricing Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {AVAILABLE_PLANS.map((plan) => (
-              <div
-                key={plan.id}
-                className={`bg-slate-900 border rounded-2xl p-6 flex flex-col justify-between ${
-                  plan.isFreeTrial
-                    ? "border-amber-500/30"
-                    : "border-slate-800 hover:border-blue-500/50"
-                } transition shadow-xl`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-base font-bold text-white">
-                      {isFrench && plan.nameFr ? plan.nameFr : plan.name}
-                    </h3>
-                    {plan.badge && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                        {isFrench && plan.badgeFr ? plan.badgeFr : plan.badge}
+            {AVAILABLE_PLANS.map((plan) => {
+              const isSelected = suggestedPlan.id === plan.id;
+              return (
+                <div
+                  key={plan.id}
+                  className={`bg-slate-900 rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 relative shadow-xl ${
+                    isSelected
+                      ? "border-2 border-blue-500 shadow-blue-500/10 scale-[1.02]"
+                      : plan.isFreeTrial
+                      ? "border border-amber-500/40"
+                      : "border border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-blue-600 text-white font-black text-[10px] uppercase tracking-wider shadow-md">
+                      {isFrench ? "Recommandé" : "Best Fit"}
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-bold text-white">
+                        {isFrench && plan.nameFr ? plan.nameFr : plan.name}
+                      </h3>
+                      {plan.badge && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                          {isFrench && plan.badgeFr ? plan.badgeFr : plan.badge}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="text-2xl sm:text-3xl font-black text-white">
+                        {isFrench
+                          ? plan.unitRange.replace("Up to", "Jusqu'à").replace("units", "logements")
+                          : plan.unitRange}
+                      </div>
+                      <span className="text-xs text-slate-400 mt-1 block">
+                        {isFrench ? "Durée 30 jours renouvelable" : "30-day active validity"}
                       </span>
-                    )}
+                    </div>
+
+                    <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+                      {isFrench && plan.taglineFr ? plan.taglineFr : plan.tagline}
+                    </p>
+
+                    <div className="mt-6 pt-5 border-t border-slate-800/80 space-y-2.5 text-xs text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{isFrench ? "Quittances certifiées illimitées" : "Unlimited digital receipts"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{isFrench ? "Accès locataires WhatsApp" : "WhatsApp tenant logins"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{isFrench ? "Guichet des réclamations" : "Repairs ticketing desk"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{isFrench ? "Notifications d'arrivée" : "Community arrival alerts"}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-extrabold text-white mt-2">
-                    {isFrench
-                      ? plan.unitRange.replace("Up to", "Jusqu'à").replace("units", "logements")
-                      : plan.unitRange}
+
+                  <div className="mt-7 pt-4">
+                    <Link
+                      href="/register"
+                      className={`w-full block text-center py-3 rounded-xl font-bold text-xs transition cursor-pointer ${
+                        isSelected
+                          ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25"
+                          : plan.isFreeTrial
+                          ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                          : "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                      }`}
+                    >
+                      {plan.isFreeTrial
+                        ? isFrench
+                          ? "Activer l'Essai Gratuit"
+                          : "Start Free Trial"
+                        : isFrench
+                        ? "Choisir cette Formule"
+                        : "Select This Plan"}
+                    </Link>
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">
-                    {isFrench && plan.taglineFr ? plan.taglineFr : plan.tagline}
-                  </p>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-                <div className="mt-6 pt-4 border-t border-slate-800/80 space-y-3">
-                  <div className="text-xs text-slate-300 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>{isFrench ? "Durée de 30 jours" : "30-Day duration"}</span>
-                  </div>
-                  <div className="text-xs text-slate-300 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>{isFrench ? "Renouvelable à tout moment" : "Renewable anytime"}</span>
-                  </div>
+      {/* FAQ Accordion Section */}
+      <section id="faq" className="py-20 border-t border-slate-800">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              {isFrench ? "Questions Fréquentes" : "Frequently Asked Questions"}
+            </span>
+            <h2 className="text-3xl font-extrabold text-white mt-1">
+              {isFrench ? "Tout ce que Vous Devez Savoir" : "Everything You Need to Know"}
+            </h2>
+          </div>
 
-                  <Link
-                    href={`/register`}
-                    className="mt-2 w-full block text-center py-2.5 rounded-xl bg-slate-800 hover:bg-blue-600 text-white font-semibold text-xs transition"
+          <div className="space-y-3">
+            {faqs.map((faq, idx) => {
+              const isOpen = openFaqIndex === idx;
+              return (
+                <div
+                  key={idx}
+                  className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                    className="w-full p-5 text-left font-bold text-sm sm:text-base text-white flex items-center justify-between gap-4 cursor-pointer"
                   >
-                    {isFrench ? "Choisir cette Formule" : "Select Plan"}
-                  </Link>
+                    <span>{faq.q}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+                        isOpen ? "rotate-180 text-blue-400" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-5 pb-5 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-850 pt-3">
+                      {faq.a}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action Banner */}
+      <section className="py-16 bg-gradient-to-b from-slate-950 to-blue-950/30 border-t border-slate-800">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+            {isFrench
+              ? "Prêt à Moderniser la Gestion de vos Biens ?"
+              : "Ready to Supercharge Your Rental Operations?"}
+          </h2>
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-400">
+            {isFrench
+              ? "Rejoignez les bailleurs qui ont éliminé les litiges de paiement et les quittances papier."
+              : "Join forward-thinking landlords who have automated rent collection and eliminated paper disputes."}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link
+              href="/register"
+              className="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition hover:scale-[1.02]"
+            >
+              <span>{isFrench ? "Créer un Compte Gratuitement" : "Create Free Account Now"}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/login"
+              className="px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-sm flex items-center justify-center gap-2 transition"
+            >
+              <span>{isFrench ? "Connexion Bailleur" : "Landlord Sign In"}</span>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-8 bg-slate-950 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-blue-500" />
-            <span className="font-semibold text-white">LeaseLink</span>
-            <span>
-              &copy; 2026 {isFrench ? "Gestion Immobilière SaaS." : "Modern Landlord SaaS."}
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="hover:text-white transition">
-              {isFrench ? "Connexion Bailleur" : "Landlord Login"}
-            </Link>
-            <Link href="/register" className="hover:text-white transition">
-              {isFrench ? "Inscrire un Portefeuille" : "Register Portfolio"}
-            </Link>
+      <footer className="border-t border-slate-800/80 py-10 bg-slate-950 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <span className="font-bold text-base text-white tracking-tight">
+                  Lease<span className="text-blue-500">Link</span>
+                </span>
+                <p className="text-[11px] text-slate-400">
+                  &copy; 2026 LeaseLink Inc. {isFrench ? "Tous droits réservés." : "All rights reserved."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
+              <Link href="/tenant/login" className="hover:text-emerald-400 transition font-medium">
+                {isFrench ? "Espace Locataire" : "Tenant Portal"}
+              </Link>
+              <Link href="/login" className="hover:text-white transition font-medium">
+                {isFrench ? "Connexion Bailleur" : "Landlord Login"}
+              </Link>
+              <Link href="/register" className="hover:text-white transition font-medium">
+                {isFrench ? "Créer un Compte" : "Register"}
+              </Link>
+              <a href="#features" className="hover:text-white transition">
+                {isFrench ? "Fonctionnalités" : "Features"}
+              </a>
+              <a href="#pricing" className="hover:text-white transition">
+                {isFrench ? "Tarifs" : "Pricing"}
+              </a>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher variant="pill" />
+              <ThemeSwitcher variant="pill" />
+            </div>
           </div>
         </div>
       </footer>

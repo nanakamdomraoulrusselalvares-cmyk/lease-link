@@ -21,9 +21,7 @@ import {
 } from "@/lib/services/paymentService";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
-import NotificationBell from "@/components/NotificationBell";
+import DashboardNav from "@/components/DashboardNav";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Receipt,
@@ -272,68 +270,15 @@ function PaymentsContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
-      {/* Top Header Navigation */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl hover:bg-slate-800 transition"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{isFrench ? "Retour au Tableau de Bord" : "Back to Dashboard"}</span>
-            </Link>
-          </div>
-
-          <nav className="hidden sm:flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            >
-              {isFrench ? "Tableau de Bord" : "Dashboard"}
-            </Link>
-            <Link
-              href="/dashboard/buildings"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            >
-              {isFrench ? "Immeubles & Logements" : "Buildings & Units"}
-            </Link>
-            <Link
-              href="/dashboard/credentials"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            >
-              {isFrench ? "Accès Locataires" : "Tenant Credentials"}
-            </Link>
-            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/15 text-emerald-400 border border-emerald-500/30">
-              {isFrench ? "Paiements & Registres" : "Rent Payments & Ledgers"}
-            </span>
-            <Link
-              href="/dashboard/maintenance"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            >
-              {isFrench ? "Réparations" : "Repairs"}
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            <LanguageSwitcher variant="pill" />
-            <ThemeSwitcher variant="pill" />
-            <NotificationBell role="landlord" landlordId={user?.id} />
-
-            <button
-              onClick={loadData}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
-              title={isFrench ? "Actualiser les registres" : "Refresh Ledgers"}
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{isFrench ? "Actualiser" : "Sync"}</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Unified SaaS Dashboard Navigation Bar */}
+      <DashboardNav
+        user={user}
+        profile={profile}
+        buildingsCount={buildings.length}
+      />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24 lg:pb-12">
         {/* Title Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

@@ -491,5 +491,27 @@ input[type="number"] {
   appearance: textfield !important;
 }
 
+/* 7. Modern FinTech & PropTech Visual Micro-Interactions */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.03);
+  }
+}
 
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
 
+/* Smooth Interactive Card Hover Transitions */
+.proptech-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.proptech-card:hover {
+  transform: translateY(-2px);
+}

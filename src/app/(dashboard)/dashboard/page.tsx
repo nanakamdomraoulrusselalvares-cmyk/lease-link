@@ -20,9 +20,7 @@ import {
   buildLandlordReplyWhatsAppUrl,
 } from "@/lib/services/maintenanceService";
 import AudioPlayer from "@/components/AudioPlayer";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
-import NotificationBell from "@/components/NotificationBell";
+import DashboardNav from "@/components/DashboardNav";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -245,92 +243,16 @@ export default function LandlordHomePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Navigation Bar */}
-      <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-lg text-white">
-                Lease<span className="text-blue-500">Link</span>
-              </span>
-            </Link>
-
-            <nav className="hidden sm:flex items-center gap-2">
-              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white">
-                {isFrench ? "Tableau de Bord" : "Dashboard"}
-              </span>
-              <Link
-                href="/dashboard/buildings"
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              >
-                {isFrench ? "Immeubles & Logements" : "Buildings & Units"}
-              </Link>
-              <Link
-                href="/dashboard/credentials"
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              >
-                {isFrench ? "Accès Locataires" : "Tenant Credentials"}
-              </Link>
-              <Link
-                href="/dashboard/payments"
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              >
-                {isFrench ? "Loyers & Quittances" : "Payments & Ledgers"}
-              </Link>
-              <Link
-                href="/dashboard/maintenance"
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition inline-flex items-center gap-1.5"
-              >
-                <span>{isFrench ? "Réparations" : "Repairs"}</span>
-                {pendingRequests.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-amber-950 font-black text-[10px] animate-pulse">
-                    {pendingRequests.length}
-                  </span>
-                )}
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitcher variant="pill" />
-            <ThemeSwitcher variant="pill" />
-            <NotificationBell role="landlord" landlordId={user?.id} />
-
-            {/* User Pill */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-slate-300 font-medium truncate max-w-[180px]">
-                {email}
-              </span>
-            </div>
-
-            {/* Logout Button */}
-            <button
-              id="logout-nav-btn"
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
-            >
-              <LogOut className={`w-3.5 h-3.5 ${loggingOut ? "animate-spin" : ""}`} />
-              <span>
-                {loggingOut
-                  ? isFrench
-                    ? "Déconnexion..."
-                    : "Signing Out..."
-                  : isFrench
-                  ? "Déconnexion"
-                  : "Sign Out"}
-              </span>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Unified SaaS Dashboard Navigation Bar (Desktop Tabs + Mobile Bottom Bar) */}
+      <DashboardNav
+        user={user}
+        profile={profile}
+        pendingRepairsCount={pendingRequests.length}
+        buildingsCount={buildings.length}
+      />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
         {!isConfigured && (
           <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-2">
             <div className="flex items-center gap-2 font-bold text-base text-amber-300">

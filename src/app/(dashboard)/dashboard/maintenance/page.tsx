@@ -21,9 +21,7 @@ import {
 } from "@/lib/services/maintenanceService";
 import { formatWhatsAppPhoneNumber } from "@/lib/services/tenantService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
-import NotificationBell from "@/components/NotificationBell";
+import DashboardNav from "@/components/DashboardNav";
 import AudioPlayer from "@/components/AudioPlayer";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -223,75 +221,14 @@ export default function LandlordMaintenancePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-white">
-      {/* Top Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
-              title={isFrench ? "Retour au Tableau de Bord" : "Back to Dashboard"}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-
-            <div className="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center shadow-md shadow-amber-600/20 text-white">
-              <Wrench className="w-5 h-5" />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-white tracking-tight">
-                  {isFrench ? "Réparations & Entretien" : "Repairs & Maintenance"}
-                </span>
-                <span className="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                  {isFrench ? "Gestion Bailleur" : "Landlord Control"}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                {isFrench
-                  ? "Gérer les réclamations des locataires, photos, vidéos et notes vocales"
-                  : "Manage tenant repair requests, photos, videos, and voice recordings"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Header Language & Theme Switchers */}
-            <LanguageSwitcher variant="pill" />
-            <ThemeSwitcher variant="pill" />
-            <NotificationBell role="landlord" landlordId={user?.id} />
-
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-amber-400" : ""}`} />
-              <span className="hidden sm:inline">{isFrench ? "Actualiser" : "Refresh"}</span>
-            </button>
-
-            <Link
-              href="/dashboard/payments"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition"
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              <span>{isFrench ? "Paiements" : "Payments"}</span>
-            </Link>
-
-            <Link
-              href="/dashboard/buildings"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 text-xs font-semibold transition"
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>{isFrench ? "Immeubles & Logements" : "Buildings & Units"}</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Unified SaaS Dashboard Navigation Bar */}
+      <DashboardNav
+        user={user}
+        pendingRepairsCount={stats.pending}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24 lg:pb-12">
         {/* Emergency Alert Banner if any open critical tickets */}
         {stats.emergency > 0 && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between gap-3 text-rose-300 animate-pulse">
