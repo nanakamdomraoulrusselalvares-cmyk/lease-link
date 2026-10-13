@@ -11,6 +11,33 @@
   --border: #334155;
 }
 
+/* Light / Bright Mode Theme Variables & Remapping */
+html.light,
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --muted: #64748b;
+  --border: #e2e8f0;
+
+  /* Remap Slate Palette for Bright Mode */
+  --color-slate-950: #f8fafc;
+  --color-slate-900: #ffffff;
+  --color-slate-800: #f1f5f9;
+  --color-slate-700: #e2e8f0;
+  --color-slate-600: #cbd5e1;
+  --color-slate-500: #64748b;
+  --color-slate-400: #475569;
+  --color-slate-300: #334155;
+  --color-slate-200: #1e293b;
+  --color-slate-100: #0f172a;
+  --color-slate-50: #020617;
+}
+
 /* 1. Prevent Horizontal Page Wobble & Scrollbar Layout Shifts */
 html {
   overflow-x: hidden;
@@ -30,6 +57,363 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Bright Mode Component Enhancements */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #e2e8f0 !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* 1. Base text colors: on light surfaces, generic text-white turns dark */
+html.light .text-white {
+  color: #0f172a;
+}
+
+/* Ensure text-slate-950, text-slate-900, text-black never become light in light mode */
+html.light .text-slate-950,
+html.light .text-slate-900,
+html.light .text-black {
+  color: #0f172a !important;
+}
+
+/* Remap bullet separators, slashes, and muted dividers so they don't invert to white */
+html.light .text-slate-700,
+html.light .text-slate-600,
+html.light [class*="text-slate-700"],
+html.light [class*="text-slate-600"] {
+  color: #64748b !important;
+}
+
+/* Hover text safety in light mode */
+html.light .hover\:text-slate-900:hover,
+html.light .hover\:text-slate-950:hover,
+html.light .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+
+html.light [class*="hover:text-emerald-"]:hover {
+  color: #065f46 !important;
+}
+
+html.light [class*="hover:text-amber-"]:hover {
+  color: #92400e !important;
+}
+
+html.light [class*="hover:text-blue-"]:hover {
+  color: #1e40af !important;
+}
+
+html.light [class*="hover:text-rose-"]:hover {
+  color: #9f1239 !important;
+}
+
+html.light [class*="hover:text-purple-"]:hover {
+  color: #6b21a8 !important;
+}
+
+/* 2. Solid colored action buttons and badges MUST always have crisp white text */
+html.light button[class*="bg-blue-"],
+html.light button[class*="bg-emerald-"],
+html.light button[class*="bg-rose-"],
+html.light button[class*="bg-purple-"],
+html.light button[class*="bg-amber-6"],
+html.light a[class*="bg-blue-"],
+html.light a[class*="bg-emerald-"],
+html.light a[class*="bg-rose-"],
+html.light a[class*="bg-purple-"],
+html.light [class*="bg-blue-600"],
+html.light [class*="bg-blue-500"],
+html.light [class*="bg-blue-700"],
+html.light [class*="bg-emerald-600"],
+html.light [class*="bg-emerald-500"],
+html.light [class*="bg-emerald-700"],
+html.light [class*="bg-rose-600"],
+html.light [class*="bg-rose-500"],
+html.light [class*="bg-amber-600"],
+html.light [class*="bg-purple-600"],
+html.light [class*="bg-purple-500"],
+html.light [class*="bg-indigo-600"] {
+  color: #ffffff !important;
+}
+
+html.light button[class*="bg-blue-"] *,
+html.light button[class*="bg-emerald-"] *,
+html.light button[class*="bg-rose-"] *,
+html.light button[class*="bg-purple-"] *,
+html.light a[class*="bg-blue-"] *,
+html.light a[class*="bg-emerald-"] *,
+html.light a[class*="bg-rose-"] *,
+html.light a[class*="bg-purple-"] *,
+html.light [class*="bg-blue-600"] *,
+html.light [class*="bg-blue-500"] *,
+html.light [class*="bg-blue-700"] *,
+html.light [class*="bg-emerald-600"] *,
+html.light [class*="bg-emerald-500"] *,
+html.light [class*="bg-emerald-700"] *,
+html.light [class*="bg-rose-600"] *,
+html.light [class*="bg-rose-500"] *,
+html.light [class*="bg-amber-600"] *,
+html.light [class*="bg-purple-600"] *,
+html.light [class*="bg-purple-500"] *,
+html.light [class*="bg-indigo-600"] * {
+  color: #ffffff !important;
+}
+
+/* Specific pill counters and badges (like unread notification badge, app logo icon) */
+html.light .bg-rose-500.rounded-full,
+html.light .bg-rose-500.rounded-full * {
+  color: #ffffff !important;
+}
+
+/* Active Bright mode pill button in ThemeSwitcher */
+html.light .bg-amber-400,
+html.light .bg-amber-400 * {
+  color: #451a03 !important;
+}
+
+/* 3. High-contrast remapping for colored text on white surfaces (WCAG AAA compliant) */
+/* Matches base classes AND opacity variants like text-emerald-400/90, text-emerald-400/80 */
+html.light [class*="text-emerald-400"],
+html.light [class*="text-emerald-300"],
+html.light [class*="text-emerald-200"] {
+  color: #047857 !important; /* rich emerald-700 */
+}
+
+html.light [class*="text-amber-400"],
+html.light [class*="text-amber-300"],
+html.light [class*="text-amber-200"] {
+  color: #b45309 !important; /* rich amber-700 */
+}
+
+html.light [class*="text-orange-400"],
+html.light [class*="text-orange-300"],
+html.light [class*="text-orange-200"] {
+  color: #c2410c !important; /* rich orange-700 */
+}
+
+html.light [class*="text-blue-400"],
+html.light [class*="text-blue-300"],
+html.light [class*="text-blue-200"] {
+  color: #1d4ed8 !important; /* rich blue-700 */
+}
+
+html.light [class*="text-rose-400"],
+html.light [class*="text-rose-300"],
+html.light [class*="text-rose-200"] {
+  color: #be123c !important; /* rich rose-700 */
+}
+
+html.light [class*="text-purple-400"],
+html.light [class*="text-purple-300"],
+html.light [class*="text-purple-200"] {
+  color: #7e22ce !important; /* rich purple-700 */
+}
+
+html.light [class*="text-cyan-400"],
+html.light [class*="text-cyan-300"],
+html.light [class*="text-sky-400"],
+html.light [class*="text-sky-300"],
+html.light [class*="text-teal-400"] {
+  color: #0284c7 !important; /* rich sky-700 */
+}
+
+/* Ensure text and icons inside light alert/status boxes are crisp and readable */
+html.light [class*="bg-emerald-500/10"],
+html.light [class*="bg-emerald-500/15"],
+html.light [class*="bg-emerald-500/20"] {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #065f46 !important;
+}
+
+html.light [class*="bg-amber-500/10"],
+html.light [class*="bg-amber-500/15"],
+html.light [class*="bg-amber-500/20"] {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #92400e !important;
+}
+
+html.light [class*="bg-orange-500/10"],
+html.light [class*="bg-orange-500/15"],
+html.light [class*="bg-orange-500/20"] {
+  background-color: #fff7ed !important;
+  border-color: #fed7aa !important;
+  color: #c2410c !important;
+}
+
+html.light [class*="bg-rose-500/10"],
+html.light [class*="bg-rose-500/15"],
+html.light [class*="bg-rose-500/20"] {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #9f1239 !important;
+}
+
+html.light [class*="bg-blue-500/10"],
+html.light [class*="bg-blue-500/15"],
+html.light [class*="bg-blue-500/20"],
+html.light [class*="bg-blue-600/10"] {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+
+html.light [class*="bg-purple-500/10"],
+html.light [class*="bg-purple-500/15"],
+html.light [class*="bg-purple-500/20"] {
+  background-color: #faf5ff !important;
+  border-color: #e9d5ff !important;
+  color: #6b21a8 !important;
+}
+
+/* 4. Surface & Card backgrounds in light mode */
+html.light .bg-slate-900,
+html.light [class*="bg-slate-900/"]:not(.fixed) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-950,
+html.light [class*="bg-slate-950/"]:not(.fixed) {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-800,
+html.light [class*="bg-slate-800/"]:not(.fixed) {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-700,
+html.light [class*="border-slate-800"],
+html.light [class*="border-slate-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .divide-slate-800 > :not(:last-child),
+html.light [class*="divide-slate-800"] > :not(:last-child) {
+  border-color: #e2e8f0 !important;
+}
+
+/* 5. Fix gradient banners and specialty background tints in light mode */
+html.light [class*="from-blue-950"] {
+  background-image: linear-gradient(135deg, #eff6ff 0%, #f8fafc 50%, #ffffff 100%) !important;
+  border-color: #bfdbfe !important;
+}
+
+html.light [class*="from-blue-900"] {
+  background-image: radial-gradient(circle at top, rgba(219, 234, 254, 0.4), #f8fafc, #ffffff) !important;
+}
+
+html.light [class*="from-emerald-950"] {
+  background-image: linear-gradient(135deg, #ecfdf5 0%, #f8fafc 50%, #ffffff 100%) !important;
+  border-color: #a7f3d0 !important;
+}
+
+html.light [class*="from-rose-950"] {
+  background-image: linear-gradient(135deg, #fff1f2 0%, #f8fafc 50%, #ffffff 100%) !important;
+  border-color: #fecdd3 !important;
+}
+
+html.light [class*="from-amber-950"] {
+  background-image: linear-gradient(135deg, #fffbeb 0%, #f8fafc 50%, #ffffff 100%) !important;
+  border-color: #fde68a !important;
+}
+
+html.light [class*="to-rose-950"] {
+  --tw-gradient-to: #fff1f2 !important;
+}
+
+html.light [class*="to-amber-950"] {
+  --tw-gradient-to: #fffbeb !important;
+}
+
+html.light [class*="to-emerald-950"] {
+  --tw-gradient-to: #ecfdf5 !important;
+}
+
+html.light [class*="bg-emerald-950"],
+html.light [class*="bg-emerald-900"] {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #065f46 !important;
+}
+
+html.light [class*="bg-blue-950"] {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+
+html.light [class*="bg-purple-950"] {
+  background-color: #faf5ff !important;
+  border-color: #e9d5ff !important;
+  color: #6b21a8 !important;
+}
+
+html.light [class*="bg-amber-950"] {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #92400e !important;
+}
+
+html.light [class*="bg-rose-950"] {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #9f1239 !important;
+}
+
+/* 6. Modal Backdrops ONLY apply to fixed overlays */
+html.light .fixed.inset-0,
+html.light [class*="fixed"][class*="inset-0"] {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Modal Content Containers inside overlays */
+html.light .fixed.inset-0 .bg-slate-900,
+html.light [class*="fixed"][class*="inset-0"] .bg-slate-900 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* 7. Inputs, textareas, selects, and options in Bright Mode */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light select,
+html.light textarea,
+html.light option {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* 8. Hero Heading Gradient Text in Light Mode */
+html.light .bg-clip-text {
+  background-image: linear-gradient(to right, #1d4ed8, #2563eb, #4338ca) !important;
 }
 
 /* 2. Hardware acceleration for sticky elements to prevent jitter on Windows */
@@ -53,6 +437,17 @@ header {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 2px solid #f8fafc;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* 4. Complete background freeze when any modal is open */

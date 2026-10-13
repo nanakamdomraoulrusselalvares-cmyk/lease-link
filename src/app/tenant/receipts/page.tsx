@@ -19,6 +19,7 @@ import {
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import PayRentModal from "@/components/PayRentModal";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
@@ -180,12 +181,13 @@ function TenantReceiptsContent() {
             <span>{isFrench ? "Retour à l'Espace Locataire" : "Return to Tenant Space"}</span>
           </Link>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="text-xs text-slate-300 font-medium hidden sm:inline">
               {tenantData.tenant_name} • {isFrench ? "Logement" : "Unit"} {tenantData.unit_number}
             </span>
 
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
 
             <NotificationBell
               role="tenant"

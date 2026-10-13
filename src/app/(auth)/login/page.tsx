@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -137,9 +138,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative selection:bg-blue-500 selection:text-white">
-      {/* Top right language switch */}
-      <div className="absolute top-5 right-5 z-20">
+      {/* Top right language & theme switches */}
+      <div className="absolute top-5 right-5 z-20 flex items-center gap-2">
         <LanguageSwitcher variant="pill" />
+        <ThemeSwitcher variant="pill" />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">

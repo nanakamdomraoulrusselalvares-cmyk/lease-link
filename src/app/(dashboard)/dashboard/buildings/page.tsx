@@ -20,6 +20,7 @@ import {
 } from "@/lib/services/buildingService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -552,9 +553,10 @@ export default function BuildingsManagementPage() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Header Language Switcher */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Header Language & Theme Switchers */}
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
             <NotificationBell role="landlord" landlordId={user?.id} />
 
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">

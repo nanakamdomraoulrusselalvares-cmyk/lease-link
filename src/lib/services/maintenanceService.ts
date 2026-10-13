@@ -251,57 +251,44 @@ export async function getMaintenanceRequestsForLandlord(
 
   let remoteData: MaintenanceRequest[] = [];
 
-  if (!isMockConfig) {
+  if (!isMockConfig && landlordId) {
     try {
-      // 1. Fetch all requests visible to user (public read policy allows selecting requests)
+      // Fetch ONLY maintenance requests belonging to this specific landlord
       const { data, error } = await supabase
         .from("maintenance_requests")
         .select("*")
+        .eq("landlord_id", landlordId)
         .order("created_at", { ascending: false });
 
       if (!error && Array.isArray(data)) {
         remoteData = data as MaintenanceRequest[];
-      } else if (landlordId) {
-        // Fallback filter query
-        const { data: filteredData } = await supabase
-          .from("maintenance_requests")
-          .select("*")
-          .eq("landlord_id", landlordId)
-          .order("created_at", { ascending: false });
-
-        if (filteredData) {
-          remoteData = filteredData as MaintenanceRequest[];
-        }
       }
     } catch (err) {
       console.warn("Could not fetch remote landlord maintenance requests:", err);
     }
   }
 
-  // Filter remote items
+  // Filter remote items strictly by landlord ownership
   const matchedRemote = remoteData.filter((r) => {
-    if (!landlordId) return true;
-    if (r.landlord_id === landlordId) return true;
-    if (r.building_id && myBuildingIds.has(r.building_id)) return true;
-    if (r.unit_id && myUnitIds.has(r.unit_id)) return true;
-    if (r.building_name && myBuildingNames.has(r.building_name.trim().toLowerCase())) return true;
-    // Development/demo fallback: if 5 or fewer requests exist in testing environment, show them
-    if (remoteData.length <= 5) return true;
-    return false;
+    if (!landlordId) return false;
+    return (
+      r.landlord_id === landlordId ||
+      (r.building_id && myBuildingIds.has(r.building_id)) ||
+      (r.unit_id && myUnitIds.has(r.unit_id))
+    );
   });
 
   const remoteIds = new Set(matchedRemote.map((r) => r.id));
 
-  // Filter local items
+  // Filter local items strictly by landlord ownership
   const matchedLocal = localList.filter((r) => {
     if (remoteIds.has(r.id)) return false;
-    if (!landlordId) return true;
-    if (r.landlord_id === landlordId) return true;
-    if (r.building_id && myBuildingIds.has(r.building_id)) return true;
-    if (r.unit_id && myUnitIds.has(r.unit_id)) return true;
-    if (r.building_name && myBuildingNames.has(r.building_name.trim().toLowerCase())) return true;
-    if (localList.length <= 5) return true;
-    return false;
+    if (!landlordId) return false;
+    return (
+      r.landlord_id === landlordId ||
+      (r.building_id && myBuildingIds.has(r.building_id)) ||
+      (r.unit_id && myUnitIds.has(r.unit_id))
+    );
   });
 
   const combined = [...matchedRemote, ...matchedLocal];

@@ -21,6 +21,7 @@ import {
 } from "@/lib/services/maintenanceService";
 import AudioPlayer from "@/components/AudioPlayer";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -285,7 +286,7 @@ export default function LandlordHomePage() {
               >
                 <span>{isFrench ? "Réparations" : "Repairs"}</span>
                 {pendingRequests.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px] animate-pulse">
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-amber-950 font-black text-[10px] animate-pulse">
                     {pendingRequests.length}
                   </span>
                 )}
@@ -293,8 +294,9 @@ export default function LandlordHomePage() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
             <NotificationBell role="landlord" landlordId={user?.id} />
 
             {/* User Pill */}

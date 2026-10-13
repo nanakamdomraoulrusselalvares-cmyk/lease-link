@@ -15,6 +15,7 @@ import {
 import { AVAILABLE_PLANS } from "@/types/database";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 export default function HomePage() {
   const { isFrench } = useLanguage();
@@ -33,8 +34,9 @@ export default function HomePage() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
 
             <Link
               href="/tenant/login"

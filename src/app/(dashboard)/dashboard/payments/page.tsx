@@ -22,6 +22,7 @@ import {
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -314,8 +315,9 @@ function PaymentsContent() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
             <NotificationBell role="landlord" landlordId={user?.id} />
 
             <button

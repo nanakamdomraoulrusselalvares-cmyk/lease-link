@@ -128,7 +128,7 @@ export async function getNotificationsForLandlord(
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .or(`landlord_id.eq.${landlordId},recipient_role.eq.landlord,recipient_role.eq.building_community`)
+        .eq("landlord_id", landlordId)
         .order("created_at", { ascending: false });
 
       if (!error && Array.isArray(data)) {
@@ -161,16 +161,12 @@ export async function getNotificationsForLandlord(
     }
   }
 
-  // Merge remote and local lists
+  // Merge remote and local lists strictly for this landlord
   const remoteIds = new Set(remoteList.map((n) => n.id));
   const matchedLocal = localList.filter((n) => {
     if (remoteIds.has(n.id)) return false;
-    if (!landlordId) return true;
-    return (
-      n.landlord_id === landlordId ||
-      n.recipient_role === "landlord" ||
-      n.recipient_role === "building_community"
-    );
+    if (!landlordId) return false;
+    return n.landlord_id === landlordId;
   });
 
   return [...remoteList, ...matchedLocal].sort(

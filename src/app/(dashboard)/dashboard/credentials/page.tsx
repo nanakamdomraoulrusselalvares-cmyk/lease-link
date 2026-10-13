@@ -13,6 +13,7 @@ import {
 import { getBuildingsWithUnits } from "@/lib/services/buildingService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -299,8 +300,9 @@ function CredentialsContent() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
             <NotificationBell role="landlord" landlordId={user?.id} />
 
             <Link

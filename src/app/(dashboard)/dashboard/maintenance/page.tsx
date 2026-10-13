@@ -22,6 +22,7 @@ import {
 import { formatWhatsAppPhoneNumber } from "@/lib/services/tenantService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import AudioPlayer from "@/components/AudioPlayer";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -255,9 +256,10 @@ export default function LandlordMaintenancePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Header Language Pill */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Header Language & Theme Switchers */}
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
             <NotificationBell role="landlord" landlordId={user?.id} />
 
             <button

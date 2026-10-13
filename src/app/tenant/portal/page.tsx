@@ -36,6 +36,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import PayRentModal from "@/components/PayRentModal";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
@@ -374,6 +375,7 @@ function TenantPortalContent() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher variant="pill" />
+            <ThemeSwitcher variant="pill" />
             <NotificationBell
               role="tenant"
               buildingId={data.building_id}
