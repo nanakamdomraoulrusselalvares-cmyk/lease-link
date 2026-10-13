@@ -1346,12 +1346,12 @@ export default function BuildingsManagementPage() {
                                         {unit.unit_number}
                                       </span>
                                       {isOccupied ? (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-100/80 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-300/80 dark:border-blue-500/30">
                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 animate-pulse" />
                                           {isFrench ? "Occupé" : "Occupied"}
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100/80 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-500/30">
                                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                                           {isFrench ? "Vacant" : "Vacant"}
                                         </span>
@@ -1370,7 +1370,7 @@ export default function BuildingsManagementPage() {
                                           </div>
                                           <Link
                                             href={`/dashboard/credentials?unitId=${unit.id}`}
-                                            className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/30 transition shrink-0"
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-200 bg-emerald-100/90 hover:bg-emerald-200/90 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/40 transition shrink-0 shadow-2xs"
                                             title={isFrench ? "Voir les identifiants & partager sur WhatsApp" : "View credentials & WhatsApp share"}
                                           >
                                             <KeyRound className="w-3 h-3" />
@@ -1394,7 +1394,7 @@ export default function BuildingsManagementPage() {
                                         </div>
                                         <button
                                           onClick={() => handleOpenEditUnit(unit, building.name)}
-                                          className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 bg-white dark:bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/30 transition shrink-0 cursor-pointer"
+                                          className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-200 bg-emerald-100/90 hover:bg-emerald-200/90 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 px-2.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/40 transition shrink-0 cursor-pointer shadow-2xs"
                                           title={isFrench ? "Assigner un locataire à ce logement" : "Assign a tenant to this unit"}
                                         >
                                           <UserPlus className="w-3 h-3" />
@@ -1466,16 +1466,16 @@ export default function BuildingsManagementPage() {
                                   </div>
 
                                   {/* Actions: Modify Unit & Credentials Buttons */}
-                                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center gap-2">
+                                  <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex items-center gap-2">
                                     <button
                                       onClick={() => handleOpenEditUnit(unit, building.name)}
-                                      className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                                      className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer active:scale-[0.98] ${
                                         isOccupied
-                                          ? "bg-blue-50 hover:bg-blue-600 dark:bg-blue-600/10 dark:hover:bg-blue-600 text-blue-700 hover:text-white dark:text-blue-400 dark:hover:text-white border border-blue-200 dark:border-blue-500/20"
-                                          : "bg-emerald-50 hover:bg-emerald-600 dark:bg-emerald-600/10 dark:hover:bg-emerald-600 text-emerald-700 hover:text-white dark:text-emerald-400 dark:hover:text-white border border-emerald-200 dark:border-emerald-500/20"
+                                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
+                                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
                                       }`}
                                     >
-                                      <Edit3 className="w-3.5 h-3.5" />
+                                      <Edit3 className="w-3.5 h-3.5 text-white" />
                                       <span>
                                         {isOccupied ? (isFrench ? "Modifier Pièces & Locataire" : "Modify Specs & Tenant") : hasConfiguredSpecs ? (isFrench ? "Modifier Pièces / Assigner" : "Modify Specs / Assign Tenant") : (isFrench ? "Configurer & Assigner Locataire" : "Configure & Assign Tenant")}
                                       </span>
@@ -1484,10 +1484,10 @@ export default function BuildingsManagementPage() {
                                     {isOccupied && unit.tenant_name && (
                                       <Link
                                         href={`/dashboard/credentials?unitId=${unit.id}`}
-                                        className="inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 dark:bg-emerald-600/10 dark:hover:bg-emerald-600 text-emerald-700 hover:text-white dark:text-emerald-400 dark:hover:text-white border border-emerald-200 dark:border-emerald-500/20 text-xs font-semibold transition shrink-0"
+                                        className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 active:scale-[0.98] transition shrink-0"
                                         title={isFrench ? "Partager sur WhatsApp" : "Share on WhatsApp"}
                                       >
-                                        <MessageCircle className="w-3.5 h-3.5" />
+                                        <MessageCircle className="w-3.5 h-3.5 text-white" />
                                         <span>WhatsApp</span>
                                       </Link>
                                     )}
