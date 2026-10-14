@@ -42,11 +42,56 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isEmailDuplicate, setIsEmailDuplicate] = useState(false);
+  const [emailWarning, setEmailWarning] = useState<string | null>(null);
+
+  // Real-time check on blur to inform user immediately
+  const handleEmailBlur = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) return;
+
+    try {
+      const supabase = createClient();
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("email", cleanEmail)
+        .maybeSingle();
+
+      if (existing) {
+        setEmailWarning(
+          isFrench
+            ? "Cette adresse e-mail est déjà associée à un compte LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail."
+            : "An account with this email address already exists. A person can only register once with an email."
+        );
+      } else {
+        // Also check local mock store if offline
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem("leaselink_mock_profiles");
+            if (raw) {
+              const list = JSON.parse(raw);
+              if (list.some((p: any) => p.email?.toLowerCase() === cleanEmail)) {
+                setEmailWarning(
+                  isFrench
+                    ? "Cette adresse e-mail est déjà associée à un compte LeaseLink."
+                    : "An account with this email address already exists."
+                );
+                return;
+              }
+            }
+          } catch (_) {}
+        }
+        setEmailWarning(null);
+      }
+    } catch (_) {}
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+    setIsEmailDuplicate(false);
 
     // Strict validation
     if (!fullName.trim() || !email.trim() || !phone.trim() || !password) {
@@ -91,10 +136,49 @@ export default function RegisterPage() {
 
     try {
       const supabase = createClient();
+      const cleanEmail = email.trim().toLowerCase();
 
-      // Sign up with Supabase Auth including metadata for the landlord profile trigger
+      // 1. Strict pre-check in profiles table to guarantee an email is used only once
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .ilike("email", cleanEmail)
+        .maybeSingle();
+
+      if (existingProfile) {
+        setErrorMsg(
+          isFrench
+            ? "Cette adresse e-mail est déjà associée à un compte LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail. Veuillez vous connecter."
+            : "An account with this email address already exists on LeaseLink. A person can only register once with an email. Please sign in instead."
+        );
+        setIsEmailDuplicate(true);
+        setLoading(false);
+        return;
+      }
+
+      // Check local mock store if offline
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("leaselink_mock_profiles");
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (list.some((p: any) => p.email?.toLowerCase() === cleanEmail)) {
+              setErrorMsg(
+                isFrench
+                  ? "Cette adresse e-mail est déjà associée à un compte LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail. Veuillez vous connecter."
+                  : "An account with this email address already exists on LeaseLink. A person can only register once with an email. Please sign in instead."
+              );
+              setIsEmailDuplicate(true);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 2. Sign up with Supabase Auth including metadata for the landlord profile trigger
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: cleanEmail,
         password,
         options: {
           data: {
@@ -106,7 +190,35 @@ export default function RegisterPage() {
       });
 
       if (error) {
-        setErrorMsg(error.message);
+        const msg = error.message.toLowerCase();
+        if (
+          msg.includes("already registered") ||
+          msg.includes("already in use") ||
+          msg.includes("user already") ||
+          msg.includes("duplicate key") ||
+          (error as any).code === "user_already_exists"
+        ) {
+          setErrorMsg(
+            isFrench
+              ? "Cette adresse e-mail est déjà associée à un compte LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail. Veuillez vous connecter."
+              : "An account with this email address already exists. A person can only register once with an email. Please sign in instead."
+          );
+          setIsEmailDuplicate(true);
+        } else {
+          setErrorMsg(error.message);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Supabase email obfuscation check: if identities is empty array, email is already registered
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setErrorMsg(
+          isFrench
+            ? "Cette adresse e-mail est déjà associée à un compte LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail. Veuillez vous connecter."
+            : "An account with this email address already exists. A person can only register once with an email. Please sign in instead."
+        );
+        setIsEmailDuplicate(true);
         setLoading(false);
         return;
       }
@@ -119,8 +231,8 @@ export default function RegisterPage() {
         // Email confirmation is required
         setSuccessMsg(
           isFrench
-            ? `Inscription réussie ! Un e-mail de confirmation a été envoyé à ${email.trim()}. Veuillez valider votre e-mail avant de vous connecter.`
-            : `Registration successful! Supabase sent a verification email to ${email.trim()}. Please verify your email before logging in. (Tip: You can disable 'Confirm email' in Supabase Dashboard -> Auth -> Providers -> Email for instant testing without email links).`
+            ? `Inscription réussie ! Un e-mail de confirmation a été envoyé à ${cleanEmail}. Veuillez valider votre e-mail avant de vous connecter.`
+            : `Registration successful! Supabase sent a verification email to ${cleanEmail}. Please verify your email before logging in. (Tip: You can disable 'Confirm email' in Supabase Dashboard -> Auth -> Providers -> Email for instant testing without email links).`
         );
         setLoading(false);
       }
@@ -166,7 +278,20 @@ export default function RegisterPage() {
           {errorMsg && (
             <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-rose-800 dark:text-rose-300">{errorMsg}</p>
+              <div className="flex-1 space-y-2">
+                <p className="text-sm text-rose-800 dark:text-rose-300 font-medium">{errorMsg}</p>
+                {isEmailDuplicate && (
+                  <div>
+                    <Link
+                      href="/login"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm"
+                    >
+                      <span>{isFrench ? "Se connecter à mon compte" : "Log in to my account"}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -221,9 +346,14 @@ export default function RegisterPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Email */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {isFrench ? "Adresse E-mail" : "Email Address"} <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                        {isFrench ? "Adresse E-mail" : "Email Address"} <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-normal">
+                        {isFrench ? "1 compte par e-mail" : "1 account per email"}
+                      </span>
+                    </div>
                     <div className="mt-1 relative rounded-lg">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                         <Mail className="h-4 w-4 text-slate-400" />
@@ -232,11 +362,30 @@ export default function RegisterPage() {
                         type="email"
                         required
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (emailWarning) setEmailWarning(null);
+                        }}
+                        onBlur={handleEmailBlur}
                         placeholder="john@example.com"
-                        className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition"
+                        className={`block w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition ${
+                          emailWarning
+                            ? "border-amber-400 dark:border-amber-500/50"
+                            : "border-slate-300 dark:border-slate-700"
+                        }`}
                       />
                     </div>
+                    {emailWarning && (
+                      <div className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                        <span>
+                          {emailWarning}{" "}
+                          <Link href="/login" className="underline font-bold text-blue-600 dark:text-blue-400">
+                            {isFrench ? "Se connecter →" : "Sign in →"}
+                          </Link>
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Telephone */}

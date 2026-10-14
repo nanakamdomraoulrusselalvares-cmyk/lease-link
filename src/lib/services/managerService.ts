@@ -111,6 +111,15 @@ export async function createManager(
     updated_at: now,
   };
 
+  // Check local manager store for duplicate email
+  const existingLocal = getLocalManagers();
+  if (existingLocal.some((m) => m.email.toLowerCase() === cleanEmail)) {
+    return {
+      success: false,
+      error: "Cette adresse e-mail est déjà associée à un compte sur la plateforme.",
+    };
+  }
+
   // 1. Try backend API creation route first
   try {
     const apiRes = await fetch("/api/managers", {
@@ -126,14 +135,14 @@ export async function createManager(
       }),
     });
 
-    if (apiRes.ok) {
-      const json = await apiRes.json();
-      if (json.success && json.manager) {
-        createdProfile = json.manager;
-        const local = getLocalManagers();
-        setLocalManagers([createdProfile, ...local]);
-        return { success: true, manager: createdProfile, initialPassword: password };
-      }
+    const json = await apiRes.json();
+    if (json.success && json.manager) {
+      createdProfile = json.manager;
+      const local = getLocalManagers();
+      setLocalManagers([createdProfile, ...local]);
+      return { success: true, manager: createdProfile, initialPassword: password };
+    } else if (json.error) {
+      return { success: false, error: json.error };
     }
   } catch {
     // API route not available or errored, continue to client fallback

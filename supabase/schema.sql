@@ -25,7 +25,7 @@ create table if not exists public.profiles (
     id uuid primary key references auth.users(id) on delete cascade,
     full_name text not null,
     phone text not null,
-    email text not null,
+    email text not null unique,
     role text not null default 'landlord' check (role in ('landlord', 'manager', 'admin')),
     landlord_id uuid references public.profiles(id) on delete cascade,
     assigned_building_ids uuid[] default null,
@@ -165,6 +165,10 @@ create table if not exists public.notifications (
 -- Profiles table columns & admin/manager role migration
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin'));
+-- Strict Single-Use Email Enforcement (A person can only register once with an email)
+create unique index if not exists profiles_email_lower_idx on public.profiles (lower(trim(email)));
+alter table public.profiles drop constraint if exists profiles_email_key;
+alter table public.profiles add constraint profiles_email_key unique using index profiles_email_lower_idx;
 -- Tip: To grant super-admin privileges to an existing account, run:
 -- UPDATE public.profiles SET role = 'admin' WHERE email = 'your-email@example.com';
 alter table public.profiles add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;

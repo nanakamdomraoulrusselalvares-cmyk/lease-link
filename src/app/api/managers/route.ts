@@ -40,12 +40,32 @@ export async function POST(req: Request) {
       },
     });
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Enforce strict email uniqueness across the entire platform
+    const { data: existingProfile } = await adminClient
+      .from("profiles")
+      .select("id, email, role")
+      .ilike("email", cleanEmail)
+      .maybeSingle();
+
+    if (existingProfile) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Cette adresse e-mail est déjà utilisée par un autre compte sur LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail.",
+        },
+        { status: 400 }
+      );
+    }
+
     let effectiveUserId: string = "";
 
     // If service role is available, use auth.admin.createUser
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const { data: userData, error: createError } = await adminClient.auth.admin.createUser({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password: password || "Mng#12345",
         email_confirm: true,
         user_metadata: {
@@ -57,13 +77,18 @@ export async function POST(req: Request) {
       });
 
       if (createError) {
-        return NextResponse.json({ success: false, error: createError.message }, { status: 400 });
+        const msg = createError.message.toLowerCase();
+        const userMsg =
+          msg.includes("already registered") || msg.includes("already in use") || msg.includes("user already")
+            ? "Cette adresse e-mail est déjà enregistrée sur la plateforme."
+            : createError.message;
+        return NextResponse.json({ success: false, error: userMsg }, { status: 400 });
       }
       effectiveUserId = userData.user.id;
     } else {
       // Fallback with isolated anon signup
       const { data: signUpData, error: signError } = await adminClient.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password: password || "Mng#12345",
         options: {
           data: {
@@ -75,9 +100,25 @@ export async function POST(req: Request) {
         },
       });
 
-      if (signError && !signError.message.includes("already registered")) {
-        return NextResponse.json({ success: false, error: signError.message }, { status: 400 });
+      if (signError) {
+        const msg = signError.message.toLowerCase();
+        const userMsg =
+          msg.includes("already registered") || msg.includes("already in use") || msg.includes("user already")
+            ? "Cette adresse e-mail est déjà enregistrée sur la plateforme."
+            : signError.message;
+        return NextResponse.json({ success: false, error: userMsg }, { status: 400 });
       }
+
+      if (signUpData?.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Cette adresse e-mail est déjà enregistrée sur la plateforme.",
+          },
+          { status: 400 }
+        );
+      }
+
       effectiveUserId = signUpData?.user?.id || ("mng_" + Math.random().toString(36).substring(2, 11));
     }
 
