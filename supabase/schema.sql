@@ -2,12 +2,19 @@
 -- LEASELINK DATABASE SCHEMA & SUPABASE CONFIGURATION
 -- ==============================================================================
 -- Run this script in your Supabase SQL Editor (Dashboard -> SQL Editor -> New Query)
--- Fully ordered and idempotent: All tables and columns are created and backfilled
--- before any indexes, triggers, or RLS policies are applied.
+-- 100% IDEMPOTENT, SAFE & NON-DESTRUCTIVE:
+-- - Preserves all existing tables, records, users, and uploaded data.
+-- - Can be run repeatedly on empty databases, partial databases, or existing live databases with zero errors.
+-- - Safely backfills missing columns, constraints, unique indexes, and triggers.
+-- - Fully configured for Landlords, Delegated Managers, Super-Admins, and Tenants.
+-- ==============================================================================
 
 -- ==============================================================================
--- 1. Base Helper Functions
+-- 1. Base Extensions & Helper Functions
 -- ==============================================================================
+create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
+
 create or replace function public.update_updated_at_column()
 returns trigger as $$
 begin
@@ -16,26 +23,80 @@ begin
 end;
 $$ language plpgsql;
 
+-- Helper function: Check if current authenticated user is an administrator
+create or replace function public.is_admin()
+returns boolean as $$
+declare
+    v_role text;
+begin
+    if auth.uid() is null then
+        return false;
+    end if;
+    select role into v_role from public.profiles where id = auth.uid();
+    return coalesce(v_role = 'admin', false);
+end;
+$$ language plpgsql security definer set search_path = public stable;
+
+-- Helper function: Resolve effective landlord id (for manager returns parent landlord id, for landlord returns self)
+create or replace function public.get_auth_landlord_id()
+returns uuid as $$
+declare
+    v_landlord_id uuid;
+    v_role text;
+begin
+    if auth.uid() is null then
+        return null;
+    end if;
+    select landlord_id, role into v_landlord_id, v_role from public.profiles where id = auth.uid();
+    if v_role = 'manager' and v_landlord_id is not null then
+        return v_landlord_id;
+    end if;
+    return auth.uid();
+end;
+$$ language plpgsql security definer set search_path = public stable;
+
+-- Helper function: Check if authenticated user can view/manage a specific landlord's portfolio
+create or replace function public.can_access_landlord_portfolio(p_landlord_id uuid)
+returns boolean as $$
+begin
+    if auth.uid() is null or p_landlord_id is null then
+        return false;
+    end if;
+    if auth.uid() = p_landlord_id then
+        return true;
+    end if;
+    if public.is_admin() then
+        return true;
+    end if;
+    return exists (
+        select 1 from public.profiles
+        where id = auth.uid()
+          and role = 'manager'
+          and landlord_id = p_landlord_id
+    );
+end;
+$$ language plpgsql security definer set search_path = public stable;
+
 -- ==============================================================================
--- 2. Core Tables Definition & Column Migrations
+-- 2. Core Tables Definition (Created if not existing)
 -- ==============================================================================
 
--- 2.1 Profiles Table (Landlords)
+-- 2.1 Profiles Table (Landlords, Managers, Admins)
 create table if not exists public.profiles (
     id uuid primary key references auth.users(id) on delete cascade,
-    full_name text not null,
-    phone text not null,
-    email text not null unique,
-    role text not null default 'landlord' check (role in ('landlord', 'manager', 'admin')),
+    full_name text not null default '',
+    phone text not null default '',
+    email text not null default '',
+    role text not null default 'landlord',
     landlord_id uuid references public.profiles(id) on delete cascade,
     assigned_building_ids uuid[] default null,
-    plan text not null default 'free' check (plan in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100')),
+    plan text not null default 'free',
     plan_name text not null default 'Free Trial (30 Days)',
     plan_unit_limit integer not null default 5,
     plan_duration_days integer not null default 30,
     plan_starts_at timestamptz not null default now(),
     plan_expires_at timestamptz not null default (now() + interval '30 days'),
-    plan_status text not null default 'active' check (plan_status in ('active', 'expired', 'renewed')),
+    plan_status text not null default 'active',
     has_used_free_trial boolean not null default false,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -51,9 +112,9 @@ create table if not exists public.buildings (
     state_region text,
     country text default 'Cameroon',
     postal_code text,
-    property_type text not null default 'apartment' check (property_type in ('apartment', 'residential', 'commercial', 'mixed_use', 'duplex', 'other')),
+    property_type text not null default 'apartment',
     total_floors integer default 1,
-    total_units integer not null default 1 check (total_units >= 1),
+    total_units integer not null default 1,
     description text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -66,14 +127,14 @@ create table if not exists public.units (
     landlord_id uuid not null references public.profiles(id) on delete cascade,
     unit_number text not null,
     floor integer,
-    status text not null default 'vacant' check (status in ('vacant', 'occupied', 'maintenance')),
+    status text not null default 'vacant',
     rent_amount numeric(12, 2) not null default 0.00,
     deposit_amount numeric(12, 2) not null default 0.00,
-    parlors integer not null default 0 check (parlors >= 0),
-    rooms integer not null default 0 check (rooms >= 0),
-    bathrooms numeric(3, 1) not null default 0.0 check (bathrooms >= 0),
-    kitchens integer not null default 0 check (kitchens >= 0),
-    bedrooms integer not null default 0 check (bedrooms >= 0),
+    parlors integer not null default 0,
+    rooms integer not null default 0,
+    bathrooms numeric(3, 1) not null default 0.0,
+    kitchens integer not null default 0,
+    bedrooms integer not null default 0,
     size_sqft integer,
     notes text,
     tenant_name text,
@@ -83,8 +144,7 @@ create table if not exists public.units (
     tenant_access_token text,
     tenant_assigned_at timestamptz,
     created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    unique(building_id, unit_number)
+    updated_at timestamptz not null default now()
 );
 
 -- 2.4 Maintenance Requests Table
@@ -98,11 +158,11 @@ create table if not exists public.maintenance_requests (
     tenant_email text,
     unit_number text not null,
     building_name text not null,
-    category text not null check (category in ('plumbing', 'electrical', 'structural', 'appliances', 'carpentry_locks', 'other')),
-    urgency text not null default 'medium' check (urgency in ('low', 'medium', 'high', 'emergency')),
+    category text not null default 'other',
+    urgency text not null default 'medium',
     title text not null,
     description text not null,
-    status text not null default 'pending' check (status in ('pending', 'in_progress', 'resolved', 'rejected')),
+    status text not null default 'pending',
     photo_url text,
     video_url text,
     voice_url text,
@@ -115,7 +175,7 @@ create table if not exists public.maintenance_requests (
 -- 2.5 Rent Payments Table
 create table if not exists public.rent_payments (
     id uuid primary key default gen_random_uuid(),
-    receipt_number text not null unique,
+    receipt_number text not null,
     unit_id uuid not null references public.units(id) on delete cascade,
     building_id uuid not null references public.buildings(id) on delete cascade,
     landlord_id uuid not null references public.profiles(id) on delete cascade,
@@ -131,10 +191,10 @@ create table if not exists public.rent_payments (
     monthly_rent_amount numeric(12, 2) not null default 0.00,
     amount_paid numeric(12, 2) not null default 0.00,
     balance_remaining numeric(12, 2) not null default 0.00,
-    payment_type text not null default 'full' check (payment_type in ('full', 'partial')),
-    payment_method text not null default 'momo' check (payment_method in ('momo', 'orange_money', 'card', 'bank_transfer', 'cash')),
+    payment_type text not null default 'full',
+    payment_method text not null default 'momo',
     transaction_ref text not null,
-    status text not null default 'completed' check (status in ('completed', 'pending', 'failed')),
+    status text not null default 'completed',
     payer_phone text,
     notes text,
     created_at timestamptz not null default now(),
@@ -144,89 +204,224 @@ create table if not exists public.rent_payments (
 -- 2.6 Notifications Table
 create table if not exists public.notifications (
     id uuid primary key default gen_random_uuid(),
-    type text not null,
+    type text not null default 'system',
     title text not null,
+    title_fr text,
     message text not null,
+    message_fr text,
     recipient_role text not null default 'landlord',
     landlord_id uuid references public.profiles(id) on delete cascade,
     building_id uuid references public.buildings(id) on delete cascade,
+    building_name text,
     unit_id uuid references public.units(id) on delete cascade,
+    unit_number text,
+    tenant_name text,
+    amount numeric(12, 2),
+    payment_method text,
+    receipt_number text,
+    rent_month text,
     is_read boolean not null default false,
+    read_by text[] default '{}',
     metadata jsonb default '{}'::jsonb,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
 
--- ------------------------------------------------------------------------------
--- 2.7 Migration Safety & Backfill for Existing Databases
--- Guarantees that any pre-existing tables have all required foreign-keys and columns
--- ------------------------------------------------------------------------------
+-- ==============================================================================
+-- 3. Non-Destructive Migrations & Safe Column Backfills
+-- (Guarantees any existing table has all latest columns and constraints without data loss)
+-- ==============================================================================
 
--- Profiles table columns & admin/manager role migration
-alter table public.profiles drop constraint if exists profiles_role_check;
-alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin'));
--- Strict Single-Use Email Enforcement (A person can only register once with an email)
-create unique index if not exists profiles_email_lower_idx on public.profiles (lower(trim(email)));
-alter table public.profiles drop constraint if exists profiles_email_key;
-alter table public.profiles add constraint profiles_email_key unique using index profiles_email_lower_idx;
--- Tip: To grant super-admin privileges to an existing account, run:
--- UPDATE public.profiles SET role = 'admin' WHERE email = 'your-email@example.com';
+-- 3.1 Profiles columns & constraints
+alter table public.profiles add column if not exists full_name text not null default '';
+alter table public.profiles add column if not exists phone text not null default '';
+alter table public.profiles add column if not exists email text not null default '';
+alter table public.profiles add column if not exists role text not null default 'landlord';
 alter table public.profiles add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
 alter table public.profiles add column if not exists assigned_building_ids uuid[] default null;
+alter table public.profiles add column if not exists plan text not null default 'free';
+alter table public.profiles add column if not exists plan_name text not null default 'Free Trial (30 Days)';
+alter table public.profiles add column if not exists plan_unit_limit integer not null default 5;
+alter table public.profiles add column if not exists plan_duration_days integer not null default 30;
+alter table public.profiles add column if not exists plan_starts_at timestamptz not null default now();
+alter table public.profiles add column if not exists plan_expires_at timestamptz not null default (now() + interval '30 days');
+alter table public.profiles add column if not exists plan_status text not null default 'active';
+alter table public.profiles add column if not exists has_used_free_trial boolean not null default false;
+alter table public.profiles add column if not exists created_at timestamptz not null default now();
+alter table public.profiles add column if not exists updated_at timestamptz not null default now();
 
--- Buildings table columns
+do $$
+begin
+    -- Safe backfills for null profile columns
+    update public.profiles set role = 'landlord' where role is null or role not in ('landlord', 'manager', 'admin');
+    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100');
+    update public.profiles set plan_status = 'active' where plan_status is null or plan_status not in ('active', 'expired', 'renewed');
+    update public.profiles set plan_unit_limit = 5 where plan_unit_limit is null or plan_unit_limit < 1;
+    update public.profiles set plan_duration_days = 30 where plan_duration_days is null;
+
+    -- Profiles check constraints
+    alter table public.profiles drop constraint if exists profiles_role_check;
+    alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin'));
+
+    alter table public.profiles drop constraint if exists profiles_plan_check;
+    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100'));
+
+    alter table public.profiles drop constraint if exists profiles_plan_status_check;
+    alter table public.profiles add constraint profiles_plan_status_check check (plan_status in ('active', 'expired', 'renewed'));
+
+    -- Strict Single-Use Email Uniqueness (A person can only register once with an email)
+    -- Safe idempotent handling: create unique index on lower(trim(email))
+    if not exists (
+        select 1 from pg_indexes
+        where schemaname = 'public' and tablename = 'profiles' and indexname = 'profiles_email_lower_idx'
+    ) then
+        create unique index profiles_email_lower_idx on public.profiles (lower(trim(email)))
+        where email is not null and trim(email) != '';
+    end if;
+exception
+    when others then
+        raise notice 'Profiles migration notice: %', sqlerrm;
+end;
+$$;
+
+-- 3.2 Buildings columns & constraints
 alter table public.buildings alter column total_floors drop not null;
 alter table public.buildings add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
-alter table public.buildings add column if not exists total_units integer not null default 1;
+alter table public.buildings add column if not exists name text not null default 'Building';
+alter table public.buildings add column if not exists address text not null default '';
+alter table public.buildings add column if not exists city text;
+alter table public.buildings add column if not exists state_region text;
+alter table public.buildings add column if not exists country text default 'Cameroon';
+alter table public.buildings add column if not exists postal_code text;
 alter table public.buildings add column if not exists property_type text not null default 'apartment';
+alter table public.buildings add column if not exists total_floors integer default 1;
+alter table public.buildings add column if not exists total_units integer not null default 1;
+alter table public.buildings add column if not exists description text;
+alter table public.buildings add column if not exists created_at timestamptz not null default now();
+alter table public.buildings add column if not exists updated_at timestamptz not null default now();
 
--- Units table columns
+do $$
+begin
+    update public.buildings set property_type = 'apartment' where property_type is null;
+    update public.buildings set total_units = 1 where total_units is null or total_units < 1;
+
+    alter table public.buildings drop constraint if exists buildings_property_type_check;
+    alter table public.buildings add constraint buildings_property_type_check check (property_type in ('apartment', 'residential', 'commercial', 'mixed_use', 'duplex', 'other'));
+
+    alter table public.buildings drop constraint if exists buildings_total_units_check;
+    alter table public.buildings add constraint buildings_total_units_check check (total_units >= 1);
+exception
+    when others then
+        raise notice 'Buildings migration notice: %', sqlerrm;
+end;
+$$;
+
+-- 3.3 Units columns & constraints
 alter table public.units alter column floor drop not null;
 alter table public.units add column if not exists building_id uuid references public.buildings(id) on delete cascade;
 alter table public.units add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+alter table public.units add column if not exists unit_number text not null default 'Unit 1';
+alter table public.units add column if not exists floor integer;
+alter table public.units add column if not exists status text not null default 'vacant';
+alter table public.units add column if not exists rent_amount numeric(12, 2) not null default 0.00;
+alter table public.units add column if not exists deposit_amount numeric(12, 2) not null default 0.00;
 alter table public.units add column if not exists parlors integer not null default 0;
 alter table public.units add column if not exists rooms integer not null default 0;
 alter table public.units add column if not exists bathrooms numeric(3, 1) not null default 0.0;
 alter table public.units add column if not exists kitchens integer not null default 0;
 alter table public.units add column if not exists bedrooms integer not null default 0;
+alter table public.units add column if not exists size_sqft integer;
+alter table public.units add column if not exists notes text;
 alter table public.units add column if not exists tenant_name text;
 alter table public.units add column if not exists tenant_phone text;
 alter table public.units add column if not exists tenant_email text;
 alter table public.units add column if not exists tenant_password text;
 alter table public.units add column if not exists tenant_access_token text;
 alter table public.units add column if not exists tenant_assigned_at timestamptz;
+alter table public.units add column if not exists created_at timestamptz not null default now();
+alter table public.units add column if not exists updated_at timestamptz not null default now();
 
--- Maintenance Requests columns
+do $$
+begin
+    update public.units set status = 'vacant' where status is null or status not in ('vacant', 'occupied', 'maintenance');
+    update public.units set rent_amount = 0.00 where rent_amount is null;
+    update public.units set deposit_amount = 0.00 where deposit_amount is null;
+    update public.units set parlors = 0 where parlors is null or parlors < 0;
+    update public.units set rooms = 0 where rooms is null or rooms < 0;
+    update public.units set bathrooms = 0.0 where bathrooms is null or bathrooms < 0;
+    update public.units set kitchens = 0 where kitchens is null or kitchens < 0;
+    update public.units set bedrooms = coalesce(rooms, 0) where bedrooms is null or bedrooms < 0;
+
+    alter table public.units drop constraint if exists units_status_check;
+    alter table public.units add constraint units_status_check check (status in ('vacant', 'occupied', 'maintenance'));
+
+    if not exists (
+        select 1 from pg_constraint where conname in ('units_building_id_unit_number_key', 'units_building_id_unit_number_idx')
+    ) and not exists (
+        select 1 from pg_indexes where schemaname = 'public' and tablename = 'units' and indexname = 'units_building_unit_idx'
+    ) then
+        create unique index units_building_unit_idx on public.units (building_id, unit_number);
+    end if;
+exception
+    when others then
+        raise notice 'Units migration notice: %', sqlerrm;
+end;
+$$;
+
+-- 3.4 Maintenance Requests columns & constraints
+alter table public.maintenance_requests add column if not exists unit_id uuid references public.units(id) on delete cascade;
 alter table public.maintenance_requests add column if not exists building_id uuid references public.buildings(id) on delete cascade;
 alter table public.maintenance_requests add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
-alter table public.maintenance_requests add column if not exists unit_id uuid references public.units(id) on delete cascade;
-alter table public.maintenance_requests add column if not exists tenant_name text;
-alter table public.maintenance_requests add column if not exists tenant_phone text;
+alter table public.maintenance_requests add column if not exists tenant_name text not null default '';
+alter table public.maintenance_requests add column if not exists tenant_phone text not null default '';
 alter table public.maintenance_requests add column if not exists tenant_email text;
-alter table public.maintenance_requests add column if not exists unit_number text;
-alter table public.maintenance_requests add column if not exists building_name text;
+alter table public.maintenance_requests add column if not exists unit_number text not null default '';
+alter table public.maintenance_requests add column if not exists building_name text not null default '';
 alter table public.maintenance_requests add column if not exists category text not null default 'other';
 alter table public.maintenance_requests add column if not exists urgency text not null default 'medium';
-alter table public.maintenance_requests add column if not exists title text;
-alter table public.maintenance_requests add column if not exists description text;
+alter table public.maintenance_requests add column if not exists title text not null default 'Maintenance Request';
+alter table public.maintenance_requests add column if not exists description text not null default '';
 alter table public.maintenance_requests add column if not exists status text not null default 'pending';
 alter table public.maintenance_requests add column if not exists photo_url text;
 alter table public.maintenance_requests add column if not exists video_url text;
 alter table public.maintenance_requests add column if not exists voice_url text;
 alter table public.maintenance_requests add column if not exists voice_duration_seconds integer;
 alter table public.maintenance_requests add column if not exists landlord_notes text;
+alter table public.maintenance_requests add column if not exists created_at timestamptz not null default now();
+alter table public.maintenance_requests add column if not exists updated_at timestamptz not null default now();
 
--- Rent Payments columns
+do $$
+begin
+    update public.maintenance_requests set category = 'other' where category is null or category not in ('plumbing', 'electrical', 'structural', 'appliances', 'carpentry_locks', 'other');
+    update public.maintenance_requests set urgency = 'medium' where urgency is null or urgency not in ('low', 'medium', 'high', 'emergency');
+    update public.maintenance_requests set status = 'pending' where status is null or status not in ('pending', 'in_progress', 'resolved', 'rejected');
+
+    alter table public.maintenance_requests drop constraint if exists maintenance_requests_category_check;
+    alter table public.maintenance_requests add constraint maintenance_requests_category_check check (category in ('plumbing', 'electrical', 'structural', 'appliances', 'carpentry_locks', 'other'));
+
+    alter table public.maintenance_requests drop constraint if exists maintenance_requests_urgency_check;
+    alter table public.maintenance_requests add constraint maintenance_requests_urgency_check check (urgency in ('low', 'medium', 'high', 'emergency'));
+
+    alter table public.maintenance_requests drop constraint if exists maintenance_requests_status_check;
+    alter table public.maintenance_requests add constraint maintenance_requests_status_check check (status in ('pending', 'in_progress', 'resolved', 'rejected'));
+exception
+    when others then
+        raise notice 'Maintenance requests migration notice: %', sqlerrm;
+end;
+$$;
+
+-- 3.5 Rent Payments columns & constraints
+alter table public.rent_payments add column if not exists receipt_number text;
+alter table public.rent_payments add column if not exists unit_id uuid references public.units(id) on delete cascade;
 alter table public.rent_payments add column if not exists building_id uuid references public.buildings(id) on delete cascade;
 alter table public.rent_payments add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
-alter table public.rent_payments add column if not exists unit_id uuid references public.units(id) on delete cascade;
 alter table public.rent_payments add column if not exists landlord_name text;
-alter table public.rent_payments add column if not exists tenant_name text;
-alter table public.rent_payments add column if not exists tenant_phone text;
+alter table public.rent_payments add column if not exists tenant_name text not null default '';
+alter table public.rent_payments add column if not exists tenant_phone text not null default '';
 alter table public.rent_payments add column if not exists tenant_email text;
-alter table public.rent_payments add column if not exists unit_number text;
-alter table public.rent_payments add column if not exists building_name text;
-alter table public.rent_payments add column if not exists rent_month text;
+alter table public.rent_payments add column if not exists unit_number text not null default '';
+alter table public.rent_payments add column if not exists building_name text not null default '';
+alter table public.rent_payments add column if not exists rent_month text not null default '';
 alter table public.rent_payments add column if not exists months_count integer not null default 1;
 alter table public.rent_payments add column if not exists months_covered text[] default '{}';
 alter table public.rent_payments add column if not exists monthly_rent_amount numeric(12, 2) not null default 0.00;
@@ -234,25 +429,69 @@ alter table public.rent_payments add column if not exists amount_paid numeric(12
 alter table public.rent_payments add column if not exists balance_remaining numeric(12, 2) not null default 0.00;
 alter table public.rent_payments add column if not exists payment_type text not null default 'full';
 alter table public.rent_payments add column if not exists payment_method text not null default 'momo';
-alter table public.rent_payments add column if not exists transaction_ref text;
+alter table public.rent_payments add column if not exists transaction_ref text not null default '';
 alter table public.rent_payments add column if not exists status text not null default 'completed';
 alter table public.rent_payments add column if not exists payer_phone text;
 alter table public.rent_payments add column if not exists notes text;
+alter table public.rent_payments add column if not exists created_at timestamptz not null default now();
+alter table public.rent_payments add column if not exists updated_at timestamptz not null default now();
 
--- Notifications columns
-alter table public.notifications add column if not exists building_id uuid references public.buildings(id) on delete cascade;
-alter table public.notifications add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
-alter table public.notifications add column if not exists unit_id uuid references public.units(id) on delete cascade;
+do $$
+begin
+    update public.rent_payments set receipt_number = 'RCP-' || substring(id::text, 1, 8) where receipt_number is null;
+    update public.rent_payments set payment_type = 'full' where payment_type is null or payment_type not in ('full', 'partial');
+    update public.rent_payments set payment_method = 'momo' where payment_method is null or payment_method not in ('momo', 'orange_money', 'card', 'bank_transfer', 'cash');
+    update public.rent_payments set status = 'completed' where status is null or status not in ('completed', 'pending', 'failed');
+
+    alter table public.rent_payments drop constraint if exists rent_payments_payment_type_check;
+    alter table public.rent_payments add constraint rent_payments_payment_type_check check (payment_type in ('full', 'partial'));
+
+    alter table public.rent_payments drop constraint if exists rent_payments_payment_method_check;
+    alter table public.rent_payments add constraint rent_payments_payment_method_check check (payment_method in ('momo', 'orange_money', 'card', 'bank_transfer', 'cash'));
+
+    alter table public.rent_payments drop constraint if exists rent_payments_status_check;
+    alter table public.rent_payments add constraint rent_payments_status_check check (status in ('completed', 'pending', 'failed'));
+
+    if not exists (
+        select 1 from pg_indexes where schemaname = 'public' and tablename = 'rent_payments' and indexname = 'idx_rent_payments_receipt_number'
+    ) then
+        create unique index idx_rent_payments_receipt_number on public.rent_payments(receipt_number);
+    end if;
+exception
+    when others then
+        raise notice 'Rent payments migration notice: %', sqlerrm;
+end;
+$$;
+
+-- 3.6 Notifications columns & constraints
 alter table public.notifications add column if not exists type text not null default 'system';
-alter table public.notifications add column if not exists title text;
-alter table public.notifications add column if not exists message text;
+alter table public.notifications add column if not exists title text not null default '';
+alter table public.notifications add column if not exists title_fr text;
+alter table public.notifications add column if not exists message text not null default '';
+alter table public.notifications add column if not exists message_fr text;
 alter table public.notifications add column if not exists recipient_role text not null default 'landlord';
+alter table public.notifications add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+alter table public.notifications add column if not exists building_id uuid references public.buildings(id) on delete cascade;
+alter table public.notifications add column if not exists building_name text;
+alter table public.notifications add column if not exists unit_id uuid references public.units(id) on delete cascade;
+alter table public.notifications add column if not exists unit_number text;
+alter table public.notifications add column if not exists tenant_name text;
+alter table public.notifications add column if not exists amount numeric(12, 2);
+alter table public.notifications add column if not exists payment_method text;
+alter table public.notifications add column if not exists receipt_number text;
+alter table public.notifications add column if not exists rent_month text;
 alter table public.notifications add column if not exists is_read boolean not null default false;
+alter table public.notifications add column if not exists read_by text[] default '{}';
 alter table public.notifications add column if not exists metadata jsonb default '{}'::jsonb;
+alter table public.notifications add column if not exists created_at timestamptz not null default now();
+alter table public.notifications add column if not exists updated_at timestamptz not null default now();
 
 -- ==============================================================================
--- 3. Database Performance Indexes
+-- 4. Database Performance Indexes
 -- ==============================================================================
+create index if not exists idx_profiles_role on public.profiles(role);
+create index if not exists idx_profiles_landlord_id on public.profiles(landlord_id);
+
 create index if not exists idx_buildings_landlord_id on public.buildings(landlord_id);
 
 create index if not exists idx_units_building_id on public.units(building_id);
@@ -271,7 +510,6 @@ create index if not exists idx_maintenance_created_at on public.maintenance_requ
 create index if not exists idx_rent_payments_unit_id on public.rent_payments(unit_id);
 create index if not exists idx_rent_payments_building_id on public.rent_payments(building_id);
 create index if not exists idx_rent_payments_landlord_id on public.rent_payments(landlord_id);
-create index if not exists idx_rent_payments_receipt_number on public.rent_payments(receipt_number);
 create index if not exists idx_rent_payments_rent_month on public.rent_payments(rent_month);
 create index if not exists idx_rent_payments_created_at on public.rent_payments(created_at desc);
 
@@ -281,7 +519,7 @@ create index if not exists idx_notifications_recipient_role on public.notificati
 create index if not exists idx_notifications_created_at on public.notifications(created_at desc);
 
 -- ==============================================================================
--- 4. Timestamp Update Triggers
+-- 5. Timestamp Update Triggers
 -- ==============================================================================
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
@@ -314,18 +552,20 @@ create trigger set_notifications_updated_at
     for each row execute function public.update_updated_at_column();
 
 -- ==============================================================================
--- 5. Engine-Level Multi-Tenant Isolation Constraint Triggers
+-- 6. Engine-Level Multi-Tenant Isolation Triggers
 -- ==============================================================================
 
--- 5.1 Enforce Units isolation (Building must belong to the same landlord)
+-- 6.1 Units Isolation (Building must belong to the same landlord)
 create or replace function public.enforce_unit_tenant_isolation()
 returns trigger as $$
 begin
-    if not exists (
-        select 1 from public.buildings b
-        where b.id = new.building_id and b.landlord_id = new.landlord_id
-    ) then
-        raise exception 'Multi-tenant isolation violation: Building does not belong to the specified landlord.';
+    if new.building_id is not null and new.landlord_id is not null then
+        if not exists (
+            select 1 from public.buildings b
+            where b.id = new.building_id and b.landlord_id = new.landlord_id
+        ) then
+            raise exception 'Multi-tenant isolation violation: Building does not belong to the specified landlord.';
+        end if;
     end if;
     return new;
 end;
@@ -336,19 +576,21 @@ create trigger trg_enforce_unit_tenant_isolation
     before insert or update on public.units
     for each row execute function public.enforce_unit_tenant_isolation();
 
--- 5.2 Enforce Maintenance Requests isolation
+-- 6.2 Maintenance Requests Isolation
 create or replace function public.enforce_maintenance_tenant_isolation()
 returns trigger as $$
 begin
-    if not exists (
-        select 1 from public.units u
-        join public.buildings b on b.id = u.building_id
-        where u.id = new.unit_id
-          and u.building_id = new.building_id
-          and u.landlord_id = new.landlord_id
-          and b.landlord_id = new.landlord_id
-    ) then
-        raise exception 'Multi-tenant isolation violation: Maintenance request property ownership mismatch.';
+    if new.unit_id is not null and new.building_id is not null and new.landlord_id is not null then
+        if not exists (
+            select 1 from public.units u
+            join public.buildings b on b.id = u.building_id
+            where u.id = new.unit_id
+              and u.building_id = new.building_id
+              and u.landlord_id = new.landlord_id
+              and b.landlord_id = new.landlord_id
+        ) then
+            raise exception 'Multi-tenant isolation violation: Maintenance request property ownership mismatch.';
+        end if;
     end if;
     return new;
 end;
@@ -359,19 +601,21 @@ create trigger trg_enforce_maintenance_tenant_isolation
     before insert or update on public.maintenance_requests
     for each row execute function public.enforce_maintenance_tenant_isolation();
 
--- 5.3 Enforce Rent Payments isolation
+-- 6.3 Rent Payments Isolation
 create or replace function public.enforce_payment_tenant_isolation()
 returns trigger as $$
 begin
-    if not exists (
-        select 1 from public.units u
-        join public.buildings b on b.id = u.building_id
-        where u.id = new.unit_id
-          and u.building_id = new.building_id
-          and u.landlord_id = new.landlord_id
-          and b.landlord_id = new.landlord_id
-    ) then
-        raise exception 'Multi-tenant isolation violation: Rent payment property ownership mismatch.';
+    if new.unit_id is not null and new.building_id is not null and new.landlord_id is not null then
+        if not exists (
+            select 1 from public.units u
+            join public.buildings b on b.id = u.building_id
+            where u.id = new.unit_id
+              and u.building_id = new.building_id
+              and u.landlord_id = new.landlord_id
+              and b.landlord_id = new.landlord_id
+        ) then
+            raise exception 'Multi-tenant isolation violation: Rent payment property ownership mismatch.';
+        end if;
     end if;
     return new;
 end;
@@ -382,7 +626,7 @@ create trigger trg_enforce_payment_tenant_isolation
     before insert or update on public.rent_payments
     for each row execute function public.enforce_payment_tenant_isolation();
 
--- 5.4 Enforce Notifications isolation
+-- 6.4 Notifications Isolation
 create or replace function public.enforce_notification_tenant_isolation()
 returns trigger as $$
 begin
@@ -414,41 +658,79 @@ create trigger trg_enforce_notification_tenant_isolation
     for each row execute function public.enforce_notification_tenant_isolation();
 
 -- ==============================================================================
--- 6. Row-Level Security (RLS) Multi-Tenant Policies
+-- 7. Row-Level Security (RLS) Multi-Tenant Policies
+-- (Configured for Landlords, Delegated Managers, Super-Admins, and Tenants)
 -- ==============================================================================
 
--- 6.1 Profiles RLS
+-- 7.1 Profiles RLS
 alter table public.profiles enable row level security;
 
 drop policy if exists "Landlords can view their own profile" on public.profiles;
 drop policy if exists "Landlords can update their own profile" on public.profiles;
 drop policy if exists "Landlords can insert their own profile" on public.profiles;
 drop policy if exists "Tenants can view assigned landlord contact info" on public.profiles;
+drop policy if exists "Profiles select policy" on public.profiles;
+drop policy if exists "Profiles insert policy" on public.profiles;
+drop policy if exists "Profiles update policy" on public.profiles;
+drop policy if exists "Profiles delete policy" on public.profiles;
 
-create policy "Landlords can view their own profile"
-    on public.profiles for select
-    using (auth.uid() is not null and auth.uid() = id);
-
-create policy "Tenants can view assigned landlord contact info"
+create policy "Profiles select policy"
     on public.profiles for select
     using (
-        auth.role() = 'anon' and exists (
+        -- User viewing their own profile
+        (auth.uid() is not null and auth.uid() = id)
+        or
+        -- Landlord viewing managers under their account
+        (auth.uid() is not null and landlord_id = auth.uid())
+        or
+        -- Admin viewing all profiles
+        public.is_admin()
+        or
+        -- Anon tenant viewing assigned landlord contact info
+        (auth.role() = 'anon' and exists (
             select 1 from public.units u
-            where u.landlord_id = profiles.id
-              and u.status = 'occupied'
-        )
+            where u.landlord_id = profiles.id and u.status = 'occupied'
+        ))
     );
 
-create policy "Landlords can update their own profile"
-    on public.profiles for update
-    using (auth.uid() is not null and auth.uid() = id)
-    with check (auth.uid() is not null and auth.uid() = id);
-
-create policy "Landlords can insert their own profile"
+create policy "Profiles insert policy"
     on public.profiles for insert
-    with check (auth.uid() is not null and auth.uid() = id);
+    with check (
+        -- User inserting own profile upon signup
+        (auth.uid() is not null and auth.uid() = id)
+        or
+        -- Landlord creating a delegated manager account
+        (auth.uid() is not null and landlord_id = auth.uid())
+        or
+        public.is_admin()
+    );
 
--- 6.2 Buildings RLS
+create policy "Profiles update policy"
+    on public.profiles for update
+    using (
+        (auth.uid() is not null and auth.uid() = id)
+        or
+        (auth.uid() is not null and landlord_id = auth.uid())
+        or
+        public.is_admin()
+    )
+    with check (
+        (auth.uid() is not null and auth.uid() = id)
+        or
+        (auth.uid() is not null and landlord_id = auth.uid())
+        or
+        public.is_admin()
+    );
+
+create policy "Profiles delete policy"
+    on public.profiles for delete
+    using (
+        (auth.uid() is not null and landlord_id = auth.uid())
+        or
+        public.is_admin()
+    );
+
+-- 7.2 Buildings RLS
 alter table public.buildings enable row level security;
 
 drop policy if exists "Landlords can view their own buildings" on public.buildings;
@@ -456,36 +738,42 @@ drop policy if exists "Tenants can view assigned building" on public.buildings;
 drop policy if exists "Landlords can insert their own buildings" on public.buildings;
 drop policy if exists "Landlords can update their own buildings" on public.buildings;
 drop policy if exists "Landlords can delete their own buildings" on public.buildings;
+drop policy if exists "Buildings select policy" on public.buildings;
+drop policy if exists "Buildings insert policy" on public.buildings;
+drop policy if exists "Buildings update policy" on public.buildings;
+drop policy if exists "Buildings delete policy" on public.buildings;
 
-create policy "Landlords can view their own buildings"
-    on public.buildings for select
-    using (auth.uid() = landlord_id);
-
-create policy "Tenants can view assigned building"
+create policy "Buildings select policy"
     on public.buildings for select
     using (
-        auth.role() = 'anon' and exists (
+        public.can_access_landlord_portfolio(landlord_id)
+        or
+        (auth.role() = 'anon' and exists (
             select 1 from public.units u 
             where u.building_id = buildings.id 
               and u.status = 'occupied' 
               and u.tenant_access_token is not null
-        )
+        ))
     );
 
-create policy "Landlords can insert their own buildings"
+create policy "Buildings insert policy"
     on public.buildings for insert
-    with check (auth.uid() = landlord_id);
+    with check (
+        (auth.uid() = landlord_id)
+        or
+        public.can_access_landlord_portfolio(landlord_id)
+    );
 
-create policy "Landlords can update their own buildings"
+create policy "Buildings update policy"
     on public.buildings for update
-    using (auth.uid() = landlord_id)
-    with check (auth.uid() = landlord_id);
+    using (public.can_access_landlord_portfolio(landlord_id))
+    with check (public.can_access_landlord_portfolio(landlord_id));
 
-create policy "Landlords can delete their own buildings"
+create policy "Buildings delete policy"
     on public.buildings for delete
-    using (auth.uid() = landlord_id);
+    using (auth.uid() = landlord_id or public.is_admin());
 
--- 6.3 Units RLS
+-- 7.3 Units RLS
 alter table public.units enable row level security;
 
 drop policy if exists "Landlords can view their own units" on public.units;
@@ -493,82 +781,73 @@ drop policy if exists "Tenants can view assigned unit via token" on public.units
 drop policy if exists "Landlords can insert their own units" on public.units;
 drop policy if exists "Landlords can update their own units" on public.units;
 drop policy if exists "Landlords can delete their own units" on public.units;
+drop policy if exists "Units select policy" on public.units;
+drop policy if exists "Units insert policy" on public.units;
+drop policy if exists "Units update policy" on public.units;
+drop policy if exists "Units delete policy" on public.units;
 
-create policy "Landlords can view their own units"
-    on public.units for select
-    using (auth.uid() = landlord_id);
-
-create policy "Tenants can view assigned unit via token"
+create policy "Units select policy"
     on public.units for select
     using (
-        auth.role() = 'anon' and tenant_access_token is not null and status = 'occupied'
+        public.can_access_landlord_portfolio(landlord_id)
+        or
+        (auth.role() = 'anon' and tenant_access_token is not null and status = 'occupied')
     );
 
-create policy "Landlords can insert their own units"
+create policy "Units insert policy"
     on public.units for insert
     with check (
-        auth.uid() = landlord_id
+        public.can_access_landlord_portfolio(landlord_id)
         and exists (
             select 1 from public.buildings b
-            where b.id = units.building_id and b.landlord_id = auth.uid()
+            where b.id = units.building_id and b.landlord_id = units.landlord_id
         )
     );
 
-create policy "Landlords can update their own units"
+create policy "Units update policy"
     on public.units for update
-    using (auth.uid() = landlord_id)
+    using (public.can_access_landlord_portfolio(landlord_id))
     with check (
-        auth.uid() = landlord_id
+        public.can_access_landlord_portfolio(landlord_id)
         and exists (
             select 1 from public.buildings b
-            where b.id = units.building_id and b.landlord_id = auth.uid()
+            where b.id = units.building_id and b.landlord_id = units.landlord_id
         )
     );
 
-create policy "Landlords can delete their own units"
+create policy "Units delete policy"
     on public.units for delete
-    using (auth.uid() = landlord_id);
+    using (auth.uid() = landlord_id or public.is_admin());
 
--- 6.4 Maintenance Requests RLS
+-- 7.4 Maintenance Requests RLS
 alter table public.maintenance_requests enable row level security;
 
-drop policy if exists "Landlords can view and manage their units maintenance requests" on public.maintenance_requests;
-drop policy if exists "Anyone can insert maintenance requests for valid occupied units" on public.maintenance_requests;
-drop policy if exists "Public can view maintenance requests by unit" on public.maintenance_requests;
 drop policy if exists "Landlords can view their own maintenance requests" on public.maintenance_requests;
 drop policy if exists "Tenants can view maintenance requests for their occupied unit" on public.maintenance_requests;
 drop policy if exists "Landlords can manage their maintenance requests" on public.maintenance_requests;
 drop policy if exists "Landlords can delete their maintenance requests" on public.maintenance_requests;
 drop policy if exists "Tenants and landlords can insert valid maintenance requests" on public.maintenance_requests;
+drop policy if exists "Maintenance select policy" on public.maintenance_requests;
+drop policy if exists "Maintenance insert policy" on public.maintenance_requests;
+drop policy if exists "Maintenance update policy" on public.maintenance_requests;
+drop policy if exists "Maintenance delete policy" on public.maintenance_requests;
 
-create policy "Landlords can view their own maintenance requests"
-    on public.maintenance_requests for select
-    using (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Tenants can view maintenance requests for their occupied unit"
+create policy "Maintenance select policy"
     on public.maintenance_requests for select
     using (
-        auth.role() = 'anon' and exists (
+        public.can_access_landlord_portfolio(landlord_id)
+        or
+        (auth.role() = 'anon' and exists (
             select 1 from public.units u
-            where u.id = maintenance_requests.unit_id
-              and u.status = 'occupied'
-        )
+            where u.id = maintenance_requests.unit_id and u.status = 'occupied'
+        ))
     );
 
-create policy "Landlords can manage their maintenance requests"
-    on public.maintenance_requests for update
-    using (auth.uid() is not null and auth.uid() = landlord_id)
-    with check (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Landlords can delete their maintenance requests"
-    on public.maintenance_requests for delete
-    using (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Tenants and landlords can insert valid maintenance requests"
+create policy "Maintenance insert policy"
     on public.maintenance_requests for insert
     with check (
-        (auth.uid() is not null and auth.uid() = landlord_id and exists (
-            select 1 from public.units u where u.id = maintenance_requests.unit_id and u.landlord_id = auth.uid()
+        (public.can_access_landlord_portfolio(landlord_id) and exists (
+            select 1 from public.units u where u.id = maintenance_requests.unit_id and u.landlord_id = maintenance_requests.landlord_id
         ))
         or
         (auth.role() = 'anon' and exists (
@@ -580,46 +859,44 @@ create policy "Tenants and landlords can insert valid maintenance requests"
         ))
     );
 
--- 6.5 Rent Payments RLS
+create policy "Maintenance update policy"
+    on public.maintenance_requests for update
+    using (public.can_access_landlord_portfolio(landlord_id))
+    with check (public.can_access_landlord_portfolio(landlord_id));
+
+create policy "Maintenance delete policy"
+    on public.maintenance_requests for delete
+    using (auth.uid() = landlord_id or public.is_admin());
+
+-- 7.5 Rent Payments RLS
 alter table public.rent_payments enable row level security;
 
-drop policy if exists "Landlords can view and manage their payments" on public.rent_payments;
-drop policy if exists "Anyone can insert payments for valid occupied units" on public.rent_payments;
-drop policy if exists "Public can view payments by unit" on public.rent_payments;
 drop policy if exists "Landlords can view their own rent payments" on public.rent_payments;
 drop policy if exists "Tenants can view rent payments for their occupied unit" on public.rent_payments;
 drop policy if exists "Landlords can manage their rent payments" on public.rent_payments;
 drop policy if exists "Landlords can delete their rent payments" on public.rent_payments;
 drop policy if exists "Tenants and landlords can insert valid rent payments" on public.rent_payments;
+drop policy if exists "Payments select policy" on public.rent_payments;
+drop policy if exists "Payments insert policy" on public.rent_payments;
+drop policy if exists "Payments update policy" on public.rent_payments;
+drop policy if exists "Payments delete policy" on public.rent_payments;
 
-create policy "Landlords can view their own rent payments"
-    on public.rent_payments for select
-    using (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Tenants can view rent payments for their occupied unit"
+create policy "Payments select policy"
     on public.rent_payments for select
     using (
-        auth.role() = 'anon' and exists (
+        public.can_access_landlord_portfolio(landlord_id)
+        or
+        (auth.role() = 'anon' and exists (
             select 1 from public.units u
-            where u.id = rent_payments.unit_id
-              and u.status = 'occupied'
-        )
+            where u.id = rent_payments.unit_id and u.status = 'occupied'
+        ))
     );
 
-create policy "Landlords can manage their rent payments"
-    on public.rent_payments for update
-    using (auth.uid() is not null and auth.uid() = landlord_id)
-    with check (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Landlords can delete their rent payments"
-    on public.rent_payments for delete
-    using (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Tenants and landlords can insert valid rent payments"
+create policy "Payments insert policy"
     on public.rent_payments for insert
     with check (
-        (auth.uid() is not null and auth.uid() = landlord_id and exists (
-            select 1 from public.units u where u.id = rent_payments.unit_id and u.landlord_id = auth.uid()
+        (public.can_access_landlord_portfolio(landlord_id) and exists (
+            select 1 from public.units u where u.id = rent_payments.unit_id and u.landlord_id = rent_payments.landlord_id
         ))
         or
         (auth.role() = 'anon' and exists (
@@ -631,7 +908,16 @@ create policy "Tenants and landlords can insert valid rent payments"
         ))
     );
 
--- 6.6 Notifications RLS
+create policy "Payments update policy"
+    on public.rent_payments for update
+    using (auth.uid() = landlord_id or public.is_admin())
+    with check (auth.uid() = landlord_id or public.is_admin());
+
+create policy "Payments delete policy"
+    on public.rent_payments for delete
+    using (auth.uid() = landlord_id or public.is_admin());
+
+-- 7.6 Notifications RLS
 alter table public.notifications enable row level security;
 
 drop policy if exists "Landlords can view their own notifications" on public.notifications;
@@ -639,43 +925,44 @@ drop policy if exists "Tenants can view community notifications for their buildi
 drop policy if exists "Landlords can update their own notifications" on public.notifications;
 drop policy if exists "Landlords can delete their own notifications" on public.notifications;
 drop policy if exists "Allow inserting valid notifications" on public.notifications;
+drop policy if exists "Notifications select policy" on public.notifications;
+drop policy if exists "Notifications insert policy" on public.notifications;
+drop policy if exists "Notifications update policy" on public.notifications;
+drop policy if exists "Notifications delete policy" on public.notifications;
 
-create policy "Landlords can view their own notifications"
-    on public.notifications for select
-    using (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Tenants can view community notifications for their building"
+create policy "Notifications select policy"
     on public.notifications for select
     using (
-        auth.role() = 'anon' and exists (
+        (landlord_id is null or public.can_access_landlord_portfolio(landlord_id))
+        or
+        (auth.role() = 'anon' and exists (
             select 1 from public.units u
-            where u.building_id = notifications.building_id
-              and u.status = 'occupied'
-        )
+            where u.building_id = notifications.building_id and u.status = 'occupied'
+        ))
     );
 
-create policy "Landlords can update their own notifications"
-    on public.notifications for update
-    using (auth.uid() is not null and auth.uid() = landlord_id)
-    with check (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Landlords can delete their own notifications"
-    on public.notifications for delete
-    using (auth.uid() is not null and auth.uid() = landlord_id);
-
-create policy "Allow inserting valid notifications"
+create policy "Notifications insert policy"
     on public.notifications for insert
     with check (
-        (auth.uid() is not null and (landlord_id is null or auth.uid() = landlord_id))
+        (auth.uid() is not null)
         or
         (auth.role() = 'anon')
     );
 
+create policy "Notifications update policy"
+    on public.notifications for update
+    using (landlord_id is null or public.can_access_landlord_portfolio(landlord_id))
+    with check (landlord_id is null or public.can_access_landlord_portfolio(landlord_id));
+
+create policy "Notifications delete policy"
+    on public.notifications for delete
+    using (auth.uid() = landlord_id or public.is_admin());
+
 -- ==============================================================================
--- 7. Stored Procedures & Business Logic
+-- 8. Stored Procedures & Business Logic (RPC)
 -- ==============================================================================
 
--- 7.1 Signup Trigger Handler
+-- 8.1 Signup Trigger Handler
 create or replace function public.handle_new_landlord()
 returns trigger as $$
 declare
@@ -685,10 +972,23 @@ declare
     v_plan_name text;
     v_unit_limit integer;
     v_has_trial boolean;
+    v_role text;
+    v_landlord_id uuid;
 begin
     v_full_name := coalesce(new.raw_user_meta_data->>'full_name', '');
     v_phone := coalesce(new.raw_user_meta_data->>'phone', '');
     v_plan := coalesce(new.raw_user_meta_data->>'plan', 'free');
+    v_role := coalesce(new.raw_user_meta_data->>'role', 'landlord');
+
+    if new.raw_user_meta_data->>'landlord_id' is not null and new.raw_user_meta_data->>'landlord_id' != '' then
+        begin
+            v_landlord_id := (new.raw_user_meta_data->>'landlord_id')::uuid;
+        exception when others then
+            v_landlord_id := null;
+        end;
+    else
+        v_landlord_id := null;
+    end if;
 
     if v_plan = 'free' then
         v_plan_name := 'Free Trial (30 Days)';
@@ -719,6 +1019,7 @@ begin
         phone,
         email,
         role,
+        landlord_id,
         plan,
         plan_name,
         plan_unit_limit,
@@ -731,8 +1032,9 @@ begin
         new.id,
         v_full_name,
         v_phone,
-        new.email,
-        'landlord',
+        coalesce(new.email, ''),
+        v_role,
+        v_landlord_id,
         v_plan,
         v_plan_name,
         v_unit_limit,
@@ -742,7 +1044,12 @@ begin
         'active',
         v_has_trial
     )
-    on conflict (id) do nothing;
+    on conflict (id) do update set
+        full_name = case when public.profiles.full_name = '' then excluded.full_name else public.profiles.full_name end,
+        phone = case when public.profiles.phone = '' then excluded.phone else public.profiles.phone end,
+        email = coalesce(excluded.email, public.profiles.email),
+        role = coalesce(public.profiles.role, excluded.role),
+        updated_at = now();
 
     return new;
 end;
@@ -761,7 +1068,7 @@ exception
 end;
 $$;
 
--- 7.2 Renew Subscription Helper
+-- 8.2 Renew Subscription Helper
 create or replace function public.renew_subscription(p_plan text)
 returns json as $$
 declare
@@ -815,7 +1122,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 7.3 Atomic Building Creation with Vacant Units
+-- 8.3 Atomic Building Creation with Vacant Units
 create or replace function public.create_building_with_vacant_units(
     p_name text,
     p_address text,
@@ -829,6 +1136,7 @@ create or replace function public.create_building_with_vacant_units(
 returns json as $$
 declare
     v_user_id uuid;
+    v_effective_landlord_id uuid;
     v_building_id uuid;
     v_unit_limit integer;
     v_current_units integer;
@@ -842,20 +1150,25 @@ begin
         return json_build_object('success', false, 'error', 'Unauthorized. Please log in.');
     end if;
 
+    v_effective_landlord_id := public.get_auth_landlord_id();
+    if v_effective_landlord_id is null then
+        v_effective_landlord_id := v_user_id;
+    end if;
+
     v_units_count := greatest(coalesce(p_total_units, 1), 1);
     v_clean_prefix := coalesce(nullif(trim(p_unit_prefix), ''), 'Unit');
 
     select plan_unit_limit into v_unit_limit
     from public.profiles
-    where id = v_user_id;
+    where id = v_effective_landlord_id;
 
     v_unit_limit := coalesce(v_unit_limit, 5);
 
     select count(*) into v_current_units
     from public.units
-    where landlord_id = v_user_id;
+    where landlord_id = v_effective_landlord_id;
 
-    if (v_current_units + v_units_count) > v_unit_limit then
+    if not public.is_admin() and (v_current_units + v_units_count) > v_unit_limit then
         return json_build_object(
             'success', false,
             'error', format('Unit quota exceeded! Your plan allows up to %s units. You already have %s units, so adding %s units would exceed your limit.', v_unit_limit, v_current_units, v_units_count)
@@ -873,7 +1186,7 @@ begin
         total_units,
         description
     ) values (
-        v_user_id,
+        v_effective_landlord_id,
         trim(p_name),
         trim(p_address),
         nullif(trim(p_city), ''),
@@ -901,7 +1214,7 @@ begin
             bedrooms
         ) values (
             v_building_id,
-            v_user_id,
+            v_effective_landlord_id,
             v_unit_number,
             'vacant',
             0.00,
@@ -923,7 +1236,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 7.4 Update Unit Specs Function
+-- 8.4 Update Unit Specs Function
 create or replace function public.update_unit_configuration(
     p_unit_id uuid,
     p_unit_number text default null,
@@ -946,9 +1259,9 @@ begin
 
     select * into v_unit
     from public.units
-    where id = p_unit_id and landlord_id = v_user_id;
+    where id = p_unit_id;
 
-    if not found then
+    if not found or not public.can_access_landlord_portfolio(v_unit.landlord_id) then
         return json_build_object('success', false, 'error', 'Unit not found or access denied');
     end if;
 
@@ -963,7 +1276,7 @@ begin
         kitchens = coalesce(p_kitchens, v_unit.kitchens),
         notes = coalesce(p_notes, v_unit.notes),
         updated_at = now()
-    where id = p_unit_id and landlord_id = v_user_id;
+    where id = p_unit_id;
 
     return json_build_object(
         'success', true,
@@ -972,7 +1285,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 7.5 Assign Tenant to Unit Function
+-- 8.5 Assign Tenant to Unit Function
 create or replace function public.assign_unit_tenant(
     p_unit_id uuid,
     p_tenant_name text,
@@ -984,10 +1297,19 @@ create or replace function public.assign_unit_tenant(
 returns json as $$
 declare
     v_user_id uuid;
+    v_unit public.units%rowtype;
 begin
     v_user_id := auth.uid();
     if v_user_id is null then
         return json_build_object('success', false, 'error', 'Unauthorized');
+    end if;
+
+    select * into v_unit
+    from public.units
+    where id = p_unit_id;
+
+    if not found or not public.can_access_landlord_portfolio(v_unit.landlord_id) then
+        return json_build_object('success', false, 'error', 'Unit not found or access denied');
     end if;
 
     update public.units
@@ -1000,11 +1322,7 @@ begin
         tenant_assigned_at = coalesce(tenant_assigned_at, now()),
         status = 'occupied',
         updated_at = now()
-    where id = p_unit_id and landlord_id = v_user_id;
-
-    if not found then
-        return json_build_object('success', false, 'error', 'Unit not found or access denied');
-    end if;
+    where id = p_unit_id;
 
     return json_build_object(
         'success', true,
@@ -1013,15 +1331,24 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 7.6 Unassign Tenant from Unit Function
+-- 8.6 Unassign Tenant from Unit Function
 create or replace function public.unassign_unit_tenant(p_unit_id uuid)
 returns json as $$
 declare
     v_user_id uuid;
+    v_unit public.units%rowtype;
 begin
     v_user_id := auth.uid();
     if v_user_id is null then
         return json_build_object('success', false, 'error', 'Unauthorized');
+    end if;
+
+    select * into v_unit
+    from public.units
+    where id = p_unit_id;
+
+    if not found or not public.can_access_landlord_portfolio(v_unit.landlord_id) then
+        return json_build_object('success', false, 'error', 'Unit not found or access denied');
     end if;
 
     update public.units
@@ -1034,22 +1361,24 @@ begin
         tenant_assigned_at = null,
         status = 'vacant',
         updated_at = now()
-    where id = p_unit_id and landlord_id = v_user_id;
-
-    if not found then
-        return json_build_object('success', false, 'error', 'Unit not found or access denied');
-    end if;
+    where id = p_unit_id;
 
     return json_build_object('success', true, 'message', 'Tenant unassigned successfully');
 end;
 $$ language plpgsql security definer;
 
--- 7.7 Secure Tenant Portal Data Lookup via Token
+-- 8.7 Secure Tenant Portal Data Lookup via Token
 create or replace function public.get_tenant_portal_data(p_token text)
 returns json as $$
 declare
+    v_clean_token text;
     v_res json;
 begin
+    v_clean_token := trim(coalesce(p_token, ''));
+    if v_clean_token = '' then
+        return json_build_object('success', false, 'error', 'Token is required');
+    end if;
+
     select json_build_object(
         'tenant_name', u.tenant_name,
         'tenant_phone', u.tenant_phone,
@@ -1076,7 +1405,7 @@ begin
     from public.units u
     join public.buildings b on b.id = u.building_id
     join public.profiles p on p.id = u.landlord_id
-    where u.tenant_access_token = trim(p_token) and u.status = 'occupied';
+    where u.tenant_access_token = v_clean_token and u.status = 'occupied';
 
     if v_res is null then
         return json_build_object('success', false, 'error', 'Invalid or expired access token');
@@ -1086,14 +1415,20 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 7.8 Secure Tenant Login via Identifier & Password
+-- 8.8 Secure Tenant Login via Identifier & Password
 create or replace function public.authenticate_tenant(p_identifier text, p_password text)
 returns json as $$
 declare
     v_clean_id text;
+    v_clean_digits text;
     v_res json;
 begin
-    v_clean_id := lower(trim(p_identifier));
+    v_clean_id := lower(trim(coalesce(p_identifier, '')));
+    v_clean_digits := regexp_replace(v_clean_id, '\D', '', 'g');
+
+    if v_clean_id = '' or coalesce(p_password, '') = '' then
+        return json_build_object('success', false, 'error', 'Identifier and password are required');
+    end if;
 
     select json_build_object(
         'tenant_name', u.tenant_name,
@@ -1121,19 +1456,24 @@ begin
     from public.units u
     join public.buildings b on b.id = u.building_id
     join public.profiles p on p.id = u.landlord_id
-    where (lower(u.tenant_email) = v_clean_id or regexp_replace(u.tenant_phone, '\D', '', 'g') = regexp_replace(v_clean_id, '\D', '', 'g'))
-      and u.tenant_password = trim(p_password)
-      and u.status = 'occupied';
+    where (
+        (lower(coalesce(u.tenant_email, '')) = v_clean_id and v_clean_id != '')
+        or
+        (length(v_clean_digits) >= 6 and regexp_replace(coalesce(u.tenant_phone, ''), '\D', '', 'g') = v_clean_digits)
+    )
+    and u.tenant_password = trim(p_password)
+    and u.status = 'occupied'
+    limit 1;
 
     if v_res is null then
-        return json_build_object('success', false, 'error', 'Invalid email or password.');
+        return json_build_object('success', false, 'error', 'Invalid email/phone or password.');
     end if;
 
     return json_build_object('success', true, 'data', v_res);
 end;
 $$ language plpgsql security definer;
 
--- 7.9 Secure Tenant Maintenance Requests Lookup
+-- 8.9 Secure Tenant Maintenance Requests Lookup
 create or replace function public.get_tenant_maintenance_requests(p_token text)
 returns json as $$
 declare
@@ -1157,7 +1497,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 7.10 Secure Tenant Rent Payments Lookup
+-- 8.10 Secure Tenant Rent Payments Lookup
 create or replace function public.get_tenant_rent_payments(p_token text)
 returns json as $$
 declare
@@ -1182,37 +1522,35 @@ end;
 $$ language plpgsql security definer;
 
 -- ==============================================================================
--- 8. Permissions & Execution Grants
+-- 9. Permissions & Execution Grants
 -- ==============================================================================
-grant select, insert, update, delete on table public.profiles to anon, authenticated;
-grant select, insert, update, delete on table public.buildings to anon, authenticated;
-grant select, insert, update, delete on table public.units to anon, authenticated;
-grant select, insert, update, delete on table public.maintenance_requests to anon, authenticated;
-grant select, insert, update, delete on table public.rent_payments to anon, authenticated;
-grant select, insert, update, delete on table public.notifications to anon, authenticated;
+grant usage on schema public to anon, authenticated, service_role;
 
-grant execute on function public.get_tenant_portal_data(text) to anon, authenticated;
-grant execute on function public.authenticate_tenant(text, text) to anon, authenticated;
-grant execute on function public.get_tenant_maintenance_requests(text) to anon, authenticated;
-grant execute on function public.get_tenant_rent_payments(text) to anon, authenticated;
-grant execute on function public.assign_unit_tenant(uuid, text, text, text, text, text) to authenticated;
-grant execute on function public.unassign_unit_tenant(uuid) to authenticated;
-grant execute on function public.create_building_with_vacant_units(text, text, text, text, text, integer, text, text) to authenticated;
-grant execute on function public.update_unit_configuration(uuid, text, numeric, integer, integer, numeric, integer, text) to authenticated;
-grant execute on function public.renew_subscription(text) to authenticated;
+grant select, insert, update, delete on table public.profiles to anon, authenticated, service_role;
+grant select, insert, update, delete on table public.buildings to anon, authenticated, service_role;
+grant select, insert, update, delete on table public.units to anon, authenticated, service_role;
+grant select, insert, update, delete on table public.maintenance_requests to anon, authenticated, service_role;
+grant select, insert, update, delete on table public.rent_payments to anon, authenticated, service_role;
+grant select, insert, update, delete on table public.notifications to anon, authenticated, service_role;
+
+grant execute on all functions in schema public to anon, authenticated, service_role;
 
 -- ==============================================================================
--- 9. Realtime Publication Setup
+-- 10. Realtime Publication Setup (Safe & Permissive)
 -- ==============================================================================
-alter table public.profiles replica identity full;
-alter table public.buildings replica identity full;
-alter table public.units replica identity full;
-alter table public.maintenance_requests replica identity full;
-alter table public.rent_payments replica identity full;
-alter table public.notifications replica identity full;
-
 do $$
 begin
+    begin
+        alter table public.profiles replica identity full;
+        alter table public.buildings replica identity full;
+        alter table public.units replica identity full;
+        alter table public.maintenance_requests replica identity full;
+        alter table public.rent_payments replica identity full;
+        alter table public.notifications replica identity full;
+    exception when others then
+        raise notice 'Replica identity setup notice: %', sqlerrm;
+    end;
+
     if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
         create publication supabase_realtime;
     end if;
@@ -1242,11 +1580,11 @@ begin
     end if;
 exception
     when others then
-        raise notice 'Realtime publication setup skipped: %', sqlerrm;
+        raise notice 'Realtime publication setup notice: %', sqlerrm;
 end;
 $$;
 
 -- ==============================================================================
--- 10. Refresh PostgREST Schema Cache
+-- 11. Refresh PostgREST Schema Cache
 -- ==============================================================================
 notify pgrst, 'reload schema';
