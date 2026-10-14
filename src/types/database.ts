@@ -438,8 +438,17 @@ export type NotificationType =
   | 'payment_received'
   | 'tenant_arrived'
   | 'tenant_departed'
+  | 'landlord_registered'
   | 'maintenance_update'
   | 'system';
+
+export type NotificationRecipientRole =
+  | 'landlord'
+  | 'manager'
+  | 'management'
+  | 'tenant'
+  | 'building_community'
+  | 'admin';
 
 export interface AppNotification {
   id: string;
@@ -448,7 +457,7 @@ export interface AppNotification {
   title_fr?: string;
   message: string;
   message_fr?: string;
-  recipient_role: 'landlord' | 'tenant' | 'building_community';
+  recipient_role: NotificationRecipientRole;
   landlord_id?: string | null;
   building_id?: string | null;
   building_name?: string | null;
@@ -471,7 +480,7 @@ export interface CreateNotificationInput {
   title_fr?: string;
   message: string;
   message_fr?: string;
-  recipient_role: 'landlord' | 'tenant' | 'building_community';
+  recipient_role: NotificationRecipientRole;
   landlord_id?: string | null;
   building_id?: string | null;
   building_name?: string | null;
@@ -484,3 +493,4 @@ export interface CreateNotificationInput {
   rent_month?: string | null;
   metadata?: Record<string, unknown>;
 }
+

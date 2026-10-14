@@ -486,6 +486,22 @@ alter table public.notifications add column if not exists metadata jsonb default
 alter table public.notifications add column if not exists created_at timestamptz not null default now();
 alter table public.notifications add column if not exists updated_at timestamptz not null default now();
 
+do $$
+begin
+    update public.notifications set recipient_role = 'landlord' where recipient_role is null or recipient_role not in ('landlord', 'manager', 'management', 'tenant', 'building_community', 'admin');
+    update public.notifications set type = 'system' where type is null or type not in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'system');
+
+    alter table public.notifications drop constraint if exists notifications_recipient_role_check;
+    alter table public.notifications add constraint notifications_recipient_role_check check (recipient_role in ('landlord', 'manager', 'management', 'tenant', 'building_community', 'admin'));
+
+    alter table public.notifications drop constraint if exists notifications_type_check;
+    alter table public.notifications add constraint notifications_type_check check (type in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'system'));
+exception
+    when others then
+        raise notice 'Notifications migration notice: %', sqlerrm;
+end;
+$$;
+
 -- ==============================================================================
 -- 4. Database Performance Indexes
 -- ==============================================================================
@@ -930,15 +946,55 @@ drop policy if exists "Notifications insert policy" on public.notifications;
 drop policy if exists "Notifications update policy" on public.notifications;
 drop policy if exists "Notifications delete policy" on public.notifications;
 
+-- Strict Notification Routing Select Policy:
+-- 1. Admins see all platform notifications (payments, movements, registrations)
+-- 2. Landlords see notifications for their specific buildings/units, but NEVER admin landlord signups
+-- 3. Managers see notifications for their assigned building(s) under their landlord, but NEVER admin signups
+-- 4. Tenants ONLY see arrivals/departures in their SAME building, and NEVER see payment receipts or landlord signups
 create policy "Notifications select policy"
     on public.notifications for select
     using (
-        (landlord_id is null or public.can_access_landlord_portfolio(landlord_id))
+        -- Admins see all notifications
+        public.is_admin()
         or
-        (auth.role() = 'anon' and exists (
-            select 1 from public.units u
-            where u.building_id = notifications.building_id and u.status = 'occupied'
-        ))
+        -- Landlords managing that specific property
+        (
+            auth.uid() is not null
+            and auth.uid() = landlord_id
+            and recipient_role != 'admin'
+            and type != 'landlord_registered'
+        )
+        or
+        -- Managers managing that specific property under their landlord
+        (
+            auth.uid() is not null
+            and exists (
+                select 1 from public.profiles m
+                where m.id = auth.uid()
+                  and m.role = 'manager'
+                  and m.landlord_id = notifications.landlord_id
+                  and (
+                      m.assigned_building_ids is null
+                      or array_length(m.assigned_building_ids, 1) is null
+                      or notifications.building_id is null
+                      or notifications.building_id = any(m.assigned_building_ids)
+                  )
+            )
+            and recipient_role in ('landlord', 'manager', 'management', 'building_community')
+            and type != 'landlord_registered'
+        )
+        or
+        -- Tenants ONLY see arrivals/departures in their SAME building
+        (
+            auth.role() = 'anon'
+            and recipient_role in ('tenant', 'building_community')
+            and type in ('tenant_arrived', 'tenant_departed', 'system', 'maintenance_update')
+            and exists (
+                select 1 from public.units u
+                where u.building_id = notifications.building_id
+                  and u.status = 'occupied'
+            )
+        )
     );
 
 create policy "Notifications insert policy"
@@ -951,8 +1007,16 @@ create policy "Notifications insert policy"
 
 create policy "Notifications update policy"
     on public.notifications for update
-    using (landlord_id is null or public.can_access_landlord_portfolio(landlord_id))
-    with check (landlord_id is null or public.can_access_landlord_portfolio(landlord_id));
+    using (
+        public.is_admin()
+        or (auth.uid() is not null and (landlord_id is null or auth.uid() = landlord_id or public.can_access_landlord_portfolio(landlord_id)))
+        or (auth.role() = 'anon')
+    )
+    with check (
+        public.is_admin()
+        or (auth.uid() is not null and (landlord_id is null or auth.uid() = landlord_id or public.can_access_landlord_portfolio(landlord_id)))
+        or (auth.role() = 'anon')
+    );
 
 create policy "Notifications delete policy"
     on public.notifications for delete
@@ -1050,6 +1114,35 @@ begin
         email = coalesce(excluded.email, public.profiles.email),
         role = coalesce(public.profiles.role, excluded.role),
         updated_at = now();
+
+    -- Rule 3: Notify platform administrators when a new landlord registers
+    if v_role = 'landlord' then
+        insert into public.notifications (
+            type,
+            title,
+            title_fr,
+            message,
+            message_fr,
+            recipient_role,
+            landlord_id,
+            metadata
+        ) values (
+            'landlord_registered',
+            'New Landlord Registered: ' || v_full_name,
+            'Nouvelle Inscription Bailleur : ' || v_full_name,
+            'Landlord "' || v_full_name || '" (' || coalesce(new.email, '') || ') registered on LeaseLink with plan ' || v_plan_name || '.',
+            'Le bailleur "' || v_full_name || '" (' || coalesce(new.email, '') || ') s''est inscrit sur LeaseLink avec la formule ' || v_plan_name || '.',
+            'admin',
+            new.id,
+            jsonb_build_object(
+                'plan', v_plan,
+                'plan_name', v_plan_name,
+                'email', new.email,
+                'phone', v_phone,
+                'full_name', v_full_name
+            )
+        );
+    end if;
 
     return new;
 end;

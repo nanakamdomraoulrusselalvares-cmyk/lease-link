@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/client";
 import {
   AppNotification,
   CreateNotificationInput,
+  NotificationRecipientRole,
+  NotificationType,
 } from "@/types/database";
 
 const LOCAL_STORAGE_KEY_NOTIFICATIONS = "leaselink_notifications";
@@ -29,7 +31,7 @@ function setLocalNotifications(notifications: AppNotification[]) {
 }
 
 /**
- * Creates a notification and broadcasts it across the platform.
+ * Creates a notification and broadcasts it across the platform with strict routing metadata.
  */
 export async function createNotification(
   input: CreateNotificationInput
@@ -72,11 +74,20 @@ export async function createNotification(
         .insert({
           type: newNotif.type,
           title: newNotif.title,
+          title_fr: newNotif.title_fr,
           message: newNotif.message,
+          message_fr: newNotif.message_fr,
           recipient_role: newNotif.recipient_role,
           landlord_id: newNotif.landlord_id,
           building_id: newNotif.building_id,
+          building_name: newNotif.building_name,
           unit_id: newNotif.unit_id,
+          unit_number: newNotif.unit_number,
+          tenant_name: newNotif.tenant_name,
+          amount: newNotif.amount,
+          payment_method: newNotif.payment_method,
+          receipt_number: newNotif.receipt_number,
+          rent_month: newNotif.rent_month,
           is_read: false,
           metadata: {
             title_fr: newNotif.title_fr,
@@ -109,13 +120,138 @@ export async function createNotification(
   return newNotif;
 }
 
+export interface GetNotificationsParams {
+  role?: "landlord" | "manager" | "admin" | "tenant";
+  userId?: string | null;
+  landlordId?: string | null;
+  assignedBuildingIds?: string[] | null;
+  buildingId?: string | null;
+  unitId?: string | null;
+}
+
 /**
- * Retrieve notifications for a landlord (payment alerts, tenant arrivals/departures, etc.)
+ * Filter a notification locally based on strict routing requirements:
+ * 1. Rent payment: Only manager, admins, and the landlord managing that specific building/unit can receive it.
+ * 2. Tenant arrival/departure: Only admins, landlord, manager, and the different tenants sharing the SAME building.
+ * 3. New landlord registers: ONLY the admins are notified.
  */
-export async function getNotificationsForLandlord(
-  landlordId?: string | null
+function isNotificationPermittedForUser(
+  n: AppNotification,
+  params: GetNotificationsParams
+): boolean {
+  const role = params.role || "landlord";
+
+  // RULE 3: New landlord registration
+  if (n.type === "landlord_registered" || n.recipient_role === "admin") {
+    // ONLY admins receive this
+    return role === "admin";
+  }
+
+  // Admin has visibility on all notifications
+  if (role === "admin") {
+    return true;
+  }
+
+  // RULE 1: Rent Payment received
+  if (n.type === "payment_received") {
+    // Tenants can NEVER see rent payment notifications
+    if (role === "tenant") {
+      return false;
+    }
+
+    // Landlord: must be the landlord of this specific building/unit
+    if (role === "landlord") {
+      const currentLandlordId = params.userId || params.landlordId;
+      return Boolean(currentLandlordId && n.landlord_id === currentLandlordId);
+    }
+
+    // Manager: must manage this landlord and specifically this building
+    if (role === "manager") {
+      const parentLandlordId = params.landlordId;
+      if (!parentLandlordId || n.landlord_id !== parentLandlordId) {
+        return false;
+      }
+      // If manager has specific building assignments, check building match
+      const assigned = params.assignedBuildingIds;
+      if (Array.isArray(assigned) && assigned.length > 0) {
+        return Boolean(n.building_id && assigned.includes(n.building_id));
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  // RULE 2: Tenant arrival or departure
+  if (n.type === "tenant_arrived" || n.type === "tenant_departed") {
+    // Landlord: must own this building
+    if (role === "landlord") {
+      const currentLandlordId = params.userId || params.landlordId;
+      return Boolean(currentLandlordId && n.landlord_id === currentLandlordId);
+    }
+
+    // Manager: must manage this landlord and this specific building
+    if (role === "manager") {
+      const parentLandlordId = params.landlordId;
+      if (!parentLandlordId || n.landlord_id !== parentLandlordId) {
+        return false;
+      }
+      const assigned = params.assignedBuildingIds;
+      if (Array.isArray(assigned) && assigned.length > 0) {
+        return Boolean(n.building_id && assigned.includes(n.building_id));
+      }
+      return true;
+    }
+
+    // Tenant: ONLY tenants sharing the SAME building receive this!
+    if (role === "tenant") {
+      if (!params.buildingId || !n.building_id) return false;
+      return n.building_id === params.buildingId;
+    }
+
+    return false;
+  }
+
+  // Other system/maintenance notifications
+  if (role === "tenant") {
+    if (n.recipient_role === "landlord" || n.recipient_role === "management") {
+      return false;
+    }
+    if (params.buildingId && n.building_id === params.buildingId) {
+      return true;
+    }
+    if (params.unitId && n.unit_id === params.unitId) {
+      return true;
+    }
+    return false;
+  }
+
+  if (role === "landlord") {
+    const currentLandlordId = params.userId || params.landlordId;
+    return Boolean(currentLandlordId && n.landlord_id === currentLandlordId);
+  }
+
+  if (role === "manager") {
+    const parentLandlordId = params.landlordId;
+    if (!parentLandlordId || n.landlord_id !== parentLandlordId) return false;
+    const assigned = params.assignedBuildingIds;
+    if (Array.isArray(assigned) && assigned.length > 0 && n.building_id) {
+      return assigned.includes(n.building_id);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Universal, role-aware notification retrieval function
+ */
+export async function getNotificationsForUser(
+  params: GetNotificationsParams
 ): Promise<AppNotification[]> {
   const localList = getLocalNotifications();
+  const role = params.role || "landlord";
 
   const supabase = createClient();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -123,37 +259,75 @@ export async function getNotificationsForLandlord(
 
   let remoteList: AppNotification[] = [];
 
-  if (!isMockConfig && landlordId) {
+  if (!isMockConfig) {
     try {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("landlord_id", landlordId)
-        .order("created_at", { ascending: false });
+      let query = supabase.from("notifications").select("*");
+
+      if (role === "admin") {
+        // Admin sees all notifications
+        query = query.order("created_at", { ascending: false });
+      } else if (role === "tenant") {
+        // Tenant only sees their specific building community, never payment_received or landlord_registered
+        if (params.buildingId) {
+          query = query
+            .eq("building_id", params.buildingId)
+            .neq("type", "payment_received")
+            .neq("type", "landlord_registered")
+            .in("recipient_role", ["tenant", "building_community"])
+            .order("created_at", { ascending: false });
+        } else {
+          query = query.eq("id", "00000000-0000-0000-0000-000000000000"); // empty
+        }
+      } else if (role === "manager") {
+        const parentLandlordId = params.landlordId;
+        if (parentLandlordId) {
+          query = query
+            .eq("landlord_id", parentLandlordId)
+            .neq("recipient_role", "admin")
+            .neq("type", "landlord_registered")
+            .order("created_at", { ascending: false });
+        } else {
+          query = query.eq("id", "00000000-0000-0000-0000-000000000000");
+        }
+      } else {
+        // Landlord
+        const landlordId = params.userId || params.landlordId;
+        if (landlordId) {
+          query = query
+            .eq("landlord_id", landlordId)
+            .neq("recipient_role", "admin")
+            .neq("type", "landlord_registered")
+            .order("created_at", { ascending: false });
+        } else {
+          query = query.eq("id", "00000000-0000-0000-0000-000000000000");
+        }
+      }
+
+      const { data, error } = await query;
 
       if (!error && Array.isArray(data)) {
         remoteList = data.map((d: any) => ({
           id: d.id,
           type: d.type,
           title: d.title,
-          title_fr: d.metadata?.title_fr || d.title,
+          title_fr: d.title_fr || d.metadata?.title_fr || d.title,
           message: d.message,
-          message_fr: d.metadata?.message_fr || d.message,
+          message_fr: d.message_fr || d.metadata?.message_fr || d.message,
           recipient_role: d.recipient_role,
           landlord_id: d.landlord_id,
           building_id: d.building_id,
-          building_name: d.metadata?.building_name,
+          building_name: d.building_name || d.metadata?.building_name,
           unit_id: d.unit_id,
-          unit_number: d.metadata?.unit_number,
-          tenant_name: d.metadata?.tenant_name,
-          amount: d.metadata?.amount,
-          payment_method: d.metadata?.payment_method,
-          receipt_number: d.metadata?.receipt_number,
-          rent_month: d.metadata?.rent_month,
+          unit_number: d.unit_number || d.metadata?.unit_number,
+          tenant_name: d.tenant_name || d.metadata?.tenant_name,
+          amount: d.amount ?? d.metadata?.amount,
+          payment_method: d.payment_method || d.metadata?.payment_method,
+          receipt_number: d.receipt_number || d.metadata?.receipt_number,
+          rent_month: d.rent_month || d.metadata?.rent_month,
           is_read: d.is_read || false,
-          read_by: d.metadata?.read_by || [],
+          read_by: d.read_by || d.metadata?.read_by || [],
           created_at: d.created_at,
-          metadata: d.metadata,
+          metadata: d.metadata || {},
         }));
       }
     } catch (err) {
@@ -161,90 +335,74 @@ export async function getNotificationsForLandlord(
     }
   }
 
-  // Merge remote and local lists strictly for this landlord
+  // Merge remote and local lists using strict permission filter
   const remoteIds = new Set(remoteList.map((n) => n.id));
   const matchedLocal = localList.filter((n) => {
     if (remoteIds.has(n.id)) return false;
-    if (!landlordId) return false;
-    return n.landlord_id === landlordId;
+    return isNotificationPermittedForUser(n, params);
   });
 
-  return [...remoteList, ...matchedLocal].sort(
+  // Filter remote list as well to guarantee client-side consistency
+  const permittedRemote = remoteList.filter((n) => isNotificationPermittedForUser(n, params));
+
+  return [...permittedRemote, ...matchedLocal].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 }
 
 /**
- * Retrieve notifications for a specific tenant in a building (arrival of new neighbor, departure of old neighbor, community alerts)
+ * Retrieve notifications for a landlord (payment alerts, tenant arrivals/departures in their properties)
+ */
+export async function getNotificationsForLandlord(
+  landlordId?: string | null
+): Promise<AppNotification[]> {
+  return getNotificationsForUser({
+    role: "landlord",
+    userId: landlordId,
+    landlordId: landlordId,
+  });
+}
+
+/**
+ * Retrieve notifications for a manager (payment alerts and tenant movements in their assigned buildings)
+ */
+export async function getNotificationsForManager(
+  managerId: string,
+  parentLandlordId: string,
+  assignedBuildingIds?: string[] | null
+): Promise<AppNotification[]> {
+  return getNotificationsForUser({
+    role: "manager",
+    userId: managerId,
+    landlordId: parentLandlordId,
+    assignedBuildingIds: assignedBuildingIds,
+  });
+}
+
+/**
+ * Retrieve notifications for platform admins (all platform activities, payments, movements, and new landlord registrations)
+ */
+export async function getNotificationsForAdmin(
+  adminId?: string | null
+): Promise<AppNotification[]> {
+  return getNotificationsForUser({
+    role: "admin",
+    userId: adminId,
+  });
+}
+
+/**
+ * Retrieve notifications for a specific tenant in a building (arrival of new neighbor, departure of old neighbor in THEIR SAME BUILDING ONLY)
  */
 export async function getNotificationsForTenant(
   buildingId: string,
   unitId?: string | null
 ): Promise<AppNotification[]> {
-  const localList = getLocalNotifications();
-
-  const supabase = createClient();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const isMockConfig = !url || url.includes("your-project-ref");
-
-  let remoteList: AppNotification[] = [];
-
-  if (!isMockConfig && buildingId) {
-    try {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("building_id", buildingId)
-        .order("created_at", { ascending: false });
-
-      if (!error && Array.isArray(data)) {
-        remoteList = data.map((d: any) => ({
-          id: d.id,
-          type: d.type,
-          title: d.title,
-          title_fr: d.metadata?.title_fr || d.title,
-          message: d.message,
-          message_fr: d.metadata?.message_fr || d.message,
-          recipient_role: d.recipient_role,
-          landlord_id: d.landlord_id,
-          building_id: d.building_id,
-          building_name: d.metadata?.building_name,
-          unit_id: d.unit_id,
-          unit_number: d.metadata?.unit_number,
-          tenant_name: d.metadata?.tenant_name,
-          amount: d.metadata?.amount,
-          payment_method: d.metadata?.payment_method,
-          receipt_number: d.metadata?.receipt_number,
-          rent_month: d.metadata?.rent_month,
-          is_read: d.is_read || false,
-          read_by: d.metadata?.read_by || [],
-          created_at: d.created_at,
-          metadata: d.metadata,
-        }));
-      }
-    } catch (err) {
-      console.warn("Error fetching tenant remote notifications:", err);
-    }
-  }
-
-  // Filter local list for this building or unit
-  const remoteIds = new Set(remoteList.map((n) => n.id));
-  const matchedLocal = localList.filter((n) => {
-    if (remoteIds.has(n.id)) return false;
-    // Notifications intended for all tenants in this building
-    if (n.building_id === buildingId && (n.recipient_role === "building_community" || n.recipient_role === "tenant")) {
-      return true;
-    }
-    // Targeted notifications to this specific unit
-    if (unitId && n.unit_id === unitId) {
-      return true;
-    }
-    return false;
+  return getNotificationsForUser({
+    role: "tenant",
+    buildingId,
+    unitId,
   });
-
-  return [...remoteList, ...matchedLocal].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
 }
 
 /**
@@ -292,15 +450,15 @@ export async function markNotificationAsRead(
  */
 export async function markAllNotificationsAsRead(
   readerId: string,
-  role: "landlord" | "tenant",
+  role: "landlord" | "manager" | "admin" | "tenant",
   buildingId?: string | null
 ): Promise<boolean> {
   const localList = getLocalNotifications();
   const updatedList = localList.map((n) => {
     const isTarget =
-      role === "landlord"
-        ? n.recipient_role === "landlord" || n.landlord_id === readerId
-        : n.building_id === buildingId || n.recipient_role === "building_community";
+      role === "tenant"
+        ? n.building_id === buildingId || n.recipient_role === "building_community"
+        : n.landlord_id === readerId || role === "admin" || n.recipient_role === "management";
 
     if (isTarget) {
       const readBy = new Set(n.read_by || []);
@@ -318,16 +476,18 @@ export async function markAllNotificationsAsRead(
 
   if (!isMockConfig) {
     try {
-      if (role === "landlord") {
-        await supabase
-          .from("notifications")
-          .update({ is_read: true })
-          .eq("landlord_id", readerId);
-      } else if (buildingId) {
+      if (role === "admin") {
+        await supabase.from("notifications").update({ is_read: true });
+      } else if (role === "tenant" && buildingId) {
         await supabase
           .from("notifications")
           .update({ is_read: true })
           .eq("building_id", buildingId);
+      } else {
+        await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("landlord_id", readerId);
       }
     } catch {
       // Ignore remote error
@@ -365,8 +525,8 @@ export async function clearNotification(notificationId: string): Promise<boolean
 // ============================================================================
 
 /**
- * Triggered whenever a rent payment is recorded (either mobile money or cash).
- * Notifies the landlord with full payment breakdown and tenant identity.
+ * RULE 1: Triggered whenever a rent payment is recorded.
+ * ONLY the manager, admins, and the landlord managing that specific building and unit can receive this notification.
  */
 export async function notifyPaymentReceived(details: {
   landlordId: string;
@@ -391,7 +551,7 @@ export async function notifyPaymentReceived(details: {
 
   return createNotification({
     type: "payment_received",
-    recipient_role: "landlord",
+    recipient_role: "management",
     landlord_id: details.landlordId,
     building_id: details.buildingId,
     building_name: details.buildingName,
@@ -413,8 +573,8 @@ export async function notifyPaymentReceived(details: {
 }
 
 /**
- * Triggered when a new tenant is assigned to a unit in a specific building.
- * Sends a notification to ALL tenants in that specific building (and the landlord).
+ * RULE 2: Triggered when a new tenant arrives/moves into a unit.
+ * ONLY admins, landlord, manager, and the different tenants sharing the SAME building receive this notification.
  */
 export async function notifyTenantArrival(details: {
   buildingId: string;
@@ -447,8 +607,8 @@ export async function notifyTenantArrival(details: {
 }
 
 /**
- * Triggered when an old tenant leaves (unassigned/vacated from a unit).
- * Sends a notification to ALL tenants in that specific building (and the landlord).
+ * RULE 2: Triggered when a tenant departs/vacates a unit.
+ * ONLY admins, landlord, manager, and the different tenants sharing the SAME building receive this notification.
  */
 export async function notifyTenantDeparture(details: {
   buildingId: string;
@@ -477,5 +637,40 @@ export async function notifyTenantDeparture(details: {
     title_fr: titleFr,
     message: messageEn,
     message_fr: messageFr,
+  });
+}
+
+/**
+ * RULE 3: Triggered when a new landlord registers on LeaseLink.
+ * ONLY the platform admins are notified of this.
+ */
+export async function notifyNewLandlordRegistered(details: {
+  landlordId: string;
+  landlordName: string;
+  email: string;
+  phone?: string;
+  plan?: string;
+}): Promise<AppNotification> {
+  const planLabel = details.plan || "Free Trial";
+  const titleEn = `New Landlord Registered: ${details.landlordName}`;
+  const titleFr = `Nouveau Bailleur Inscrit : ${details.landlordName}`;
+
+  const messageEn = `Landlord "${details.landlordName}" (${details.email}) has registered on LeaseLink with plan ${planLabel}.`;
+  const messageFr = `Le bailleur "${details.landlordName}" (${details.email}) s'est inscrit sur LeaseLink avec la formule ${planLabel}.`;
+
+  return createNotification({
+    type: "landlord_registered",
+    recipient_role: "admin",
+    landlord_id: details.landlordId,
+    title: titleEn,
+    title_fr: titleFr,
+    message: messageEn,
+    message_fr: messageFr,
+    metadata: {
+      email: details.email,
+      phone: details.phone,
+      plan: details.plan,
+      landlord_name: details.landlordName,
+    },
   });
 }

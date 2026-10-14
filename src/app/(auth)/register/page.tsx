@@ -8,6 +8,7 @@ import {
   AVAILABLE_PLANS,
   SubscriptionPlanId,
 } from "@/types/database";
+import { notifyNewLandlordRegistered } from "@/lib/services/notificationService";
 import {
   Building2,
   Lock,
@@ -221,6 +222,22 @@ export default function RegisterPage() {
         setIsEmailDuplicate(true);
         setLoading(false);
         return;
+      }
+
+      // Notify administrators about the new landlord registration (Rule 3)
+      if (data.user) {
+        try {
+          const selectedPlanConfig = AVAILABLE_PLANS.find((p) => p.id === selectedPlan);
+          await notifyNewLandlordRegistered({
+            landlordId: data.user.id,
+            landlordName: fullName.trim() || cleanEmail,
+            email: cleanEmail,
+            phone: phone.trim(),
+            plan: selectedPlanConfig?.name || selectedPlan,
+          });
+        } catch (notifErr) {
+          console.warn("Could not dispatch admin registration notification:", notifErr);
+        }
       }
 
       // Check if session was returned directly (e.g. email confirmations disabled)

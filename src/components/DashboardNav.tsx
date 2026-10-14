@@ -350,7 +350,12 @@ export default function DashboardNav({
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <LanguageSwitcher variant="pill" />
             <ThemeSwitcher variant="pill" />
-            <NotificationBell role="landlord" landlordId={user?.id} />
+            <NotificationBell
+              role={profile?.role || "landlord"}
+              userId={user?.id}
+              landlordId={profile?.role === "manager" ? profile?.landlord_id : user?.id}
+              assignedBuildingIds={profile?.assigned_building_ids}
+            />
 
             {/* User Profile Pill (Desktop) */}
             <div className="hidden md:flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs">

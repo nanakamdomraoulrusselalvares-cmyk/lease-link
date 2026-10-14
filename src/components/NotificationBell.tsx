@@ -7,18 +7,15 @@ import {
   Receipt,
   UserPlus,
   UserMinus,
-  AlertCircle,
   Building2,
   DoorOpen,
-  DollarSign,
   X,
-  Clock,
   Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 import { AppNotification } from "@/types/database";
 import {
-  getNotificationsForLandlord,
-  getNotificationsForTenant,
+  getNotificationsForUser,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   clearNotification,
@@ -26,8 +23,10 @@ import {
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface NotificationBellProps {
-  role: "landlord" | "tenant";
+  role?: "landlord" | "manager" | "admin" | "tenant";
+  userId?: string | null;
   landlordId?: string | null;
+  assignedBuildingIds?: string[] | null;
   buildingId?: string | null;
   unitId?: string | null;
   tenantName?: string | null;
@@ -35,8 +34,10 @@ interface NotificationBellProps {
 }
 
 export default function NotificationBell({
-  role,
+  role = "landlord",
+  userId,
   landlordId,
+  assignedBuildingIds,
   buildingId,
   unitId,
   tenantName,
@@ -50,18 +51,23 @@ export default function NotificationBell({
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const readerId = role === "landlord" ? landlordId || "landlord" : unitId || "tenant";
+  const readerId =
+    role === "tenant"
+      ? unitId || "tenant"
+      : userId || landlordId || "management_user";
 
-  // Load notifications based on role
+  // Load notifications based on exact role and parameters
   const loadNotifications = async () => {
     try {
-      if (role === "landlord") {
-        const list = await getNotificationsForLandlord(landlordId);
-        setNotifications(list);
-      } else if (buildingId) {
-        const list = await getNotificationsForTenant(buildingId, unitId);
-        setNotifications(list);
-      }
+      const list = await getNotificationsForUser({
+        role,
+        userId,
+        landlordId,
+        assignedBuildingIds,
+        buildingId,
+        unitId,
+      });
+      setNotifications(list);
     } catch (err) {
       console.warn("Error loading notifications:", err);
     }
@@ -82,7 +88,7 @@ export default function NotificationBell({
       window.removeEventListener("leaselink:notification_updated", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, [role, landlordId, buildingId, unitId]);
+  }, [role, userId, landlordId, assignedBuildingIds, buildingId, unitId]);
 
   // Handle outside click to close dropdown
   useEffect(() => {
@@ -304,9 +310,16 @@ export default function NotificationBell({
                         </div>
                       )}
 
+                      {notif.type === "landlord_registered" && (
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs">
+                          <ShieldAlert className="w-4 h-4" />
+                        </div>
+                      )}
+
                       {notif.type !== "payment_received" &&
                         notif.type !== "tenant_arrived" &&
-                        notif.type !== "tenant_departed" && (
+                        notif.type !== "tenant_departed" &&
+                        notif.type !== "landlord_registered" && (
                           <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shadow-xs">
                             <Sparkles className="w-4 h-4" />
                           </div>
@@ -370,7 +383,7 @@ export default function NotificationBell({
                       <button
                         type="button"
                         onClick={(e) => handleClear(e, notif.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-md transition"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition"
                         title={isFrench ? "Supprimer la notification" : "Delete notification"}
                       >
                         <X className="w-3.5 h-3.5" />
@@ -381,15 +394,6 @@ export default function NotificationBell({
               })
             )}
           </div>
-
-          {/* Footer */}
-          {displayedNotifications.length > 0 && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-800 text-center text-[11px] text-slate-500 dark:text-slate-400">
-              {role === "landlord"
-                ? t("notifLandlordFooter")
-                : t("notifTenantFooter")}
-            </div>
-          )}
         </div>
       )}
     </div>
