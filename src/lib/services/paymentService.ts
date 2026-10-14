@@ -589,3 +589,52 @@ Votre reçu officiel avec cachet unique est disponible en téléchargement dans 
   const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
   return { url, cleanPhone, message };
 }
+
+/**
+ * Generate a WhatsApp payment reminder message for unpaid / overdue rents
+ */
+export function buildPaymentReminderWhatsAppUrl(params: {
+  tenantPhone: string;
+  tenantName: string;
+  buildingName: string;
+  unitNumber: string;
+  balanceOwing: number;
+  rentMonth: string;
+  daysLate?: number;
+  managerName?: string;
+  language?: "en" | "fr";
+}): { url: string; cleanPhone: string; message: string } {
+  const cleanPhone = formatWhatsAppPhoneNumber(params.tenantPhone);
+  const formattedOwing = Number(params.balanceOwing || 0).toLocaleString();
+  const lang = params.language || "fr";
+
+  let message = "";
+  if (lang === "en") {
+    message = `Hello ${params.tenantName}! 👋
+This is a friendly reminder regarding your rent for unit ${params.unitNumber} (${params.buildingName}).
+
+📋 *Rent Status Summary:*
+• Period: *${params.rentMonth}*
+• Outstanding Balance: *${formattedOwing} XAF*
+${params.daysLate && params.daysLate > 0 ? `• Overdue by: *${params.daysLate} day(s)* ⚠️\n` : ""}
+Please settle your balance promptly via your LeaseLink tenant portal or in cash with management.
+
+Thank you!
+${params.managerName ? `— ${params.managerName} (Property Management)` : "— Property Management"}`;
+  } else {
+    message = `Bonjour ${params.tenantName} ! 👋
+Nous vous contactons concernant le règlement de votre loyer pour le logement ${params.unitNumber} (${params.buildingName}).
+
+📋 *Rappel d'Échéance de Loyer :*
+• Période concernée : *${params.rentMonth}*
+• Montant restant dû : *${formattedOwing} XAF*
+${params.daysLate && params.daysLate > 0 ? `• Retard constaté : *${params.daysLate} jour(s)* ⚠️\n` : ""}
+Merci de bien vouloir procéder au règlement dans les meilleurs délais via votre espace locataire LeaseLink ou directement auprès de la gestion.
+
+Cordialement,
+${params.managerName ? `— ${params.managerName} (Gestion Immobilière)` : "— Gestion Immobilière"}`;
+  }
+
+  const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  return { url, cleanPhone, message };
+}

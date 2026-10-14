@@ -90,11 +90,15 @@ export default function LandlordMaintenancePage() {
         .eq("id", authUser.id)
         .maybeSingle();
 
+      let effectiveLandlordId = authUser.id;
       if (profileData) {
         setProfile(profileData as LandlordProfile);
+        if (profileData.role === "manager" && profileData.landlord_id) {
+          effectiveLandlordId = profileData.landlord_id;
+        }
       }
 
-      const list = await getMaintenanceRequestsForLandlord(authUser.id);
+      const list = await getMaintenanceRequestsForLandlord(effectiveLandlordId);
       setRequests(list);
 
       // Initialize notes state

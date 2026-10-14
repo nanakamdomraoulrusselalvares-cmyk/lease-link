@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   Building,
@@ -54,6 +55,7 @@ import {
 } from "lucide-react";
 
 function PaymentsContent() {
+  const router = useRouter();
   const { language, isFrench, t, formatDate, formatCurrency } = useLanguage();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<LandlordProfile | null>(null);
@@ -119,7 +121,13 @@ function PaymentsContent() {
         .select("*")
         .eq("id", authUser.id)
         .maybeSingle();
-      if (profileData) setProfile(profileData as LandlordProfile);
+      if (profileData) {
+        if (profileData.role === "manager") {
+          router.replace("/dashboard/unpaid-rents");
+          return;
+        }
+        setProfile(profileData as LandlordProfile);
+      }
     }
 
     const landlordId = authUser?.id || "mock-landlord";

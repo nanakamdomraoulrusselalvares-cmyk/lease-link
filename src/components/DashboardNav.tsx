@@ -25,6 +25,8 @@ import {
   User,
   Plus,
   ExternalLink,
+  AlertTriangle,
+  Users,
 } from "lucide-react";
 
 interface DashboardNavProps {
@@ -85,53 +87,115 @@ export default function DashboardNav({
     }
   };
 
-  const navItems = [
-    {
-      href: "/dashboard",
-      label: isFrench ? "Vue d'ensemble" : "Overview",
-      icon: LayoutDashboard,
-      active: pathname === "/dashboard",
-      badge: null,
-    },
-    {
-      href: "/dashboard/buildings",
-      label: isFrench ? "Immeubles & Logements" : "Buildings & Units",
-      icon: Building2,
-      active: pathname.startsWith("/dashboard/buildings"),
-      badge: buildingsCount > 0 ? `${buildingsCount}` : null,
-    },
-    {
-      href: "/dashboard/credentials",
-      label: isFrench ? "Identifiants Locataires" : "Tenant Credentials",
-      icon: KeyRound,
-      active: pathname.startsWith("/dashboard/credentials"),
-      badge: null,
-    },
-    {
-      href: "/dashboard/payments",
-      label: isFrench ? "Loyers & Quittances" : "Payments & Ledgers",
-      icon: Receipt,
-      active: pathname.startsWith("/dashboard/payments"),
-      badge: null,
-    },
-    {
-      href: "/dashboard/maintenance",
-      label: isFrench ? "Réparations" : "Repairs",
-      icon: Wrench,
-      active: pathname.startsWith("/dashboard/maintenance"),
-      badge: pendingRepairsCount > 0 ? `${pendingRepairsCount}` : null,
-      badgePulse: pendingRepairsCount > 0,
-    },
-  ];
+  const isManager = profile?.role === "manager";
+
+  // Desktop navigation items depending on role
+  const navItems = isManager
+    ? [
+        {
+          href: "/dashboard",
+          label: isFrench ? "Vue d'ensemble" : "Overview",
+          icon: LayoutDashboard,
+          active: pathname === "/dashboard",
+          badge: null,
+        },
+        {
+          href: "/dashboard/buildings",
+          label: isFrench ? "Immeubles & Logements" : "Buildings & Units",
+          icon: Building2,
+          active: pathname.startsWith("/dashboard/buildings"),
+          badge: buildingsCount > 0 ? `${buildingsCount}` : null,
+        },
+        {
+          href: "/dashboard/credentials",
+          label: isFrench ? "Identifiants Locataires" : "Tenant Credentials",
+          icon: KeyRound,
+          active: pathname.startsWith("/dashboard/credentials"),
+          badge: null,
+        },
+        {
+          href: "/dashboard/unpaid-rents",
+          label: isFrench ? "Loyers Impayés" : "Unpaid Rents",
+          icon: AlertTriangle,
+          active: pathname.startsWith("/dashboard/unpaid-rents"),
+          badge: null,
+        },
+        {
+          href: "/dashboard/maintenance",
+          label: isFrench ? "Réparations" : "Repairs",
+          icon: Wrench,
+          active: pathname.startsWith("/dashboard/maintenance"),
+          badge: pendingRepairsCount > 0 ? `${pendingRepairsCount}` : null,
+          badgePulse: pendingRepairsCount > 0,
+        },
+      ]
+    : [
+        {
+          href: "/dashboard",
+          label: isFrench ? "Vue d'ensemble" : "Overview",
+          icon: LayoutDashboard,
+          active: pathname === "/dashboard",
+          badge: null,
+        },
+        {
+          href: "/dashboard/buildings",
+          label: isFrench ? "Immeubles & Logements" : "Buildings & Units",
+          icon: Building2,
+          active: pathname.startsWith("/dashboard/buildings"),
+          badge: buildingsCount > 0 ? `${buildingsCount}` : null,
+        },
+        {
+          href: "/dashboard/credentials",
+          label: isFrench ? "Identifiants Locataires" : "Tenant Credentials",
+          icon: KeyRound,
+          active: pathname.startsWith("/dashboard/credentials"),
+          badge: null,
+        },
+        {
+          href: "/dashboard/payments",
+          label: isFrench ? "Loyers & Quittances" : "Payments & Ledgers",
+          icon: Receipt,
+          active: pathname.startsWith("/dashboard/payments"),
+          badge: null,
+        },
+        {
+          href: "/dashboard/managers",
+          label: isFrench ? "Gestionnaires" : "Managers",
+          icon: Users,
+          active: pathname.startsWith("/dashboard/managers"),
+          badge: null,
+        },
+        {
+          href: "/dashboard/maintenance",
+          label: isFrench ? "Réparations" : "Repairs",
+          icon: Wrench,
+          active: pathname.startsWith("/dashboard/maintenance"),
+          badge: pendingRepairsCount > 0 ? `${pendingRepairsCount}` : null,
+          badgePulse: pendingRepairsCount > 0,
+        },
+      ];
+
+  // Mobile Bottom Navigation: 5 items for both roles
+  const mobileBottomItems = isManager
+    ? navItems
+    : [
+        navItems[0], // Overview
+        navItems[1], // Buildings
+        navItems[2], // Credentials
+        navItems[3], // Payments
+        navItems[5], // Repairs
+      ];
 
   const userDisplayName =
     profile?.full_name ||
     (user?.user_metadata?.full_name as string) ||
     user?.email?.split("@")[0] ||
-    (isFrench ? "Bailleur" : "Landlord");
+    (isManager ? (isFrench ? "Gestionnaire" : "Manager") : (isFrench ? "Bailleur" : "Landlord"));
 
   const planConfig = AVAILABLE_PLANS.find((p) => p.id === profile?.plan) || AVAILABLE_PLANS[0];
-  const planLabel = isFrench && planConfig.nameFr ? planConfig.nameFr : profile?.plan_name || planConfig.name;
+  const planLabel = isManager
+    ? isFrench ? "Gestionnaire Délégué" : "Property Manager"
+    : isFrench && planConfig.nameFr ? planConfig.nameFr : profile?.plan_name || planConfig.name;
 
   return (
     <>
@@ -159,10 +223,17 @@ export default function DashboardNav({
               </div>
             </Link>
 
-            <span className="hidden 2xl:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
-              <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-              <span>{planLabel}</span>
-            </span>
+            {isManager ? (
+              <span className="hidden 2xl:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                <ShieldCheck className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                <span>{planLabel}</span>
+              </span>
+            ) : (
+              <span className="hidden 2xl:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
+                <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                <span>{planLabel}</span>
+              </span>
+            )}
           </div>
 
           {/* Center: Desktop Segmented Navigation Tabs */}
@@ -265,7 +336,7 @@ export default function DashboardNav({
         aria-label="Mobile bottom navigation"
       >
         <div className="grid grid-cols-5 h-16 max-w-md mx-auto px-1 items-center">
-          {navItems.map((item) => {
+          {mobileBottomItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link

@@ -95,22 +95,30 @@ function CredentialsContent() {
 
       if (authUser) {
         setUser(authUser);
+        let effectiveLandlordId = authUser.id;
+
         const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", authUser.id)
           .maybeSingle();
-        if (profileData) setProfile(profileData as LandlordProfile);
-      }
 
-      const landlordId = authUser?.id || "mock-landlord";
+        if (profileData) {
+          setProfile(profileData as LandlordProfile);
+          if (profileData.role === "manager" && profileData.landlord_id) {
+            effectiveLandlordId = profileData.landlord_id;
+          }
+        }
 
-      try {
-        const buildingsData = await getBuildingsWithUnits(landlordId);
-        setBuildings(buildingsData);
-      } catch (err) {
-        console.error("Error loading buildings for credentials page:", err);
-      } finally {
+        try {
+          const buildingsData = await getBuildingsWithUnits(effectiveLandlordId);
+          setBuildings(buildingsData);
+        } catch (err) {
+          console.error("Error loading buildings for credentials page:", err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
         setLoading(false);
       }
     }

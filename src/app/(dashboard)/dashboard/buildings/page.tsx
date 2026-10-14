@@ -181,7 +181,11 @@ export default function BuildingsManagementPage() {
       }
 
       // Load Buildings & Units
-      const fetchedBuildings = await getBuildingsWithUnits(authUser.id);
+      const effectiveLandlordId =
+        profileData?.role === "manager" && profileData.landlord_id
+          ? profileData.landlord_id
+          : authUser.id;
+      const fetchedBuildings = await getBuildingsWithUnits(effectiveLandlordId);
       setBuildings(fetchedBuildings);
 
       // Expand all buildings by default for direct inspection
@@ -297,7 +301,9 @@ export default function BuildingsManagementPage() {
     setSubmitting(true);
 
     try {
-      const result = await createBuildingWithUnits(user.id, formData, planUnitLimit);
+      const targetLandlordId =
+        profile?.role === "manager" && profile.landlord_id ? profile.landlord_id : user.id;
+      const result = await createBuildingWithUnits(targetLandlordId, formData, planUnitLimit);
 
       if (!result.success) {
         setFormError(
@@ -414,7 +420,9 @@ export default function BuildingsManagementPage() {
     }
 
     try {
-      const result = await updateUnitConfiguration(user.id, editingUnit.id, unitForm);
+      const targetLandlordId =
+        profile?.role === "manager" && profile.landlord_id ? profile.landlord_id : user.id;
+      const result = await updateUnitConfiguration(targetLandlordId, editingUnit.id, unitForm);
 
       if (!result.success) {
         setUnitEditError(

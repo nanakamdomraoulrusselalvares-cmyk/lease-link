@@ -101,13 +101,17 @@ export default function LandlordHomePage() {
         .eq("id", authUser.id)
         .maybeSingle();
 
+      let effectiveLandlordId = authUser.id;
       if (!profileError && profileData) {
         setProfile(profileData as LandlordProfile);
+        if (profileData.role === "manager" && profileData.landlord_id) {
+          effectiveLandlordId = profileData.landlord_id;
+        }
       }
 
       // Fetch landlord buildings and units portfolio
       try {
-        const buildingsData = await getBuildingsWithUnits(authUser.id);
+        const buildingsData = await getBuildingsWithUnits(effectiveLandlordId);
         setBuildings(buildingsData);
       } catch (bErr) {
         console.warn("Could not load portfolio buildings on dashboard:", bErr);
@@ -115,7 +119,7 @@ export default function LandlordHomePage() {
 
       // Fetch landlord maintenance requests
       try {
-        const mRequests = await getMaintenanceRequestsForLandlord(authUser.id);
+        const mRequests = await getMaintenanceRequestsForLandlord(effectiveLandlordId);
         setMaintenanceRequests(mRequests);
       } catch (mErr) {
         console.warn("Could not load maintenance requests on dashboard:", mErr);
@@ -277,7 +281,11 @@ export default function LandlordHomePage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>
-                {isFrench
+                {profile?.role === "manager"
+                  ? isFrench
+                    ? "Session Gestionnaire Délégué Active"
+                    : "Manager Session Verified & Active"
+                  : isFrench
                   ? "Session Bailleur Vérifiée & Active"
                   : "Registration Successful & Session Verified"}
               </span>
@@ -288,7 +296,11 @@ export default function LandlordHomePage() {
                 {isFrench ? `Bienvenue sur LeaseLink, ${fullName} !` : `Welcome to LeaseLink, ${fullName}!`}
               </h1>
               <p className="mt-1.5 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-                {isFrench
+                {profile?.role === "manager"
+                  ? isFrench
+                    ? "Votre compte gestionnaire est opérationnel. Vous disposez des accès délégués pour la gestion des immeubles, locataires, pannes et impayés."
+                    : "Your manager account is active. You have operational access to manage buildings, tenants, repairs, and unpaid rent tracking."
+                  : isFrench
                   ? "Votre compte propriétaire est opérationnel. Vous êtes connecté à l'espace de gestion LeaseLink. Voici le récapitulatif de votre portefeuille."
                   : "Your landlord account was created successfully. You are now logged into the LeaseLink landlord portal. Below are the details captured during registration."}
               </p>
@@ -342,12 +354,16 @@ export default function LandlordHomePage() {
               <div className="flex items-center gap-2">
                 <UserIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
-                  {isFrench ? "Profil Bailleur" : "Landlord Profile"}
+                  {profile?.role === "manager"
+                    ? isFrench ? "Profil Gestionnaire" : "Manager Profile"
+                    : isFrench ? "Profil Bailleur" : "Landlord Profile"}
                 </span>
               </div>
               <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 font-medium">
                 <ShieldCheck className="w-3 h-3" />
-                {isFrench ? "Authentifié" : "Authenticated"}
+                {profile?.role === "manager"
+                  ? isFrench ? "Gestionnaire Délégué" : "Delegated Manager"
+                  : isFrench ? "Authentifié" : "Authenticated"}
               </span>
             </div>
 
@@ -560,7 +576,7 @@ export default function LandlordHomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className={`grid grid-cols-2 sm:grid-cols-3 ${profile?.role === "manager" ? "lg:grid-cols-5" : "lg:grid-cols-3 xl:grid-cols-6"} gap-3 sm:gap-4`}>
             <Link
               href="/dashboard/buildings"
               className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
@@ -622,31 +638,77 @@ export default function LandlordHomePage() {
               </p>
             </Link>
 
-            <Link
-              href="/dashboard/payments"
-              id="dashboard-payments-card"
-              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
-            >
-              <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-600/10 group-hover:bg-blue-600 border border-blue-200 dark:border-blue-500/20 group-hover:border-blue-500 text-blue-600 dark:text-blue-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
-                <Receipt className="w-4 h-4" />
-              </div>
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
-                  {isFrench ? "Paiements" : "Payments"}
-                </h3>
-                <span className="text-[10px] text-blue-800 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-300 dark:border-blue-500/20">
-                  {isFrench ? "Quittances" : "Ledgers"}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                {isFrench ? "Suivi loyers & quittances →" : "Rent status & receipts →"}
-              </p>
-            </Link>
+            {profile?.role === "manager" ? (
+              <Link
+                href="/dashboard/unpaid-rents"
+                id="dashboard-unpaid-rents-card"
+                className="bg-white dark:bg-slate-900 border-2 border-rose-300 dark:border-rose-900/50 hover:border-rose-500 dark:hover:border-rose-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-lg bg-rose-50 dark:bg-rose-600/10 group-hover:bg-rose-600 border border-rose-200 dark:border-rose-500/20 group-hover:border-rose-500 text-rose-600 dark:text-rose-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-rose-600 dark:group-hover:text-rose-400 transition">
+                    {isFrench ? "Loyers Impayés" : "Unpaid Rents"}
+                  </h3>
+                  <span className="text-[10px] text-rose-800 dark:text-rose-400 font-bold bg-rose-100 dark:bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-300 dark:border-rose-500/20">
+                    {isFrench ? "Relances" : "Overdue"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                  {isFrench ? "Alertes WhatsApp & encaissements →" : "Overdue alerts & cash records →"}
+                </p>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard/payments"
+                  id="dashboard-payments-card"
+                  className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-600/10 group-hover:bg-blue-600 border border-blue-200 dark:border-blue-500/20 group-hover:border-blue-500 text-blue-600 dark:text-blue-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                      {isFrench ? "Paiements" : "Payments"}
+                    </h3>
+                    <span className="text-[10px] text-blue-800 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-300 dark:border-blue-500/20">
+                      {isFrench ? "Quittances" : "Ledgers"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                    {isFrench ? "Suivi loyers & quittances →" : "Rent status & receipts →"}
+                  </p>
+                </Link>
+
+                <Link
+                  href="/dashboard/managers"
+                  id="dashboard-managers-card"
+                  className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-600/10 group-hover:bg-indigo-600 border border-indigo-200 dark:border-indigo-500/20 group-hover:border-indigo-500 text-indigo-600 dark:text-indigo-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                      {isFrench ? "Gestionnaires" : "Managers"}
+                    </h3>
+                    <span className="text-[10px] text-indigo-800 dark:text-indigo-400 font-bold bg-indigo-100 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-300 dark:border-indigo-500/20">
+                      {isFrench ? "Délégation" : "Delegates"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                    {isFrench ? "Comptes & accès délégués →" : "Delegate team access →"}
+                  </p>
+                </Link>
+              </>
+            )}
 
             <Link
               href="/dashboard/maintenance"
               id="dashboard-repairs-card"
-              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer col-span-2 sm:col-span-1"
+              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
             >
               <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-600/10 group-hover:bg-amber-600 border border-amber-200 dark:border-amber-500/20 group-hover:border-amber-500 text-amber-600 dark:text-amber-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
                 <Wrench className="w-4 h-4" />

@@ -67,12 +67,36 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
   },
 ];
 
+export type UserRole = 'landlord' | 'manager';
+
+export interface ManagerProfile {
+  id: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  role: 'manager';
+  landlord_id: string;
+  assigned_building_ids?: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateManagerInput {
+  full_name: string;
+  email: string;
+  phone: string;
+  password?: string;
+  assigned_building_ids?: string[];
+}
+
 export interface LandlordProfile {
   id: string;
   full_name: string;
   phone: string;
   email: string;
-  role: 'landlord';
+  role: UserRole;
+  landlord_id?: string | null;
+  assigned_building_ids?: string[] | null;
   plan: SubscriptionPlanId;
   plan_name: string;
   plan_unit_limit: number;
