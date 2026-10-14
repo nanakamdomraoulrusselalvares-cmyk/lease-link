@@ -41,6 +41,7 @@ import {
   Wrench,
   Sparkles,
   ShieldCheck,
+  ShieldAlert,
   ArrowRight,
   Database,
   KeyRound,
@@ -281,7 +282,11 @@ export default function LandlordHomePage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>
-                {profile?.role === "manager"
+                {profile?.role === "admin"
+                  ? isFrench
+                    ? "Session Super-Administrateur Active"
+                    : "Super-Administrator Session Active"
+                  : profile?.role === "manager"
                   ? isFrench
                     ? "Session Gestionnaire Délégué Active"
                     : "Manager Session Verified & Active"
@@ -296,7 +301,11 @@ export default function LandlordHomePage() {
                 {isFrench ? `Bienvenue sur LeaseLink, ${fullName} !` : `Welcome to LeaseLink, ${fullName}!`}
               </h1>
               <p className="mt-1.5 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-                {profile?.role === "manager"
+                {profile?.role === "admin"
+                  ? isFrench
+                    ? "Votre compte dispose des pleins privilèges administrateur. Vous supervisez tous les bailleurs, immeubles, transactions et tickets de maintenance de la plateforme."
+                    : "Your account has full administrative privileges. You can supervise all landlords, properties, transactions, and maintenance requests across LeaseLink."
+                  : profile?.role === "manager"
                   ? isFrench
                     ? "Votre compte gestionnaire est opérationnel. Vous disposez des accès délégués pour la gestion des immeubles, locataires, pannes et impayés."
                     : "Your manager account is active. You have operational access to manage buildings, tenants, repairs, and unpaid rent tracking."
@@ -307,6 +316,17 @@ export default function LandlordHomePage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              {profile?.role === "admin" && (
+                <Link
+                  href="/dashboard/admin"
+                  id="banner-admin-hub-btn"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md shadow-purple-600/25 transition cursor-pointer"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>{isFrench ? "Console d'Administration" : "Admin Command Center"}</span>
+                </Link>
+              )}
+
               <Link
                 href="/dashboard/buildings"
                 id="banner-manage-buildings-btn"
@@ -354,14 +374,18 @@ export default function LandlordHomePage() {
               <div className="flex items-center gap-2">
                 <UserIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
-                  {profile?.role === "manager"
+                  {profile?.role === "admin"
+                    ? isFrench ? "Profil Super-Admin" : "Super-Admin Profile"
+                    : profile?.role === "manager"
                     ? isFrench ? "Profil Gestionnaire" : "Manager Profile"
                     : isFrench ? "Profil Bailleur" : "Landlord Profile"}
                 </span>
               </div>
               <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20 font-medium">
                 <ShieldCheck className="w-3 h-3" />
-                {profile?.role === "manager"
+                {profile?.role === "admin"
+                  ? isFrench ? "Super Administrateur" : "Platform Admin"
+                  : profile?.role === "manager"
                   ? isFrench ? "Gestionnaire Délégué" : "Delegated Manager"
                   : isFrench ? "Authentifié" : "Authenticated"}
               </span>
@@ -741,6 +765,29 @@ export default function LandlordHomePage() {
                   : "Tickets & voice notes →"}
               </p>
             </Link>
+
+            {profile?.role === "admin" && (
+              <Link
+                href="/dashboard/admin"
+                id="dashboard-admin-card"
+                className="bg-white dark:bg-slate-900 border-2 border-purple-300 dark:border-purple-900/50 hover:border-purple-500 dark:hover:border-purple-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-600/10 group-hover:bg-purple-600 border border-purple-200 dark:border-purple-500/20 group-hover:border-purple-500 text-purple-600 dark:text-purple-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-purple-600 dark:group-hover:text-purple-400 transition">
+                    {isFrench ? "Administration" : "Admin Hub"}
+                  </h3>
+                  <span className="text-[10px] text-purple-800 dark:text-purple-400 font-bold bg-purple-100 dark:bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-300 dark:border-purple-500/20">
+                    {isFrench ? "Global" : "Master"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                  {isFrench ? "Supervision multi-bailleurs →" : "Platform-wide oversight →"}
+                </p>
+              </Link>
+            )}
           </div>
         </div>
 

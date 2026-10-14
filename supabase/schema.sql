@@ -26,7 +26,7 @@ create table if not exists public.profiles (
     full_name text not null,
     phone text not null,
     email text not null,
-    role text not null default 'landlord' check (role in ('landlord', 'manager')),
+    role text not null default 'landlord' check (role in ('landlord', 'manager', 'admin')),
     landlord_id uuid references public.profiles(id) on delete cascade,
     assigned_building_ids uuid[] default null,
     plan text not null default 'free' check (plan in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100')),
@@ -162,9 +162,11 @@ create table if not exists public.notifications (
 -- Guarantees that any pre-existing tables have all required foreign-keys and columns
 -- ------------------------------------------------------------------------------
 
--- Profiles table columns & manager role migration
+-- Profiles table columns & admin/manager role migration
 alter table public.profiles drop constraint if exists profiles_role_check;
-alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager'));
+alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin'));
+-- Tip: To grant super-admin privileges to an existing account, run:
+-- UPDATE public.profiles SET role = 'admin' WHERE email = 'your-email@example.com';
 alter table public.profiles add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
 alter table public.profiles add column if not exists assigned_building_ids uuid[] default null;
 

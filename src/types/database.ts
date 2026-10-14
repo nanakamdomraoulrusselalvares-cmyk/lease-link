@@ -67,7 +67,71 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
   },
 ];
 
-export type UserRole = 'landlord' | 'manager';
+export type UserRole = 'landlord' | 'manager' | 'admin';
+
+export interface AdminStats {
+  total_landlords: number;
+  total_managers: number;
+  total_buildings: number;
+  total_units: number;
+  occupied_units: number;
+  vacant_units: number;
+  occupancy_rate: number;
+  total_volume_xaf: number;
+  total_payments_count: number;
+  total_maintenance_requests: number;
+  pending_maintenance_requests: number;
+  emergency_maintenance_requests: number;
+  plan_distribution: Record<string, number>;
+  cash_volume_xaf: number;
+  digital_volume_xaf: number;
+}
+
+export interface AdminLandlordSummary {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  plan: SubscriptionPlanId;
+  plan_name: string;
+  plan_status: string;
+  plan_unit_limit: number;
+  buildings_count: number;
+  units_count: number;
+  occupied_units_count: number;
+  managers_count: number;
+  total_revenue_collected_xaf: number;
+  created_at: string;
+}
+
+export interface AdminActivityEvent {
+  id: string;
+  type: 'payment' | 'signup' | 'maintenance' | 'manager_created' | 'unit_added';
+  title: string;
+  description: string;
+  actor_name: string;
+  actor_role: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AdminGlobalTransaction {
+  id: string;
+  receipt_number: string;
+  amount_paid: number;
+  rent_month: string;
+  payment_method: PaymentMethod;
+  tenant_name: string;
+  tenant_phone: string;
+  building_name: string;
+  unit_number: string;
+  landlord_name: string;
+  landlord_id: string;
+  created_at: string;
+  notes?: string | null;
+  months_covered?: string[] | null;
+}
 
 export interface ManagerProfile {
   id: string;
