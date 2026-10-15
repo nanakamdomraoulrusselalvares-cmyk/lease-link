@@ -7,6 +7,7 @@ import {
 } from "@/types/database";
 
 const LOCAL_STORAGE_KEY_NOTIFICATIONS = "leaselink_notifications";
+const LOCAL_STORAGE_READ_IDS_KEY = "leaselink_read_notification_ids";
 
 // Helper to access localStorage safely in browser
 function getLocalNotifications(): AppNotification[] {
@@ -17,6 +18,34 @@ function getLocalNotifications(): AppNotification[] {
   } catch {
     return [];
   }
+}
+
+export function getLocalReadIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_READ_IDS_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function addLocalReadId(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const set = getLocalReadIds();
+    set.add(id);
+    localStorage.setItem(LOCAL_STORAGE_READ_IDS_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+export function addMultipleLocalReadIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const set = getLocalReadIds();
+    ids.forEach((id) => set.add(id));
+    localStorage.setItem(LOCAL_STORAGE_READ_IDS_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
 }
 
 function setLocalNotifications(notifications: AppNotification[]) {
@@ -336,6 +365,7 @@ export async function getNotificationsForUser(
   }
 
   // Merge remote and local lists using strict permission filter
+  const localReadIds = getLocalReadIds();
   const remoteIds = new Set(remoteList.map((n) => n.id));
   const matchedLocal = localList.filter((n) => {
     if (remoteIds.has(n.id)) return false;
@@ -345,7 +375,21 @@ export async function getNotificationsForUser(
   // Filter remote list as well to guarantee client-side consistency
   const permittedRemote = remoteList.filter((n) => isNotificationPermittedForUser(n, params));
 
-  return [...permittedRemote, ...matchedLocal].sort(
+  const readerId = params.userId || params.landlordId || params.unitId;
+  const merged = [...permittedRemote, ...matchedLocal].map((n) => {
+    if (localReadIds.has(n.id)) {
+      return {
+        ...n,
+        is_read: true,
+        read_by: readerId && n.read_by && !n.read_by.includes(readerId)
+          ? [...n.read_by, readerId]
+          : n.read_by || (readerId ? [readerId] : []),
+      };
+    }
+    return n;
+  });
+
+  return merged.sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 }
@@ -412,6 +456,10 @@ export async function markNotificationAsRead(
   notificationId: string,
   readerId?: string | null
 ): Promise<boolean> {
+  // 1. Immediately record in persistent read set
+  addLocalReadId(notificationId);
+
+  // 2. Update local notifications list
   const localList = getLocalNotifications();
   const idx = localList.findIndex((n) => n.id === notificationId);
 
@@ -424,21 +472,39 @@ export async function markNotificationAsRead(
       is_read: true,
       read_by: Array.from(readBy),
     };
-    setLocalNotifications(localList);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_NOTIFICATIONS, JSON.stringify(localList));
+    } catch {}
   }
 
+  // 3. Update Supabase
   const supabase = createClient();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const isMockConfig = !url || url.includes("your-project-ref");
 
   if (!isMockConfig) {
     try {
+      // First fetch current read_by so we don't clobber other readers
+      const { data: currentNotif } = await supabase
+        .from("notifications")
+        .select("read_by")
+        .eq("id", notificationId)
+        .maybeSingle();
+
+      const existingReadBy: string[] = currentNotif?.read_by || [];
+      const updatedReadBy = readerId
+        ? Array.from(new Set([...existingReadBy, readerId]))
+        : existingReadBy;
+
       await supabase
         .from("notifications")
-        .update({ is_read: true })
+        .update({
+          is_read: true,
+          read_by: updatedReadBy,
+        })
         .eq("id", notificationId);
-    } catch {
-      // Ignore remote error
+    } catch (err) {
+      console.warn("Could not update remote notification:", err);
     }
   }
 
@@ -451,8 +517,13 @@ export async function markNotificationAsRead(
 export async function markAllNotificationsAsRead(
   readerId: string,
   role: "landlord" | "manager" | "admin" | "tenant",
-  buildingId?: string | null
+  buildingId?: string | null,
+  activeNotificationIds?: string[]
 ): Promise<boolean> {
+  if (Array.isArray(activeNotificationIds) && activeNotificationIds.length > 0) {
+    addMultipleLocalReadIds(activeNotificationIds);
+  }
+
   const localList = getLocalNotifications();
   const updatedList = localList.map((n) => {
     const isTarget =
@@ -461,6 +532,7 @@ export async function markAllNotificationsAsRead(
         : n.landlord_id === readerId || role === "admin" || n.recipient_role === "management";
 
     if (isTarget) {
+      addLocalReadId(n.id);
       const readBy = new Set(n.read_by || []);
       readBy.add(readerId);
       return { ...n, is_read: true, read_by: Array.from(readBy) };
@@ -468,7 +540,9 @@ export async function markAllNotificationsAsRead(
     return n;
   });
 
-  setLocalNotifications(updatedList);
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY_NOTIFICATIONS, JSON.stringify(updatedList));
+  } catch {}
 
   const supabase = createClient();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useTheme } from "@/lib/theme/ThemeContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
@@ -21,6 +22,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
   User,
   Plus,
@@ -28,6 +30,9 @@ import {
   AlertTriangle,
   Users,
   ShieldAlert,
+  Globe,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 interface DashboardNavProps {
@@ -45,12 +50,35 @@ export default function DashboardNav({
 }: DashboardNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isFrench } = useLanguage();
+  const { language, setLanguage, isFrench } = useLanguage();
+  const { theme, setTheme, isDark } = useTheme();
 
   const [user, setUser] = useState<SupabaseUser | null>(initialUser || null);
   const [profile, setProfile] = useState<LandlordProfile | null>(initialProfile || null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(e.target as Node)
+      ) {
+        setProfileDropdownOpen(false);
+      }
+    };
+
+    if (profileDropdownOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [profileDropdownOpen]);
 
   // If user wasn't passed as prop, load from Supabase client
   useEffect(() => {
@@ -346,28 +374,157 @@ export default function DashboardNav({
             })}
           </nav>
 
-          {/* Right: Controls, Switchers, User Pill, Logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            <LanguageSwitcher variant="pill" />
-            <ThemeSwitcher variant="pill" />
-            <NotificationBell
-              role={profile?.role || "landlord"}
-              userId={user?.id}
-              landlordId={profile?.role === "manager" ? profile?.landlord_id : user?.id}
-              assignedBuildingIds={profile?.assigned_building_ids}
-            />
+          {/* Right: User Profile Menu (With Language & Theme Switchers) & Quick Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* User Profile Pill with Interactive Dropdown */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold text-slate-800 dark:text-slate-200 transition cursor-pointer shadow-xs"
+                aria-expanded={profileDropdownOpen}
+                aria-haspopup="true"
+                aria-label="User account menu"
+              >
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-[11px] shadow-sm shrink-0">
+                  {userDisplayName.substring(0, 2).toUpperCase()}
+                </div>
+                <span className="font-semibold max-w-[120px] truncate hidden sm:inline">
+                  {userDisplayName}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                    profileDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
-            {/* User Profile Pill (Desktop) */}
-            <div className="hidden md:flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs">
-              <div className="w-6 h-6 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-[11px] shadow-sm shrink-0">
-                {userDisplayName.substring(0, 2).toUpperCase()}
-              </div>
-              <span className="text-slate-800 dark:text-slate-200 font-semibold max-w-[120px] truncate hidden xl:inline">
-                {userDisplayName}
-              </span>
+              {/* Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-4">
+                  {/* User Info Header */}
+                  <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-md shrink-0">
+                      {userDisplayName.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {userDisplayName}
+                        </h4>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200/80 dark:border-blue-500/20">
+                          {isAdmin ? "Admin" : isManager ? (isFrench ? "Gestionnaire" : "Manager") : (isFrench ? "Bailleur" : "Landlord")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
+                        {user?.email || "user@leaselink.com"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Language Switcher Section */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>{isFrench ? "Langue" : "Language"}</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setLanguage("fr")}
+                        className={`flex items-center justify-center gap-2 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          language === "fr"
+                            ? "bg-blue-600 text-white shadow-sm font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <span>🇫🇷</span>
+                        <span>Français</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLanguage("en")}
+                        className={`flex items-center justify-center gap-2 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          language === "en"
+                            ? "bg-blue-600 text-white shadow-sm font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <span>🇬🇧</span>
+                        <span>English</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Theme Switcher Section */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      {isDark ? <Moon className="w-3.5 h-3.5 text-blue-400" /> : <Sun className="w-3.5 h-3.5 text-amber-500" />}
+                      <span>{isFrench ? "Thème d'affichage" : "Appearance Theme"}</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setTheme("light")}
+                        className={`flex items-center justify-center gap-2 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          theme === "light"
+                            ? "bg-white text-amber-700 shadow-sm border border-slate-200/80 font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <Sun className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{isFrench ? "Clair" : "Light"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTheme("dark")}
+                        className={`flex items-center justify-center gap-2 py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          theme === "dark"
+                            ? "bg-slate-800 text-blue-400 shadow-sm border border-slate-700 font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <Moon className="w-3.5 h-3.5 text-blue-400" />
+                        <span>{isFrench ? "Sombre" : "Dark"}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Divider & Actions */}
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-1">
+                    <Link
+                      href="/"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60 transition"
+                    >
+                      <span className="flex items-center gap-2">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>{isFrench ? "Accueil Public" : "Public Landing Page"}</span>
+                      </span>
+                      <ChevronRight className="w-3 h-3 text-slate-400" />
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        handleLogout();
+                      }}
+                      disabled={loggingOut}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer disabled:opacity-50"
+                    >
+                      <span className="flex items-center gap-2">
+                        <LogOut className={`w-3.5 h-3.5 ${loggingOut ? "animate-spin" : ""}`} />
+                        <span>{loggingOut ? (isFrench ? "Déconnexion..." : "Signing Out...") : (isFrench ? "Se Déconnecter" : "Sign Out")}</span>
+                      </span>
+                      <ChevronRight className="w-3 h-3 text-rose-400" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Logout Button (Desktop) */}
+            {/* Quick Logout Button (Desktop) */}
             <button
               onClick={handleLogout}
               disabled={loggingOut}
@@ -561,6 +718,15 @@ export default function DashboardNav({
           </div>
         </div>
       )}
+
+      {/* 4. FLOATING NOTIFICATION BUTTON (Fixed at Bottom-Right of Screen) */}
+      <NotificationBell
+        variant="floating"
+        role={profile?.role || "landlord"}
+        userId={user?.id}
+        landlordId={profile?.role === "manager" ? profile?.landlord_id : user?.id}
+        assignedBuildingIds={profile?.assigned_building_ids}
+      />
     </>
   );
 }

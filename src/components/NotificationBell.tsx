@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Bell,
   CheckCheck,
@@ -31,6 +31,7 @@ interface NotificationBellProps {
   unitId?: string | null;
   tenantName?: string | null;
   className?: string;
+  variant?: "floating" | "navbar";
 }
 
 export default function NotificationBell({
@@ -42,12 +43,12 @@ export default function NotificationBell({
   unitId,
   tenantName,
   className = "",
+  variant = "navbar",
 }: NotificationBellProps) {
   const { t, isFrench, formatCurrency } = useLanguage();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
-  const [isPending, startTransition] = useTransition();
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -106,49 +107,61 @@ export default function NotificationBell({
     };
   }, [isOpen]);
 
+  // Robust determination of unread status
+  const isNotificationUnread = (notif: AppNotification): boolean => {
+    if (notif.is_read) return false;
+    if (readerId && Array.isArray(notif.read_by) && notif.read_by.includes(readerId)) {
+      return false;
+    }
+    return true;
+  };
+
   // Count unread
-  const unreadCount = notifications.filter((n) => {
-    if (!n.is_read) return true;
-    if (readerId && n.read_by && !n.read_by.includes(readerId)) return true;
-    return false;
-  }).length;
+  const unreadCount = notifications.filter(isNotificationUnread).length;
 
   const handleMarkAsRead = async (id: string) => {
-    await markNotificationAsRead(id, readerId);
+    // 1. Instantly update React state optimistically
     setNotifications((prev) =>
       prev.map((n) =>
         n.id === id
           ? {
               ...n,
               is_read: true,
-              read_by: Array.from(new Set([...(n.read_by || []), readerId])),
+              read_by: readerId
+                ? Array.from(new Set([...(n.read_by || []), readerId]))
+                : n.read_by || [],
             }
           : n
       )
     );
+    // 2. Persist to storage and Supabase
+    await markNotificationAsRead(id, readerId);
   };
 
   const handleMarkAllRead = async () => {
-    await markAllNotificationsAsRead(readerId, role, buildingId);
+    const allIds = notifications.map((n) => n.id);
     setNotifications((prev) =>
       prev.map((n) => ({
         ...n,
         is_read: true,
-        read_by: Array.from(new Set([...(n.read_by || []), readerId])),
+        read_by: readerId
+          ? Array.from(new Set([...(n.read_by || []), readerId]))
+          : n.read_by || [],
       }))
     );
+    await markAllNotificationsAsRead(readerId, role, buildingId, allIds);
   };
 
   const handleClear = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    await clearNotification(id);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    await clearNotification(id);
   };
 
   // Filter list
   const displayedNotifications = notifications.filter((n) => {
     if (activeTab === "unread") {
-      return !n.is_read || (readerId && n.read_by && !n.read_by.includes(readerId));
+      return isNotificationUnread(n);
     }
     return true;
   });
@@ -173,37 +186,78 @@ export default function NotificationBell({
     });
   };
 
+  const isFloating = variant === "floating";
+
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Bell Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-xs"
-        title={t("notifTitle")}
-        aria-label="Notifications"
-      >
-        <Bell className="w-4 h-4" />
+    <div
+      className={
+        isFloating
+          ? `fixed bottom-20 right-4 xl:bottom-6 xl:right-6 z-40 ${className}`
+          : `relative ${className}`
+      }
+      ref={dropdownRef}
+    >
+      {/* Trigger Button */}
+      {isFloating ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white/80 dark:border-slate-800 flex items-center justify-center cursor-pointer group"
+          title={isFrench ? "Centre de notifications" : "Notification Center"}
+          aria-label="Notifications"
+          aria-expanded={isOpen}
+        >
+          <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
 
-        {/* Unread Badge */}
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-md animate-pulse">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
+          {/* Unread Badge */}
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[11px] font-black text-white shadow-md ring-2 ring-white dark:ring-slate-900 animate-pulse">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-xs"
+          title={t("notifTitle")}
+          aria-label="Notifications"
+          aria-expanded={isOpen}
+        >
+          <Bell className="w-4 h-4" />
 
-      {/* Dropdown Panel */}
+          {/* Unread Badge */}
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-md animate-pulse">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Flyout / Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-50 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
+        <div
+          className={
+            isFloating
+              ? "fixed bottom-36 right-4 sm:bottom-22 sm:right-6 z-50 w-[92vw] sm:w-[420px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[75vh] animate-in fade-in slide-in-from-bottom-5 duration-200"
+              : "absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-50 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150"
+          }
+          role="dialog"
+          aria-label="Notifications Panel"
+        >
           {/* Header */}
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Bell className="w-4 h-4" />
+              </div>
               <span className="font-bold text-sm text-slate-900 dark:text-white">
                 {t("notifTitle")}
               </span>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400 text-[11px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 text-[11px] font-bold">
                   {unreadCount} {t("notifNewBadge")}
                 </span>
               )}
@@ -214,18 +268,19 @@ export default function NotificationBell({
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition cursor-pointer"
                   title={t("notifMarkAllRead")}
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  <span>{t("notifMarkAllRead")}</span>
+                  <span className="hidden sm:inline">{t("notifMarkAllRead")}</span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -276,20 +331,23 @@ export default function NotificationBell({
               </div>
             ) : (
               displayedNotifications.map((notif) => {
-                const isUnread =
-                  !notif.is_read ||
-                  (readerId && notif.read_by && !notif.read_by.includes(readerId));
+                const isUnread = isNotificationUnread(notif);
 
                 return (
                   <div
                     key={notif.id}
-                    onClick={() => isUnread && handleMarkAsRead(notif.id)}
-                    className={`p-4 transition flex items-start gap-3.5 group cursor-pointer ${
+                    onClick={() => handleMarkAsRead(notif.id)}
+                    className={`p-4 transition flex items-start gap-3.5 group cursor-pointer relative border-l-4 ${
                       isUnread
-                        ? "bg-blue-50/50 dark:bg-gradient-to-r dark:from-blue-950/20 dark:via-slate-900 dark:to-slate-900 hover:bg-blue-50 dark:hover:bg-slate-850"
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800/50 opacity-80 hover:opacity-100"
+                        ? "bg-blue-50/70 dark:bg-slate-850 hover:bg-blue-100/60 dark:hover:bg-slate-800 border-l-blue-600"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-800/40 opacity-75 hover:opacity-100 border-l-transparent"
                     }`}
                   >
+                    {/* Unread indicator dot */}
+                    {isUnread && (
+                      <span className="absolute top-4 right-3 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                    )}
+
                     {/* Icon Avatar by Notification Type */}
                     <div className="shrink-0 mt-0.5">
                       {notif.type === "payment_received" && (
@@ -327,11 +385,13 @@ export default function NotificationBell({
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex-1 min-w-0 space-y-1 pr-4">
                       <div className="flex items-center justify-between gap-2">
                         <h4
-                          className={`text-xs font-bold truncate ${
-                            isUnread ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300"
+                          className={`text-xs truncate ${
+                            isUnread
+                              ? "font-extrabold text-slate-900 dark:text-white"
+                              : "font-semibold text-slate-700 dark:text-slate-300"
                           }`}
                         >
                           {isFrench ? notif.title_fr || notif.title : notif.title}
@@ -342,7 +402,13 @@ export default function NotificationBell({
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">
+                      <p
+                        className={`text-xs leading-relaxed line-clamp-2 ${
+                          isUnread
+                            ? "text-slate-800 dark:text-slate-200"
+                            : "text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
                         {isFrench ? notif.message_fr || notif.message : notif.message}
                       </p>
 
