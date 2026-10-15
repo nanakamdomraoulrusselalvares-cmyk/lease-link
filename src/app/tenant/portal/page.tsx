@@ -354,26 +354,61 @@ function TenantPortalContent() {
       )}`
     : "#";
 
+  // Financial calculations for Rent Ledger and Metric Cards
+  const currentMonth = getCurrentRentMonth();
+  const monthlyRent = Number(data.rent_amount || 0);
+  const currentMonthPayments = payments.filter((p) => {
+    const pMonth = p.rent_month.toLowerCase();
+    const cMonth = currentMonth.toLowerCase();
+    if (pMonth === cMonth || pMonth.includes(cMonth)) return true;
+    if (
+      p.months_covered &&
+      p.months_covered.some((m) => m.toLowerCase() === cMonth)
+    )
+      return true;
+    return false;
+  });
+  const paidThisMonth = currentMonthPayments.reduce(
+    (sum, p) => sum + Number(p.amount_paid || 0),
+    0
+  );
+  const balanceOwing = Math.max(0, monthlyRent - paidThisMonth);
+  const isFullySettled = paidThisMonth >= monthlyRent;
+  const advanceMonths = Array.from(
+    new Set(
+      payments.flatMap((p) =>
+        (p.months_covered || []).filter(
+          (m) => m.toLowerCase() !== currentMonth.toLowerCase()
+        )
+      )
+    )
+  );
+  const pendingRequestsCount = requests.filter(
+    (r) => r.status === "pending" || r.status === "in_progress"
+  ).length;
+
   return (
     <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
       {/* Top Header */}
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
-              <Building2 className="w-5 h-5 text-white" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+          {/* Brand Identity */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0 text-white">
+              <Building2 className="w-5 h-5" />
             </div>
-            <div>
-              <span className="font-bold text-base text-slate-900 dark:text-white tracking-tight">
+            <div className="flex flex-col">
+              <span className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight leading-none">
                 Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
               </span>
-              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold ml-2 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/20">
-                {isFrench ? "Espace Locataire" : "Tenant Space"}
+              <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 tracking-wider uppercase mt-0.5 whitespace-nowrap">
+                {isFrench ? "Espace Locataire" : "Tenant Portal"}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Controls */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <LanguageSwitcher variant="pill" />
             <ThemeSwitcher variant="pill" />
             <NotificationBell
@@ -385,66 +420,419 @@ function TenantPortalContent() {
 
             <Link
               href={tokenFromUrl ? `/tenant/receipts?token=${tokenFromUrl}` : `/tenant/receipts`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition shadow-xs"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition shadow-xs"
               title={isFrench ? "Consulter toutes les quittances" : "View all receipts"}
             >
-              <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>{isFrench ? `Quittances (${payments.length})` : `Receipts (${payments.length})`}</span>
+              <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="hidden sm:inline">
+                {isFrench ? `Quittances (${payments.length})` : `Receipts (${payments.length})`}
+              </span>
+              <span className="sm:hidden font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                ({payments.length})
+              </span>
             </Link>
 
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[150px]">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[120px]">
                 {data.tenant_name}
               </span>
             </div>
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer"
+              title={isFrench ? "Déconnexion" : "Sign Out"}
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>{isFrench ? "Déconnexion" : "Sign Out"}</span>
+              <LogOut className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">{isFrench ? "Déconnexion" : "Sign Out"}</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-blue-50/50 dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 sm:p-7 shadow-sm dark:shadow-xl relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 text-xs font-bold border border-emerald-300 dark:border-emerald-500/20">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{isFrench ? "Bail Actif • Espace Sécurisé" : "Active Tenancy • Secure Portal"}</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 sm:space-y-8">
+        {/* Welcome Hero Banner (Styled as in Landlord Page) */}
+        <div className="bg-gradient-to-r from-blue-50 via-white to-indigo-50/40 dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 sm:p-8 shadow-sm dark:shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 pointer-events-none opacity-10">
+            <Sparkles className="w-48 h-48 text-blue-600 dark:text-blue-400" />
+          </div>
+
+          <div className="relative z-10 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>{isFrench ? "Bail Actif • Espace Sécurisé" : "Active Tenancy • Secure Portal"}</span>
+            </div>
+
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {isFrench ? `Bienvenue chez vous, ${data.tenant_name} !` : `Welcome Home, ${data.tenant_name}!`}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                {isFrench ? "Résidence :" : "Residence:"} <strong className="text-slate-900 dark:text-white">{data.building_name}</strong> •{" "}
-                {isFrench ? "Logement :" : "Unit:"} <strong className="text-blue-600 dark:text-blue-400">{data.unit_number}</strong>
+              <p className="mt-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>
+                  {isFrench ? "Résidence :" : "Residence:"}{" "}
+                  <strong className="text-slate-900 dark:text-white font-semibold">{data.building_name}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  {isFrench ? "Logement :" : "Unit:"}{" "}
+                  <strong className="text-blue-600 dark:text-blue-400 font-semibold">{data.unit_number}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  {isFrench ? "Loyer Mensuel :" : "Monthly Rent:"}{" "}
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                    {monthlyRent.toLocaleString()} XAF
+                  </strong>
+                </span>
               </p>
             </div>
 
-            <div className="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 sm:text-right shrink-0 shadow-xs">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-semibold">
-                {isFrench ? "Loyer Mensuel" : "Monthly Rent"}
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                {Number(data.rent_amount || 0).toLocaleString()} XAF
-              </span>
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPayModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>
+                  {balanceOwing > 0
+                    ? isFrench
+                      ? "Payer le Loyer"
+                      : "Pay Rent Now"
+                    : isFrench
+                    ? "Avance de Loyer"
+                    : "Make Advance"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenModal}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition cursor-pointer"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Signaler une Réparation" : "Report Maintenance"}</span>
+              </button>
+
+              <Link
+                href={tokenFromUrl ? `/tenant/receipts?token=${tokenFromUrl}` : `/tenant/receipts`}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 transition shadow-xs"
+              >
+                <Receipt className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>{isFrench ? `Quittances (${payments.length})` : `Receipts (${payments.length})`}</span>
+              </Link>
+
+              {landlordCleanPhone && (
+                <a
+                  href={landlordWhatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-500/30 transition cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
+                  <span>{isFrench ? "WhatsApp Bailleur" : "WhatsApp Landlord"}</span>
+                </a>
+              )}
             </div>
           </div>
         </div>
 
-        {/* 2-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left 2 Cols: Unit Specs, Living Details & Maintenance */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Unit Details Card */}
+        {/* 4-Card Metric Highlights Strip (Organized exactly as in Landlord Dashboard) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Metric 1: Monthly Rent */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {isFrench ? "Loyer Mensuel" : "Monthly Rent"}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20">
+                <DollarSign className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+              {monthlyRent.toLocaleString()} <span className="text-xs font-normal text-slate-500">XAF</span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-slate-400" />
+              <span>{isFrench ? "Échéance : 5 de chaque mois" : "Due on 5th monthly"}</span>
+            </div>
+          </div>
+
+          {/* Metric 2: Rent Status for Current Cycle */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate max-w-[180px]">
+                {isFrench ? `Cycle : ${currentMonth}` : `Cycle: ${currentMonth}`}
+              </span>
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center border ${
+                  isFullySettled
+                    ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20"
+                    : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20"
+                }`}
+              >
+                {isFullySettled ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+              </div>
+            </div>
+            <div
+              className={`text-xl sm:text-2xl font-black font-mono truncate ${
+                isFullySettled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+              }`}
+            >
+              {isFullySettled
+                ? isFrench
+                  ? "Soldé à 100%"
+                  : "Paid in Full"
+                : isFrench
+                ? `Reste ${balanceOwing.toLocaleString()} XAF`
+                : `Owing ${balanceOwing.toLocaleString()} XAF`}
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Receipt className="w-3 h-3 text-slate-400" />
+              <span>
+                {payments.length} {isFrench ? "quittances enregistrées" : "receipts recorded"}
+              </span>
+            </div>
+          </div>
+
+          {/* Metric 3: Assigned Unit Breakdown */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {isFrench ? "Logement Assigné" : "Assigned Unit"}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-500/20">
+                <Home className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white truncate">
+              {data.unit_number}{" "}
+              <span className="text-xs font-normal text-slate-500">({data.building_name})</span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+              {data.parlors} {isFrench ? "Salon" : "Parlor"} • {data.rooms}{" "}
+              {isFrench ? "Chambres" : "Rooms"} • {data.bathrooms}{" "}
+              {isFrench ? "SDB" : "Baths"}
+            </div>
+          </div>
+
+          {/* Metric 4: Technical Assistance & Repairs */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {isFrench ? "Assistance Technique" : "Maintenance Support"}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-500/20">
+                <Wrench className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+              {requests.length}{" "}
+              <span className="text-xs font-normal text-slate-500">
+                {isFrench ? "Demandes" : "Tickets"}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
+              {pendingRequestsCount > 0
+                ? isFrench
+                  ? `${pendingRequestsCount} en cours de traitement`
+                  : `${pendingRequestsCount} under review`
+                : isFrench
+                ? "Aucune panne en attente"
+                : "All tickets resolved"}
+            </div>
+          </div>
+        </div>
+
+        {/* 2-Column Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+          {/* Left 2 Cols: Rent Ledger, Unit Specs, Repairs */}
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+            {/* CARD 1: Rent Ledger & Receipts (Core Financial Priority) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {isFrench ? "État des Loyers & Quittances" : "Rent Ledger & Receipts"}
+                    </h2>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                      {isFrench ? `Période active : ${currentMonth}` : `Active Period: ${currentMonth}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                      isFullySettled
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
+                        : paidThisMonth > 0
+                        ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30"
+                        : "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30"
+                    }`}
+                  >
+                    {isFullySettled
+                      ? isFrench
+                        ? "Statut : Soldé à 100%"
+                        : "Status: Paid in Full (100%)"
+                      : paidThisMonth > 0
+                      ? isFrench
+                        ? `Paiement Partiel • Reste ${balanceOwing.toLocaleString()} XAF`
+                        : `Partial Payment • Owing ${balanceOwing.toLocaleString()} XAF`
+                      : isFrench
+                      ? "Statut : Impayé pour ce cycle"
+                      : "Status: Unpaid for this cycle"}
+                  </span>
+                </div>
+              </div>
+
+              {advanceMonths.length > 0 && (
+                <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span>
+                    {isFrench ? "Loyer d'avance déjà réglé pour : " : "Advance rent already covered for: "}
+                    <strong>{advanceMonths.join(", ")}</strong>
+                  </span>
+                </div>
+              )}
+
+              {/* Financial Breakdown Grid (Landlord Dashboard Style) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
+                    {isFrench ? "Loyer Convenu" : "Agreed Rent"}
+                  </span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">
+                    {monthlyRent.toLocaleString()} XAF
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
+                    {isFrench ? "Payé Ce Mois" : "Paid This Month"}
+                  </span>
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                    {paidThisMonth.toLocaleString()} XAF
+                  </span>
+                </div>
+
+                <div
+                  className={`p-3.5 rounded-xl border ${
+                    balanceOwing > 0
+                      ? "bg-amber-50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/30"
+                      : "bg-emerald-50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/30"
+                  }`}
+                >
+                  <span className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-semibold block">
+                    {isFrench ? "Reste à Payer" : "Amount Owing"}
+                  </span>
+                  <span
+                    className={`text-sm font-black font-mono ${
+                      balanceOwing > 0
+                        ? "text-amber-700 dark:text-amber-400"
+                        : "text-emerald-700 dark:text-emerald-400"
+                    }`}
+                  >
+                    {balanceOwing > 0
+                      ? `${balanceOwing.toLocaleString()} XAF`
+                      : isFrench
+                      ? "0 XAF (Soldé)"
+                      : "0 XAF (Settled)"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Primary Rent Pay Actions */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowPayModal(true)}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  <span>
+                    {balanceOwing > 0
+                      ? isFrench
+                        ? `Payer le Loyer (${balanceOwing.toLocaleString()} XAF)`
+                        : `Pay Rent (${balanceOwing.toLocaleString()} XAF)`
+                      : isFrench
+                      ? "Faire une Avance de Loyer"
+                      : "Make an Advance Rent Payment"}
+                  </span>
+                </button>
+
+                <Link
+                  href={tokenFromUrl ? `/tenant/receipts?token=${tokenFromUrl}` : `/tenant/receipts`}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
+                >
+                  <Receipt className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>
+                    {isFrench
+                      ? `Page Dédiée des Quittances (${payments.length})`
+                      : `Dedicated Receipts Page (${payments.length})`}{" "}
+                    &rarr;
+                  </span>
+                </Link>
+              </div>
+
+              {/* Recent Receipts List */}
+              {payments.length > 0 && (
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-2.5">
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    {isFrench ? "Quittances Numériques Récentes :" : "Recent Digital Receipts:"}
+                  </span>
+                  <div className="space-y-2">
+                    {payments.slice(0, 3).map((p) => (
+                      <div
+                        key={p.id}
+                        className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                              {p.receipt_number}
+                            </span>
+                            <span className="text-[10px] text-slate-600 dark:text-slate-400">
+                              ({p.rent_month})
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-500 block">
+                            {isFrench
+                              ? `Payé par ${PAYMENT_METHOD_LABELS[p.payment_method]?.frShort || PAYMENT_METHOD_LABELS[p.payment_method]?.short || p.payment_method} le ${new Date(p.created_at).toLocaleDateString("fr-FR")}`
+                              : `Paid via ${PAYMENT_METHOD_LABELS[p.payment_method]?.short || p.payment_method} on ${new Date(p.created_at).toLocaleDateString()}`}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-slate-900 dark:text-white font-mono">
+                            {Number(p.amount_paid).toLocaleString()} XAF
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedReceipt(p);
+                              setShowReceiptModal(true);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                          >
+                            {isFrench ? "Voir Quittance" : "View Receipt"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* CARD 2: Unit Layout & Specs (Polished with Vibrant Landlord-Style Colored Pills) */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
                 <div className="flex items-center gap-2.5">
@@ -461,41 +849,41 @@ function TenantPortalContent() {
                   </div>
                 </div>
 
-                <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold">
+                <span className="text-xs px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20 font-bold">
                   {data.unit_number}
                 </span>
               </div>
 
-              {/* Layout Pills */}
+              {/* Layout Colored Cards (Matching Landlord Dashboard Quality) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                <div className="bg-purple-50/70 dark:bg-purple-950/20 p-4 rounded-xl border-2 border-purple-200/80 dark:border-purple-500/20 text-center space-y-1">
                   <Sofa className="w-5 h-5 text-purple-600 dark:text-purple-400 mx-auto" />
-                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.parlors}</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
+                  <span className="text-xl font-black text-purple-950 dark:text-purple-200 block">{data.parlors}</span>
+                  <span className="text-[10px] text-purple-800 dark:text-purple-300 font-bold uppercase tracking-wider block">
                     {isFrench ? "Salon(s)" : "Parlor(s)"}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                <div className="bg-blue-50/70 dark:bg-blue-950/20 p-4 rounded-xl border-2 border-blue-200/80 dark:border-blue-500/20 text-center space-y-1">
                   <Bed className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto" />
-                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.rooms}</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
+                  <span className="text-xl font-black text-blue-950 dark:text-blue-200 block">{data.rooms}</span>
+                  <span className="text-[10px] text-blue-800 dark:text-blue-300 font-bold uppercase tracking-wider block">
                     {isFrench ? "Chambre(s)" : "Bedroom(s)"}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                <div className="bg-cyan-50/70 dark:bg-cyan-950/20 p-4 rounded-xl border-2 border-cyan-200/80 dark:border-cyan-500/20 text-center space-y-1">
                   <Bath className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mx-auto" />
-                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.bathrooms}</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
+                  <span className="text-xl font-black text-cyan-950 dark:text-cyan-200 block">{data.bathrooms}</span>
+                  <span className="text-[10px] text-cyan-800 dark:text-cyan-300 font-bold uppercase tracking-wider block">
                     {isFrench ? "Salle(s) de bain" : "Bathroom(s)"}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                <div className="bg-amber-50/70 dark:bg-amber-950/20 p-4 rounded-xl border-2 border-amber-200/80 dark:border-amber-500/20 text-center space-y-1">
                   <Utensils className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto" />
-                  <span className="text-lg font-black text-slate-900 dark:text-white block">{data.kitchens}</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block">
+                  <span className="text-xl font-black text-amber-950 dark:text-amber-200 block">{data.kitchens}</span>
+                  <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold uppercase tracking-wider block">
                     {isFrench ? "Cuisine(s)" : "Kitchen(s)"}
                   </span>
                 </div>
@@ -526,7 +914,7 @@ function TenantPortalContent() {
               )}
             </div>
 
-            {/* SECTION: Reparation & Maintenance Requests */}
+            {/* CARD 3: Reparation & Maintenance Requests */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                 <div className="flex items-center gap-2.5">
@@ -706,220 +1094,10 @@ function TenantPortalContent() {
                 </div>
               )}
             </div>
-
-            {/* Rent & Payments Ledger Card */}
-            {(() => {
-              const currentMonth = getCurrentRentMonth();
-              const monthlyRent = Number(data.rent_amount || 0);
-              const currentMonthPayments = payments.filter((p) => {
-                const pMonth = p.rent_month.toLowerCase();
-                const cMonth = currentMonth.toLowerCase();
-                if (pMonth === cMonth || pMonth.includes(cMonth)) return true;
-                if (
-                  p.months_covered &&
-                  p.months_covered.some((m) => m.toLowerCase() === cMonth)
-                )
-                  return true;
-                return false;
-              });
-              const paidThisMonth = currentMonthPayments.reduce(
-                (sum, p) => sum + Number(p.amount_paid || 0),
-                0
-              );
-              const balanceOwing = Math.max(0, monthlyRent - paidThisMonth);
-              const isFullySettled = paidThisMonth >= monthlyRent;
-              const advanceMonths = Array.from(
-                new Set(
-                  payments.flatMap((p) =>
-                    (p.months_covered || []).filter(
-                      (m) => m.toLowerCase() !== currentMonth.toLowerCase()
-                    )
-                  )
-                )
-              );
-
-              return (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                        <Receipt className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                          {isFrench ? "État des Loyers & Quittances" : "Rent Ledger & Receipts"}
-                        </h2>
-                        <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                          {isFrench ? `Période : ${currentMonth}` : `Period: ${currentMonth}`}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
-                          isFullySettled
-                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30"
-                            : paidThisMonth > 0
-                            ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30"
-                            : "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30"
-                        }`}
-                      >
-                        {isFullySettled
-                          ? isFrench
-                            ? "Statut : Soldé à 100%"
-                            : "Status: Paid in Full (100%)"
-                          : paidThisMonth > 0
-                          ? isFrench
-                            ? `Paiement Partiel • Reste ${balanceOwing.toLocaleString()} XAF`
-                            : `Partial Payment • Owing ${balanceOwing.toLocaleString()} XAF`
-                          : isFrench
-                          ? "Statut : Impayé pour ce cycle"
-                          : "Status: Unpaid for this cycle"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {advanceMonths.length > 0 && (
-                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                      <span>
-                        {isFrench ? "Loyer d'avance déjà réglé pour : " : "Advance rent already covered for: "}
-                        <strong>{advanceMonths.join(", ")}</strong>
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Financial Breakdown Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
-                        {isFrench ? "Loyer Convenu" : "Agreed Rent"}
-                      </span>
-                      <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">
-                        {monthlyRent.toLocaleString()} XAF
-                      </span>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
-                        {isFrench ? "Payé Ce Mois" : "Paid This Month"}
-                      </span>
-                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                        {paidThisMonth.toLocaleString()} XAF
-                      </span>
-                    </div>
-
-                    <div
-                      className={`p-3.5 rounded-xl border ${
-                        balanceOwing > 0
-                          ? "bg-amber-50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/30"
-                          : "bg-emerald-50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/30"
-                      }`}
-                    >
-                      <span className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-semibold block">
-                        {isFrench ? "Reste à Payer" : "Amount Owing"}
-                      </span>
-                      <span
-                        className={`text-sm font-black font-mono ${
-                          balanceOwing > 0 ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
-                        }`}
-                      >
-                        {balanceOwing > 0
-                          ? `${balanceOwing.toLocaleString()} XAF`
-                          : isFrench
-                          ? "0 XAF (Soldé)"
-                          : "0 XAF (Settled)"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Primary Rent Pay Actions */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                    <button
-                      onClick={() => setShowPayModal(true)}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition cursor-pointer"
-                    >
-                      <DollarSign className="w-4 h-4" />
-                      <span>
-                        {balanceOwing > 0
-                          ? isFrench
-                            ? `Payer le Loyer (Intégral ou Partiel : ${balanceOwing.toLocaleString()} XAF)`
-                            : `Pay Rent (Full or Partial: ${balanceOwing.toLocaleString()} XAF)`
-                          : isFrench
-                          ? "Faire une Avance de Loyer"
-                          : "Make an Advance Rent Payment"}
-                      </span>
-                    </button>
-
-                    <Link
-                      href={tokenFromUrl ? `/tenant/receipts?token=${tokenFromUrl}` : `/tenant/receipts`}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
-                    >
-                      <Receipt className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                      <span>
-                        {isFrench
-                          ? `Page Dédiée des Quittances (${payments.length})`
-                          : `Dedicated Receipts Page (${payments.length})`}{" "}
-                        &rarr;
-                      </span>
-                    </Link>
-                  </div>
-
-                  {/* Recent Receipts List */}
-                  {payments.length > 0 && (
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-2.5">
-                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                        {isFrench ? "Quittances Numériques Récentes :" : "Recent Digital Receipts:"}
-                      </span>
-                      <div className="space-y-2">
-                        {payments.slice(0, 3).map((p) => (
-                          <div
-                            key={p.id}
-                            className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
-                          >
-                            <div className="space-y-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                  {p.receipt_number}
-                                </span>
-                                <span className="text-[10px] text-slate-600 dark:text-slate-400">
-                                  ({p.rent_month})
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-500 block">
-                                {isFrench
-                                  ? `Payé par ${PAYMENT_METHOD_LABELS[p.payment_method]?.frShort || PAYMENT_METHOD_LABELS[p.payment_method]?.short || p.payment_method} le ${new Date(p.created_at).toLocaleDateString("fr-FR")}`
-                                  : `Paid via ${PAYMENT_METHOD_LABELS[p.payment_method]?.short || p.payment_method} on ${new Date(p.created_at).toLocaleDateString()}`}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-slate-900 dark:text-white font-mono">
-                                {Number(p.amount_paid).toLocaleString()} XAF
-                              </span>
-                              <button
-                                onClick={() => {
-                                  setSelectedReceipt(p);
-                                  setShowReceiptModal(true);
-                                }}
-                                className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer"
-                              >
-                                {isFrench ? "Voir Quittance" : "View Receipt"}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
           </div>
 
-          {/* Right Col: Landlord Contact & Actions */}
-          <div className="space-y-6">
+          {/* Right Col: Landlord Contact & Security Checklist */}
+          <div className="space-y-6 sm:space-y-8">
             {/* Landlord Contact Card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
               <div className="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-4">
@@ -1016,17 +1194,58 @@ function TenantPortalContent() {
               </div>
             </div>
 
-            {/* Security Card */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 text-xs text-slate-600 dark:text-slate-400 space-y-2.5 shadow-sm">
-              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+            {/* Tenancy Verification & Portal Security Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>{isFrench ? "Espace Sécurisé & Chiffré" : "Encrypted Session"}</span>
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
+                  {isFrench ? "Sécurité & Conformité du Bail" : "Tenancy Verification & Security"}
+                </span>
               </div>
-              <p className="leading-relaxed text-[11px]">
-                {isFrench
-                  ? "Vous pouvez accéder à cet espace à tout moment avec vos identifiants ou via votre lien direct reçu sur WhatsApp."
-                  : "You can access this space at any moment using your email and password, or by bookmarking your direct WhatsApp access link."}
-              </p>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-slate-900 dark:text-white block">
+                      {isFrench ? "Bail Actif Enregistré" : "Active Tenancy Record"}
+                    </span>
+                    <span className="text-slate-600 dark:text-slate-400 text-[11px]">
+                      {isFrench
+                        ? `Logement ${data.unit_number} certifié dans la résidence ${data.building_name}.`
+                        : `Unit ${data.unit_number} verified in ${data.building_name}.`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-slate-900 dark:text-white block">
+                      {isFrench ? "Quittances Chiffrées" : "Encrypted Digital Receipts"}
+                    </span>
+                    <span className="text-slate-600 dark:text-slate-400 text-[11px]">
+                      {isFrench
+                        ? "Paiements vérifiés avec horodatage et quittances conformes."
+                        : "Payments verified with cryptographic timestamps and audit log."}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-slate-900 dark:text-white block">
+                      {isFrench ? "Assistance Dédiée 24/7" : "Direct Landlord Hotline"}
+                    </span>
+                    <span className="text-slate-600 dark:text-slate-400 text-[11px]">
+                      {isFrench
+                        ? "Contact direct et notifications en temps réel des réparations."
+                        : "Instant contact and real-time repair status updates."}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

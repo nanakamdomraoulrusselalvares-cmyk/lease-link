@@ -172,17 +172,18 @@ function TenantReceiptsContent() {
     <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
       {/* Top Header */}
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
           <Link
             href={portalUrl}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>{isFrench ? "Retour à l'Espace Locataire" : "Return to Tenant Space"}</span>
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">{isFrench ? "Retour à l'Espace Locataire" : "Return to Tenant Portal"}</span>
+            <span className="sm:hidden">{isFrench ? "Portail" : "Portal"}</span>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="text-xs text-slate-700 dark:text-slate-300 font-medium hidden sm:inline">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <span className="text-xs text-slate-700 dark:text-slate-300 font-medium hidden md:inline truncate max-w-[150px]">
               {tenantData.tenant_name} • {isFrench ? "Logement" : "Unit"} {tenantData.unit_number}
             </span>
 
@@ -198,17 +199,18 @@ function TenantReceiptsContent() {
 
             <button
               onClick={() => setShowPayModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition cursor-pointer"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition cursor-pointer shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{isFrench ? "Payer le Loyer (Démo)" : "Pay Rent (Demo)"}</span>
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">{isFrench ? "Payer le Loyer" : "Pay Rent"}</span>
+              <span className="sm:hidden">{isFrench ? "Payer" : "Pay"}</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 sm:space-y-8">
         {/* Title & Banner */}
         <div className="bg-gradient-to-r from-emerald-50 via-slate-50 to-emerald-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-6 sm:p-7 shadow-sm dark:shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
