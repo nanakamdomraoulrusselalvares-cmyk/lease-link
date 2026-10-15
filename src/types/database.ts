@@ -333,6 +333,8 @@ export interface Unit {
   tenant_password?: string | null;
   tenant_access_token?: string | null;
   tenant_assigned_at?: string | null;
+  lease_start_date?: string | null;
+  rent_due_day?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -361,6 +363,8 @@ export interface UpdateUnitInput {
   tenant_email?: string | null;
   tenant_password?: string | null;
   tenant_access_token?: string | null;
+  lease_start_date?: string | null;
+  rent_due_day?: number | null;
   status?: UnitStatus;
 }
 
@@ -385,6 +389,8 @@ export interface TenantPortalData {
   landlord_phone: string;
   landlord_email: string;
   assigned_at?: string | null;
+  lease_start_date?: string | null;
+  rent_due_day?: number | null;
   access_token: string;
 }
 
@@ -550,6 +556,8 @@ export type NotificationType =
   | 'tenant_departed'
   | 'landlord_registered'
   | 'maintenance_update'
+  | 'rent_due_reminder'
+  | 'rent_overdue'
   | 'system';
 
 export type NotificationRecipientRole =

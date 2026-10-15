@@ -12,12 +12,18 @@ import {
   PropertyType,
   CreateBuildingFormInput,
   UpdateUnitInput,
+  RentPayment,
 } from "@/types/database";
 import {
   createBuildingWithUnits,
   getBuildingsWithUnits,
   updateUnitConfiguration,
 } from "@/lib/services/buildingService";
+import {
+  calculateRentDueStatus,
+  buildRentDueWhatsAppReminderUrl,
+  dispatchRentDueNotification,
+} from "@/lib/services/rentDueDateService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -57,6 +63,9 @@ import {
   UserMinus,
   Wrench,
   Filter,
+  Calendar,
+  Clock,
+  Bell,
 } from "lucide-react";
 
 export default function BuildingsManagementPage() {
@@ -108,7 +117,10 @@ export default function BuildingsManagementPage() {
     tenant_phone: "",
     tenant_email: "",
     status: "vacant",
+    lease_start_date: "",
+    rent_due_day: 5,
   });
+  const [payments, setPayments] = useState<RentPayment[]>([]);
   const [savingUnit, setSavingUnit] = useState(false);
   const [unitEditError, setUnitEditError] = useState<string | null>(null);
 
@@ -187,6 +199,19 @@ export default function BuildingsManagementPage() {
           : authUser.id;
       const fetchedBuildings = await getBuildingsWithUnits(effectiveLandlordId);
       setBuildings(fetchedBuildings);
+
+      // Load Payments to calculate real-time rent due date status
+      try {
+        const { data: paymentsData } = await supabase
+          .from("rent_payments")
+          .select("*")
+          .eq("landlord_id", effectiveLandlordId);
+        if (paymentsData) {
+          setPayments(paymentsData as RentPayment[]);
+        }
+      } catch (payErr) {
+        console.warn("Could not load rent payments:", payErr);
+      }
 
       // Expand all buildings by default for direct inspection
       const initialExpanded: Record<string, boolean> = {};
@@ -362,6 +387,8 @@ export default function BuildingsManagementPage() {
       tenant_phone: unit.tenant_phone || "",
       tenant_email: unit.tenant_email || "",
       status: unit.status || "vacant",
+      lease_start_date: unit.lease_start_date ? unit.lease_start_date.substring(0, 10) : "",
+      rent_due_day: unit.rent_due_day ?? 5,
     });
   };
 
@@ -373,6 +400,8 @@ export default function BuildingsManagementPage() {
       tenant_phone: "",
       tenant_email: "",
       status: "vacant",
+      lease_start_date: "",
+      rent_due_day: 5,
     }));
   };
 
@@ -1330,6 +1359,7 @@ export default function BuildingsManagementPage() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
                             {displayedUnits.map((unit) => {
                               const isOccupied = unit.status === "occupied" || Boolean(unit.tenant_name?.trim());
+                              const dueStatus = calculateRentDueStatus(unit, payments);
                               const hasConfiguredSpecs =
                                 (unit.parlors && unit.parlors > 0) ||
                                 (unit.rooms && unit.rooms > 0) ||
@@ -1368,7 +1398,7 @@ export default function BuildingsManagementPage() {
 
                                     {/* Occupancy Details Box */}
                                     {isOccupied && unit.tenant_name ? (
-                                      <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-500/20 space-y-1.5 text-xs">
+                                      <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-500/20 space-y-2 text-xs">
                                         <div className="flex items-center justify-between">
                                           <div className="flex items-center gap-1.5 truncate">
                                             <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -1391,6 +1421,30 @@ export default function BuildingsManagementPage() {
                                             <span className="truncate">{unit.tenant_phone}</span>
                                           </div>
                                         )}
+
+                                        {/* Contract & Real-Time Due Date Badge */}
+                                        <div className="pt-1.5 border-t border-blue-200/70 dark:border-blue-500/20 space-y-1">
+                                          <div className="flex items-center justify-between gap-1">
+                                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                                              <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                                              <span>
+                                                {dueStatus.formattedLeaseStart
+                                                  ? (isFrench ? `Bail : ${dueStatus.formattedLeaseStart}` : `Lease: ${dueStatus.formattedLeaseStart}`)
+                                                  : (isFrench ? "Bail : Non défini" : "Lease: Not set")}
+                                              </span>
+                                            </div>
+                                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${dueStatus.badgeClass}`}>
+                                              {dueStatus.status === "paid" && <CheckCircle2 className="w-3 h-3 shrink-0" />}
+                                              {dueStatus.status === "due_soon" && <Clock className="w-3 h-3 shrink-0" />}
+                                              {dueStatus.status === "overdue" && <AlertTriangle className="w-3 h-3 shrink-0" />}
+                                              <span>{isFrench ? dueStatus.statusLabelFr : dueStatus.statusLabelEn}</span>
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                                            <span>{isFrench ? `Échéance : le ${dueStatus.dueDay} du mois` : `Due: ${dueStatus.dueDay}th of month`}</span>
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">{dueStatus.formattedDueDate}</span>
+                                          </div>
+                                        </div>
                                       </div>
                                     ) : (
                                       <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/20 text-xs">
@@ -1488,6 +1542,53 @@ export default function BuildingsManagementPage() {
                                         {isOccupied ? (isFrench ? "Modifier Pièces & Locataire" : "Modify Specs & Tenant") : hasConfiguredSpecs ? (isFrench ? "Modifier Pièces / Assigner" : "Modify Specs / Assign Tenant") : (isFrench ? "Configurer & Assigner Locataire" : "Configure & Assign Tenant")}
                                       </span>
                                     </button>
+
+                                    {isOccupied && unit.tenant_name && unit.tenant_phone && (dueStatus.status === "due_soon" || dueStatus.status === "overdue") && (
+                                      <a
+                                        href={buildRentDueWhatsAppReminderUrl({
+                                          tenantPhone: unit.tenant_phone,
+                                          tenantName: unit.tenant_name,
+                                          unitNumber: unit.unit_number,
+                                          buildingName: building.name,
+                                          rentAmount: unit.rent_amount,
+                                          dueDay: dueStatus.dueDay,
+                                          dueDateStr: dueStatus.formattedDueDate,
+                                          isOverdue: dueStatus.status === "overdue",
+                                          daysDiff: dueStatus.daysDiff,
+                                          landlordName: profile?.full_name || (user?.user_metadata?.full_name as string),
+                                        })}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => {
+                                          dispatchRentDueNotification({
+                                            landlordId: unit.landlord_id || user?.id || "",
+                                            buildingId: building.id,
+                                            buildingName: building.name,
+                                            unitId: unit.id,
+                                            unitNumber: unit.unit_number,
+                                            tenantName: unit.tenant_name || "",
+                                            tenantPhone: unit.tenant_phone || "",
+                                            rentAmount: unit.rent_amount,
+                                            dueDay: dueStatus.dueDay,
+                                            isOverdue: dueStatus.status === "overdue",
+                                            daysDiff: dueStatus.daysDiff,
+                                          }).catch(console.warn);
+                                        }}
+                                        className={`inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-white font-bold text-xs shadow-sm active:scale-[0.98] transition shrink-0 cursor-pointer ${
+                                          dueStatus.status === "overdue"
+                                            ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
+                                            : "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
+                                        }`}
+                                        title={
+                                          dueStatus.status === "overdue"
+                                            ? (isFrench ? "Envoyer relance d'impayé sur WhatsApp" : "Send overdue notice via WhatsApp")
+                                            : (isFrench ? "Envoyer rappel d'échéance sur WhatsApp" : "Send rent due reminder via WhatsApp")
+                                        }
+                                      >
+                                        <Bell className="w-3.5 h-3.5 text-white" />
+                                        <span>{dueStatus.status === "overdue" ? (isFrench ? "Relancer" : "Overdue") : (isFrench ? "Rappeler" : "Remind")}</span>
+                                      </a>
+                                    )}
 
                                     {isOccupied && unit.tenant_name && (
                                       <Link
@@ -1869,6 +1970,94 @@ export default function BuildingsManagementPage() {
                     </div>
                   </div>
 
+                  {/* Contract / Lease Start Date & Monthly Rent Due Day */}
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
+                      <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>{isFrench ? "Période de Contrat & Échéance de Loyer" : "Contract Period & Rent Due Cycle"}</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Contract Start Date */}
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          {isFrench ? "Date de Début du Contrat / Bail" : "Lease / Contract Start Date"}
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                            <Calendar className="w-4 h-4" />
+                          </div>
+                          <input
+                            type="date"
+                            value={unitForm.lease_start_date || ""}
+                            onChange={(e) => {
+                              const newDate = e.target.value;
+                              const updates: Partial<UpdateUnitInput> = { lease_start_date: newDate };
+                              if (newDate) {
+                                const parts = newDate.split("-");
+                                if (parts.length === 3) {
+                                  const dayNum = parseInt(parts[2], 10);
+                                  if (dayNum >= 1 && dayNum <= 28 && (!unitForm.rent_due_day || unitForm.rent_due_day === 5)) {
+                                    updates.rent_due_day = dayNum;
+                                  }
+                                }
+                              }
+                              setUnitForm((prev) => ({ ...prev, ...updates }));
+                            }}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1 block">
+                          {isFrench
+                            ? "Date d'entrée ou de début effectif du contrat"
+                            : "Contract start or move-in date for this specific tenant"}
+                        </span>
+                      </div>
+
+                      {/* Monthly Due Day of Month */}
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          {isFrench ? "Jour d'Échéance du Loyer (Chaque Mois)" : "Monthly Rent Due Day"}
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                            <Clock className="w-4 h-4" />
+                          </div>
+                          <select
+                            value={unitForm.rent_due_day ?? 5}
+                            onChange={(e) =>
+                              setUnitForm((prev) => ({
+                                ...prev,
+                                rent_due_day: parseInt(e.target.value, 10) || 5,
+                              }))
+                            }
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+                          >
+                            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                              <option key={day} value={day}>
+                                {isFrench
+                                  ? `Le ${day} de chaque mois`
+                                  : `${day}${
+                                      day === 1
+                                        ? "st"
+                                        : day === 2
+                                        ? "nd"
+                                        : day === 3
+                                        ? "rd"
+                                        : "th"
+                                    } of each month`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1 block">
+                          {isFrench
+                            ? "Le système enverra des rappels avant et des alertes de retard après"
+                            : "System alerts sent before & overdue notices after this day"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {Boolean(unitForm.tenant_name?.trim() || unitForm.tenant_phone?.trim()) && (
                     <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                       <Sparkles className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -1885,9 +2074,11 @@ export default function BuildingsManagementPage() {
               {/* Summary Pill Preview */}
               <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>{isFrench ? "Résumé :" : "Summary:"}</span>
-                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                <span className="font-semibold text-blue-600 dark:text-blue-400 text-right">
                   {unitForm.parlors} {isFrench ? "Salon(s)" : "Parlor(s)"} • {unitForm.rooms} {isFrench ? "Chambre(s)" : "Room(s)"} • {unitForm.bathrooms} {isFrench ? "Douche(s)" : "Bath(s)"} • {unitForm.kitchens} {isFrench ? "Cuisine(s)" : "Kitchen(s)"}
                   {unitForm.rent_amount > 0 ? ` • ${Number(unitForm.rent_amount).toLocaleString()} XAF` : ""}
+                  {unitForm.lease_start_date ? (isFrench ? ` • Bail : ${unitForm.lease_start_date}` : ` • Lease: ${unitForm.lease_start_date}`) : ""}
+                  {unitForm.rent_due_day ? (isFrench ? ` • Échéance : le ${unitForm.rent_due_day}/mois` : ` • Due: ${unitForm.rent_due_day}th/mo`) : ""}
                   {unitForm.tenant_name?.trim()
                     ? isFrench ? ` • Statut : Occupé (${unitForm.tenant_name.trim()})` : ` • Status: Occupied (${unitForm.tenant_name.trim()})`
                     : isFrench ? " • Statut : Vacant (Disponible)" : " • Status: Vacant (Available)"}

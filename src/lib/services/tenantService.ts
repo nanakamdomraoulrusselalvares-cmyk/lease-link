@@ -93,10 +93,34 @@ export function buildTenantWhatsAppUrl(params: {
   directAccessUrl: string;
   landlordName?: string;
   language?: "en" | "fr";
+  leaseStartDate?: string | null;
+  rentDueDay?: number | null;
 }): { url: string; cleanPhone: string; message: string } {
   const cleanPhone = formatWhatsAppPhoneNumber(params.tenantPhone);
   const formattedRent = Number(params.rentAmount || 0).toLocaleString();
   const isEn = params.language === "en";
+
+  const leaseLineEn = params.leaseStartDate
+    ? `\n• Lease Start Date: ${params.leaseStartDate}`
+    : "";
+  const dueDayLineEn = params.rentDueDay
+    ? `\n• Monthly Due Day: ${params.rentDueDay}${
+        params.rentDueDay === 1
+          ? "st"
+          : params.rentDueDay === 2
+          ? "nd"
+          : params.rentDueDay === 3
+          ? "rd"
+          : "th"
+      } of each month`
+    : "";
+
+  const leaseLineFr = params.leaseStartDate
+    ? `\n• Début du bail : ${params.leaseStartDate}`
+    : "";
+  const dueDayLineFr = params.rentDueDay
+    ? `\n• Échéance de loyer : le ${params.rentDueDay} de chaque mois`
+    : "";
 
   const message = isEn
     ? `Hello ${params.tenantName.trim()}! 👋
@@ -105,7 +129,7 @@ Your tenant portal on *LeaseLink* for unit *${params.unitNumber}* at *${params.b
 🏠 *Unit Details:*
 • Property: ${params.buildingName}
 • Unit: ${params.unitNumber}
-• Monthly Rent: ${formattedRent} XAF
+• Monthly Rent: ${formattedRent} XAF${leaseLineEn}${dueDayLineEn}
 
 🔑 *Your Login Credentials:*
 • Email: ${params.email.trim()}
@@ -122,7 +146,7 @@ Votre espace locataire sur *LeaseLink* pour l'appartement *${params.unitNumber}*
 🏠 *Détails du Logement :*
 • Résidence : ${params.buildingName}
 • Logement : ${params.unitNumber}
-• Loyer mensuel : ${formattedRent} XAF
+• Loyer mensuel : ${formattedRent} XAF${leaseLineFr}${dueDayLineFr}
 
 🔑 *Vos Identifiants de Connexion :*
 • E-mail : ${params.email.trim()}
@@ -216,6 +240,8 @@ export async function assignTenantToUnit(
     tenant_email: string;
     tenant_password?: string;
     tenant_access_token?: string;
+    lease_start_date?: string;
+    rent_due_day?: number;
   }
 ): Promise<{
   success: boolean;
@@ -239,6 +265,8 @@ export async function assignTenantToUnit(
   const password = data.tenant_password || generateTenantPassword();
   const token = data.tenant_access_token || generateAccessToken();
   const assignedAt = new Date().toISOString();
+  const leaseStartDate = data.lease_start_date || new Date().toISOString().split("T")[0];
+  const rentDueDay = Number(data.rent_due_day) || 5;
 
   if (!isMockConfig && landlordId) {
     try {
@@ -250,6 +278,8 @@ export async function assignTenantToUnit(
         p_tenant_email: tenantEmail,
         p_tenant_password: password,
         p_tenant_access_token: token,
+        p_lease_start_date: leaseStartDate,
+        p_rent_due_day: rentDueDay,
       });
 
       if (!rpcErr && rpcData?.success) {
@@ -276,6 +306,8 @@ export async function assignTenantToUnit(
         tenant_password: password,
         tenant_access_token: token,
         tenant_assigned_at: assignedAt,
+        lease_start_date: leaseStartDate,
+        rent_due_day: rentDueDay,
         status: "occupied" as const,
         updated_at: new Date().toISOString(),
       };

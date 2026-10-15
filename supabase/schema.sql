@@ -344,6 +344,8 @@ alter table public.units add column if not exists tenant_email text;
 alter table public.units add column if not exists tenant_password text;
 alter table public.units add column if not exists tenant_access_token text;
 alter table public.units add column if not exists tenant_assigned_at timestamptz;
+alter table public.units add column if not exists lease_start_date date;
+alter table public.units add column if not exists rent_due_day integer not null default 5;
 alter table public.units add column if not exists created_at timestamptz not null default now();
 alter table public.units add column if not exists updated_at timestamptz not null default now();
 
@@ -357,9 +359,14 @@ begin
     update public.units set bathrooms = 0.0 where bathrooms is null or bathrooms < 0;
     update public.units set kitchens = 0 where kitchens is null or kitchens < 0;
     update public.units set bedrooms = coalesce(rooms, 0) where bedrooms is null or bedrooms < 0;
+    update public.units set rent_due_day = 5 where rent_due_day is null or rent_due_day < 1 or rent_due_day > 31;
+    update public.units set lease_start_date = tenant_assigned_at::date where lease_start_date is null and tenant_assigned_at is not null;
 
     alter table public.units drop constraint if exists units_status_check;
     alter table public.units add constraint units_status_check check (status in ('vacant', 'occupied', 'maintenance'));
+
+    alter table public.units drop constraint if exists units_rent_due_day_check;
+    alter table public.units add constraint units_rent_due_day_check check (rent_due_day between 1 and 31);
 
     if not exists (
         select 1 from pg_constraint where conname in ('units_building_id_unit_number_key', 'units_building_id_unit_number_idx')
@@ -495,13 +502,13 @@ alter table public.notifications add column if not exists updated_at timestamptz
 do $$
 begin
     update public.notifications set recipient_role = 'landlord' where recipient_role is null or recipient_role not in ('landlord', 'manager', 'management', 'tenant', 'building_community', 'admin');
-    update public.notifications set type = 'system' where type is null or type not in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'system');
+    update public.notifications set type = 'system' where type is null or type not in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'rent_due_reminder', 'rent_overdue', 'system');
 
     alter table public.notifications drop constraint if exists notifications_recipient_role_check;
     alter table public.notifications add constraint notifications_recipient_role_check check (recipient_role in ('landlord', 'manager', 'management', 'tenant', 'building_community', 'admin'));
 
     alter table public.notifications drop constraint if exists notifications_type_check;
-    alter table public.notifications add constraint notifications_type_check check (type in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'system'));
+    alter table public.notifications add constraint notifications_type_check check (type in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'rent_due_reminder', 'rent_overdue', 'system'));
 exception
     when others then
         raise notice 'Notifications migration notice: %', sqlerrm;
@@ -1366,7 +1373,9 @@ create or replace function public.update_unit_configuration(
     p_rooms integer default null,
     p_bathrooms numeric default null,
     p_kitchens integer default null,
-    p_notes text default null
+    p_notes text default null,
+    p_lease_start_date date default null,
+    p_rent_due_day integer default null
 )
 returns json as $$
 declare
@@ -1396,6 +1405,8 @@ begin
         bathrooms = coalesce(p_bathrooms, v_unit.bathrooms),
         kitchens = coalesce(p_kitchens, v_unit.kitchens),
         notes = coalesce(p_notes, v_unit.notes),
+        lease_start_date = coalesce(p_lease_start_date, v_unit.lease_start_date),
+        rent_due_day = coalesce(p_rent_due_day, v_unit.rent_due_day, 5),
         updated_at = now()
     where id = p_unit_id;
 
@@ -1413,7 +1424,9 @@ create or replace function public.assign_unit_tenant(
     p_tenant_phone text,
     p_tenant_email text,
     p_tenant_password text,
-    p_tenant_access_token text
+    p_tenant_access_token text,
+    p_lease_start_date date default null,
+    p_rent_due_day integer default 5
 )
 returns json as $$
 declare
@@ -1441,6 +1454,8 @@ begin
         tenant_password = trim(p_tenant_password),
         tenant_access_token = trim(p_tenant_access_token),
         tenant_assigned_at = coalesce(tenant_assigned_at, now()),
+        lease_start_date = coalesce(p_lease_start_date, lease_start_date, current_date),
+        rent_due_day = coalesce(p_rent_due_day, rent_due_day, 5),
         status = 'occupied',
         updated_at = now()
     where id = p_unit_id;
@@ -1480,6 +1495,7 @@ begin
         tenant_password = null,
         tenant_access_token = null,
         tenant_assigned_at = null,
+        lease_start_date = null,
         status = 'vacant',
         updated_at = now()
     where id = p_unit_id;
@@ -1521,6 +1537,8 @@ begin
         'landlord_phone', p.phone,
         'landlord_email', p.email,
         'assigned_at', u.tenant_assigned_at,
+        'lease_start_date', u.lease_start_date,
+        'rent_due_day', coalesce(u.rent_due_day, 5),
         'access_token', u.tenant_access_token
     ) into v_res
     from public.units u
@@ -1572,6 +1590,8 @@ begin
         'landlord_phone', p.phone,
         'landlord_email', p.email,
         'assigned_at', u.tenant_assigned_at,
+        'lease_start_date', u.lease_start_date,
+        'rent_due_day', coalesce(u.rent_due_day, 5),
         'access_token', u.tenant_access_token
     ) into v_res
     from public.units u
@@ -1639,6 +1659,157 @@ begin
     where r.unit_id = v_unit_id;
 
     return json_build_object('success', true, 'data', v_res);
+end;
+$$ language plpgsql security definer;
+
+-- 8.11 Automated Check & Dispatch of Rent Due Reminders & Overdue Notices
+create or replace function public.check_and_notify_rent_due_dates()
+returns json as $$
+declare
+    v_unit record;
+    v_today_day integer;
+    v_due_day integer;
+    v_days_diff integer;
+    v_notif_count integer := 0;
+    v_already_notified boolean;
+    v_is_paid boolean;
+    v_current_month text;
+begin
+    v_today_day := extract(day from current_date)::integer;
+    v_current_month := to_char(current_date, 'FMMonth YYYY');
+
+    for v_unit in
+        select
+            u.id as unit_id,
+            u.unit_number,
+            u.rent_amount,
+            coalesce(u.rent_due_day, 5) as due_day,
+            u.lease_start_date,
+            u.tenant_name,
+            u.tenant_phone,
+            u.tenant_email,
+            u.landlord_id,
+            b.id as building_id,
+            b.name as building_name
+        from public.units u
+        join public.buildings b on b.id = u.building_id
+        where u.status = 'occupied'
+          and u.tenant_name is not null
+          and trim(u.tenant_name) != ''
+    loop
+        v_due_day := v_unit.due_day;
+
+        -- Check if current month is paid
+        select exists (
+            select 1 from public.rent_payments rp
+            where rp.unit_id = v_unit.unit_id
+              and rp.status = 'completed'
+              and rp.balance_remaining <= 0
+              and (
+                  rp.rent_month ilike '%' || v_current_month || '%'
+                  or v_current_month = any(rp.months_covered)
+              )
+        ) into v_is_paid;
+
+        if not v_is_paid then
+            v_days_diff := v_today_day - v_due_day;
+
+            -- Case 1: Overdue (today > due_day)
+            if v_days_diff > 0 then
+                select exists (
+                    select 1 from public.notifications n
+                    where n.unit_id = v_unit.unit_id
+                      and n.type = 'rent_overdue'
+                      and n.created_at >= (now() - interval '3 days')
+                ) into v_already_notified;
+
+                if not v_already_notified then
+                    insert into public.notifications (
+                        type,
+                        recipient_role,
+                        landlord_id,
+                        building_id,
+                        building_name,
+                        unit_id,
+                        unit_number,
+                        tenant_name,
+                        amount,
+                        rent_month,
+                        title,
+                        title_fr,
+                        message,
+                        message_fr,
+                        metadata
+                    ) values (
+                        'rent_overdue',
+                        'management',
+                        v_unit.landlord_id,
+                        v_unit.building_id,
+                        v_unit.building_name,
+                        v_unit.unit_id,
+                        v_unit.unit_number,
+                        v_unit.tenant_name,
+                        v_unit.rent_amount,
+                        v_current_month,
+                        'Rent Overdue: ' || v_unit.tenant_name || ' (' || v_days_diff || ' days late)',
+                        'Loyer en retard : ' || v_unit.tenant_name || ' (' || v_days_diff || ' j de retard)',
+                        'Rent for unit ' || v_unit.unit_number || ' (' || v_unit.building_name || ') of ' || to_char(v_unit.rent_amount, 'FM999,999,999') || ' XAF was due on day ' || v_due_day || ' and is ' || v_days_diff || ' day(s) overdue.',
+                        'Le loyer du logement ' || v_unit.unit_number || ' (' || v_unit.building_name || ') de ' || to_char(v_unit.rent_amount, 'FM999,999,999') || ' XAF était dû le ' || v_due_day || ' du mois et accuse ' || v_days_diff || ' jour(s) de retard.',
+                        jsonb_build_object('isOverdue', true, 'daysOverdue', v_days_diff, 'dueDay', v_due_day)
+                    );
+                    v_notif_count := v_notif_count + 1;
+                end if;
+
+            -- Case 2: Due Soon (within 5 days before due_day)
+            elsif v_days_diff >= -5 and v_days_diff <= 0 then
+                select exists (
+                    select 1 from public.notifications n
+                    where n.unit_id = v_unit.unit_id
+                      and n.type = 'rent_due_reminder'
+                      and n.created_at >= (now() - interval '5 days')
+                ) into v_already_notified;
+
+                if not v_already_notified then
+                    insert into public.notifications (
+                        type,
+                        recipient_role,
+                        landlord_id,
+                        building_id,
+                        building_name,
+                        unit_id,
+                        unit_number,
+                        tenant_name,
+                        amount,
+                        rent_month,
+                        title,
+                        title_fr,
+                        message,
+                        message_fr,
+                        metadata
+                    ) values (
+                        'rent_due_reminder',
+                        'management',
+                        v_unit.landlord_id,
+                        v_unit.building_id,
+                        v_unit.building_name,
+                        v_unit.unit_id,
+                        v_unit.unit_number,
+                        v_unit.tenant_name,
+                        v_unit.rent_amount,
+                        v_current_month,
+                        'Rent Due Reminder: Unit ' || v_unit.unit_number,
+                        'Rappel d''échéance : Logement ' || v_unit.unit_number,
+                        'Rent for ' || v_unit.tenant_name || ' in Unit ' || v_unit.unit_number || ' is due on day ' || v_due_day || ' of this month.',
+                        'Le loyer de ' || v_unit.tenant_name || ' pour le logement ' || v_unit.unit_number || ' arrive à échéance le ' || v_due_day || ' du mois.',
+                        jsonb_build_object('isOverdue', false, 'daysRemaining', abs(v_days_diff), 'dueDay', v_due_day)
+                    );
+                    v_notif_count := v_notif_count + 1;
+                end if;
+            end if;
+        end if;
+    end loop;
+
+    return json_build_object('success', true, 'notifications_created', v_notif_count);
 end;
 $$ language plpgsql security definer;
 

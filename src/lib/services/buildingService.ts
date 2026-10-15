@@ -333,6 +333,13 @@ export async function updateUnitConfiguration(
         payload.unit_number = input.unit_number.trim();
       }
 
+      if (input.lease_start_date !== undefined) {
+        payload.lease_start_date = input.lease_start_date || null;
+      }
+      if (input.rent_due_day !== undefined) {
+        payload.rent_due_day = Number(input.rent_due_day) || 5;
+      }
+
       if (isAssigningTenant) {
         payload.tenant_name = tenantName;
         payload.tenant_phone = tenantPhone;
@@ -340,6 +347,8 @@ export async function updateUnitConfiguration(
         payload.tenant_password = tenantPassword;
         payload.tenant_access_token = tenantAccessToken;
         payload.tenant_assigned_at = tenantAssignedAt;
+        payload.lease_start_date = input.lease_start_date || new Date().toISOString().split("T")[0];
+        payload.rent_due_day = Number(input.rent_due_day) || 5;
         payload.status = "occupied";
       } else if (isUnassigning) {
         payload.tenant_name = null;
@@ -348,6 +357,8 @@ export async function updateUnitConfiguration(
         payload.tenant_password = null;
         payload.tenant_access_token = null;
         payload.tenant_assigned_at = null;
+        payload.lease_start_date = null;
+        payload.rent_due_day = 5;
         payload.status = "vacant";
       }
 
@@ -423,6 +434,8 @@ export async function updateUnitConfiguration(
             tenant_password: isAssigningTenant ? (existing?.tenant_password || tenantPassword) : isUnassigning ? null : existing?.tenant_password || null,
             tenant_access_token: isAssigningTenant ? (existing?.tenant_access_token || tenantAccessToken) : isUnassigning ? null : existing?.tenant_access_token || null,
             tenant_assigned_at: isAssigningTenant ? (existing?.tenant_assigned_at || tenantAssignedAt) : isUnassigning ? null : existing?.tenant_assigned_at || null,
+            lease_start_date: isAssigningTenant ? (input.lease_start_date || new Date().toISOString().split("T")[0]) : isUnassigning ? null : (input.lease_start_date !== undefined ? input.lease_start_date : existing?.lease_start_date || null),
+            rent_due_day: isAssigningTenant ? (Number(input.rent_due_day) || 5) : isUnassigning ? 5 : (input.rent_due_day !== undefined ? Number(input.rent_due_day) : existing?.rent_due_day || 5),
             created_at: baseUnit?.created_at || existing?.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };

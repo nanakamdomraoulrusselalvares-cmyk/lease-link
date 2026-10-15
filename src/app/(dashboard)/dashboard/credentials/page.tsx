@@ -165,6 +165,8 @@ function CredentialsContent() {
               directAccessUrl,
               landlordName,
               language,
+              leaseStartDate: unit.lease_start_date ? unit.lease_start_date.substring(0, 10) : null,
+              rentDueDay: unit.rent_due_day ?? 5,
             });
 
           list.push({
