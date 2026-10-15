@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  ArrowLeft,
   ArrowRight,
   ShieldCheck,
   Clock,
@@ -267,10 +268,21 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative selection:bg-blue-500 selection:text-white">
-      {/* Top right language & theme switches */}
-      <div className="absolute top-5 right-5 z-20 flex items-center gap-2">
-        <LanguageSwitcher variant="pill" />
-        <ThemeSwitcher variant="pill" />
+      {/* Top Bar Navigation: Go Back button & switches */}
+      <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-20 flex items-center justify-between">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold shadow-xs backdrop-blur-md transition group cursor-pointer"
+          title={isFrench ? "Retourner à la page d'accueil" : "Return to landing page"}
+        >
+          <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-transform group-hover:-translate-x-1" />
+          <span>{isFrench ? "Retour à l'accueil" : "Back to Home"}</span>
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher variant="pill" />
+          <ThemeSwitcher variant="pill" />
+        </div>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl text-center">
