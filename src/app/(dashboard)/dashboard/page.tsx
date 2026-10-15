@@ -55,6 +55,7 @@ import {
   Flame,
   MessageCircle,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 
 export default function LandlordHomePage() {
@@ -67,6 +68,7 @@ export default function LandlordHomePage() {
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isConfigured, setIsConfigured] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -347,21 +349,12 @@ export default function LandlordHomePage() {
 
               <button
                 id="logout-banner-btn"
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50"
+                onClick={() => setShowLogoutConfirm(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>{loggingOut ? (isFrench ? "Déconnexion..." : "Signing Out...") : (isFrench ? "Se Déconnecter" : "Log Out Now")}</span>
+                <span>{isFrench ? "Se Déconnecter" : "Log Out Now"}</span>
               </button>
-
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-white text-xs font-semibold border border-slate-200 dark:border-slate-800 transition shadow-xs"
-              >
-                <span>{isFrench ? "Accueil Public" : "View Public Homepage"}</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
             </div>
           </div>
         </div>
@@ -574,7 +567,7 @@ export default function LandlordHomePage() {
             <div className="pt-2">
               <button
                 id="logout-test-btn"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutConfirm(true)}
                 disabled={loggingOut}
                 className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/10 dark:hover:bg-rose-600/20 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 hover:text-rose-800 dark:hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
               >
@@ -1069,6 +1062,63 @@ export default function LandlordHomePage() {
                 alt={isFrench ? "Photo agrandie" : "Enlarged photo"}
                 className="max-h-[75vh] w-auto object-contain rounded-lg"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
+            onClick={() => !loggingOut && setShowLogoutConfirm(false)}
+          />
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 z-10 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs">
+                <LogOut className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {isFrench ? "Confirmer la déconnexion" : "Confirm Sign Out"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {isFrench
+                    ? "Êtes-vous sûr de vouloir vous déconnecter de votre compte LeaseLink ?"
+                    : "Are you sure you want to sign out of your LeaseLink account?"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                disabled={loggingOut}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              >
+                {isFrench ? "Annuler" : "Cancel"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50"
+              >
+                {loggingOut ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{isFrench ? "Déconnexion..." : "Signing Out..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-4 h-4" />
+                    <span>{isFrench ? "Oui, se déconnecter" : "Yes, Sign Out"}</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

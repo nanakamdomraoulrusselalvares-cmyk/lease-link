@@ -6,8 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useTheme } from "@/lib/theme/ThemeContext";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { LandlordProfile, AVAILABLE_PLANS } from "@/types/database";
@@ -19,14 +17,13 @@ import {
   Wrench,
   LogOut,
   Sparkles,
-  Menu,
+  Loader2,
   X,
   ChevronRight,
   ChevronDown,
   ShieldCheck,
   User,
   Plus,
-  ExternalLink,
   AlertTriangle,
   Users,
   ShieldAlert,
@@ -56,7 +53,7 @@ export default function DashboardNav({
   const [user, setUser] = useState<SupabaseUser | null>(initialUser || null);
   const [profile, setProfile] = useState<LandlordProfile | null>(initialProfile || null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const profileDropdownRef = useRef<HTMLDivElement>(null);
@@ -492,30 +489,17 @@ export default function DashboardNav({
 
                   {/* Divider & Actions */}
                   <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-1">
-                    <Link
-                      href="/"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60 transition"
-                    >
-                      <span className="flex items-center gap-2">
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>{isFrench ? "Accueil Public" : "Public Landing Page"}</span>
-                      </span>
-                      <ChevronRight className="w-3 h-3 text-slate-400" />
-                    </Link>
-
                     <button
                       type="button"
                       onClick={() => {
                         setProfileDropdownOpen(false);
-                        handleLogout();
+                        setShowLogoutModal(true);
                       }}
-                      disabled={loggingOut}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer disabled:opacity-50"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
-                        <LogOut className={`w-3.5 h-3.5 ${loggingOut ? "animate-spin" : ""}`} />
-                        <span>{loggingOut ? (isFrench ? "Déconnexion..." : "Signing Out...") : (isFrench ? "Se Déconnecter" : "Sign Out")}</span>
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>{isFrench ? "Se Déconnecter" : "Sign Out"}</span>
                       </span>
                       <ChevronRight className="w-3 h-3 text-rose-400" />
                     </button>
@@ -526,31 +510,14 @@ export default function DashboardNav({
 
             {/* Quick Logout Button (Desktop) */}
             <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              onClick={() => setShowLogoutModal(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer"
               title={isFrench ? "Se déconnecter" : "Sign out"}
             >
-              <LogOut className={`w-3.5 h-3.5 ${loggingOut ? "animate-spin" : ""}`} />
+              <LogOut className="w-3.5 h-3.5" />
               <span className="hidden 2xl:inline">
-                {loggingOut
-                  ? isFrench
-                    ? "Déconnexion..."
-                    : "Signing Out..."
-                  : isFrench
-                  ? "Déconnexion"
-                  : "Sign Out"}
+                {isFrench ? "Déconnexion" : "Sign Out"}
               </span>
-            </button>
-
-            {/* Mobile Menu Hamburger Trigger */}
-            <button
-              type="button"
-              onClick={() => setMobileDrawerOpen(true)}
-              className="xl:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition cursor-pointer"
-              aria-label="Open mobile navigation menu"
-            >
-              <Menu className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -604,115 +571,83 @@ export default function DashboardNav({
       </nav>
 
       {/* ========================================================================= */}
-      {/* 3. MOBILE SLIDE-OVER DRAWER (For full profile, actions & utilities)        */}
+      {/* 3. LOGOUT CONFIRMATION MODAL                                              */}
       {/* ========================================================================= */}
-      {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex xl:hidden">
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop overlay */}
           <div
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
-            onClick={() => setMobileDrawerOpen(false)}
+            onClick={() => !loggingOut && setShowLogoutModal(false)}
           />
 
-          {/* Drawer content panel */}
-          <div className="relative ml-auto w-full max-w-xs bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full p-6 flex flex-col justify-between shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
-            <div className="space-y-6">
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold text-base text-slate-900 dark:text-white">LeaseLink</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileDrawerOpen(false)}
-                  className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+          {/* Modal Card */}
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 z-10 animate-in zoom-in-95 duration-150">
+            {/* Modal Icon & Header */}
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs">
+                <LogOut className="w-6 h-6" />
               </div>
-
-              {/* Profile Card in Drawer */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">{userDisplayName}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
-                    {planLabel}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono truncate">{user?.email}</p>
-              </div>
-
-              {/* Navigation List */}
               <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-2 block mb-2">
-                  {isFrench ? "Navigation Principale" : "Main Navigation"}
-                </span>
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileDrawerOpen(false)}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
-                        item.active
-                          ? "bg-blue-600 text-white font-bold"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </div>
-                      {item.badge && (
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            item.badgePulse
-                              ? "bg-amber-400 text-amber-950 font-black"
-                              : "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                          }`}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-
-              {/* Public Site Link */}
-              <div className="pt-2">
-                <Link
-                  href="/"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                >
-                  <span className="flex items-center gap-2">
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>{isFrench ? "Voir Site Public" : "View Public Site"}</span>
-                  </span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {isFrench ? "Confirmer la déconnexion" : "Confirm Sign Out"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {isFrench
+                    ? "Êtes-vous sûr de vouloir vous déconnecter de votre compte LeaseLink ?"
+                    : "Are you sure you want to sign out of your LeaseLink account?"}
+                </p>
               </div>
             </div>
 
-            {/* Drawer Bottom Controls */}
-            <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <LanguageSwitcher variant="pill" />
-                <ThemeSwitcher variant="pill" />
+            {/* User Session Info Pill */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                  {userDisplayName.substring(0, 2).toUpperCase()}
+                </div>
+                <div className="truncate">
+                  <p className="font-semibold text-slate-900 dark:text-white truncate">
+                    {userDisplayName}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                    {user?.email}
+                  </p>
+                </div>
               </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 shrink-0">
+                {isAdmin ? "Admin" : isManager ? (isFrench ? "Gestionnaire" : "Manager") : (isFrench ? "Bailleur" : "Landlord")}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                disabled={loggingOut}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              >
+                {isFrench ? "Annuler" : "Cancel"}
+              </button>
 
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50"
               >
-                <LogOut className="w-4 h-4" />
-                <span>{loggingOut ? (isFrench ? "Déconnexion..." : "Signing Out...") : (isFrench ? "Se Déconnecter" : "Sign Out")}</span>
+                {loggingOut ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{isFrench ? "Déconnexion..." : "Signing Out..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-4 h-4" />
+                    <span>{isFrench ? "Oui, se déconnecter" : "Yes, Sign Out"}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
