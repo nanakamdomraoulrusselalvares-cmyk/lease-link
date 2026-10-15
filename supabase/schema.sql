@@ -92,6 +92,7 @@ create table if not exists public.profiles (
     assigned_building_ids uuid[] default null,
     plan text not null default 'free',
     plan_name text not null default 'Free Trial (30 Days)',
+    billing_cycle text not null default 'monthly',
     plan_unit_limit integer not null default 5,
     plan_duration_days integer not null default 30,
     plan_starts_at timestamptz not null default now(),
@@ -241,6 +242,7 @@ alter table public.profiles add column if not exists landlord_id uuid references
 alter table public.profiles add column if not exists assigned_building_ids uuid[] default null;
 alter table public.profiles add column if not exists plan text not null default 'free';
 alter table public.profiles add column if not exists plan_name text not null default 'Free Trial (30 Days)';
+alter table public.profiles add column if not exists billing_cycle text not null default 'monthly';
 alter table public.profiles add column if not exists plan_unit_limit integer not null default 5;
 alter table public.profiles add column if not exists plan_duration_days integer not null default 30;
 alter table public.profiles add column if not exists plan_starts_at timestamptz not null default now();
@@ -254,7 +256,8 @@ do $$
 begin
     -- Safe backfills for null profile columns
     update public.profiles set role = 'landlord' where role is null or role not in ('landlord', 'manager', 'admin');
-    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100');
+    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100', 'tier_100_plus', 'ultimate');
+    update public.profiles set billing_cycle = 'monthly' where billing_cycle is null or billing_cycle not in ('monthly', 'annual');
     update public.profiles set plan_status = 'active' where plan_status is null or plan_status not in ('active', 'expired', 'renewed');
     update public.profiles set plan_unit_limit = 5 where plan_unit_limit is null or plan_unit_limit < 1;
     update public.profiles set plan_duration_days = 30 where plan_duration_days is null;
@@ -264,7 +267,10 @@ begin
     alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin'));
 
     alter table public.profiles drop constraint if exists profiles_plan_check;
-    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100'));
+    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'tier_1_30', 'tier_31_60', 'tier_61_100', 'tier_100_plus', 'ultimate'));
+
+    alter table public.profiles drop constraint if exists profiles_billing_cycle_check;
+    alter table public.profiles add constraint profiles_billing_cycle_check check (billing_cycle in ('monthly', 'annual'));
 
     alter table public.profiles drop constraint if exists profiles_plan_status_check;
     alter table public.profiles add constraint profiles_plan_status_check check (plan_status in ('active', 'expired', 'renewed'));
@@ -1038,11 +1044,19 @@ declare
     v_has_trial boolean;
     v_role text;
     v_landlord_id uuid;
+    v_billing_cycle text;
+    v_duration_days integer;
+    v_expires_at timestamptz;
 begin
     v_full_name := coalesce(new.raw_user_meta_data->>'full_name', '');
     v_phone := coalesce(new.raw_user_meta_data->>'phone', '');
     v_plan := coalesce(new.raw_user_meta_data->>'plan', 'free');
     v_role := coalesce(new.raw_user_meta_data->>'role', 'landlord');
+    v_billing_cycle := coalesce(new.raw_user_meta_data->>'billing_cycle', 'monthly');
+
+    if v_billing_cycle not in ('monthly', 'annual') then
+        v_billing_cycle := 'monthly';
+    end if;
 
     if new.raw_user_meta_data->>'landlord_id' is not null and new.raw_user_meta_data->>'landlord_id' != '' then
         begin
@@ -1070,11 +1084,23 @@ begin
         v_plan_name := 'Pro (61 to 100 Units)';
         v_unit_limit := 100;
         v_has_trial := false;
+    elsif v_plan in ('tier_100_plus', 'ultimate') then
+        v_plan_name := 'Ultimate (100+ Units)';
+        v_unit_limit := 500;
+        v_has_trial := false;
     else
         v_plan := 'free';
         v_plan_name := 'Free Trial (30 Days)';
         v_unit_limit := 5;
         v_has_trial := true;
+    end if;
+
+    if v_billing_cycle = 'annual' and not v_has_trial then
+        v_duration_days := 365;
+        v_expires_at := now() + interval '365 days';
+    else
+        v_duration_days := 30;
+        v_expires_at := now() + interval '30 days';
     end if;
 
     insert into public.profiles (
@@ -1086,6 +1112,7 @@ begin
         landlord_id,
         plan,
         plan_name,
+        billing_cycle,
         plan_unit_limit,
         plan_duration_days,
         plan_starts_at,
@@ -1101,10 +1128,11 @@ begin
         v_landlord_id,
         v_plan,
         v_plan_name,
+        v_billing_cycle,
         v_unit_limit,
-        30,
+        v_duration_days,
         now(),
-        now() + interval '30 days',
+        v_expires_at,
         'active',
         v_has_trial
     )

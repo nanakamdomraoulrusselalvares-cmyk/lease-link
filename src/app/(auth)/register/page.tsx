@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   AVAILABLE_PLANS,
   SubscriptionPlanId,
+  BillingCycle,
 } from "@/types/database";
 import { notifyNewLandlordRegistered } from "@/lib/services/notificationService";
 import {
@@ -25,6 +26,7 @@ import {
   ShieldCheck,
   Clock,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -43,6 +45,23 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>("free");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
+
+  // Read URL query params (?plan=...&cycle=...)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const planParam = params.get("plan") as SubscriptionPlanId | null;
+      const cycleParam = params.get("cycle") as BillingCycle | null;
+
+      if (planParam && AVAILABLE_PLANS.some((p) => p.id === planParam)) {
+        setSelectedPlan(planParam);
+      }
+      if (cycleParam === "monthly" || cycleParam === "annual") {
+        setBillingCycle(cycleParam);
+      }
+    }
+  }, []);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -191,6 +210,7 @@ export default function RegisterPage() {
             full_name: fullName.trim(),
             phone: phone.trim(),
             plan: selectedPlan,
+            billing_cycle: billingCycle,
           },
         },
       });
@@ -445,37 +465,72 @@ export default function RegisterPage() {
 
               {/* Plan Selection */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4" />
                     {isFrench ? "Sélectionnez votre Formule (Obligatoire)" : "Select Portfolio Plan (Mandatory)"}
                   </h3>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" /> {isFrench ? "Durée 30 Jours" : "30 Days Duration"}
-                  </span>
+
+                  {/* Monthly vs Annual Toggle */}
+                  <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setBillingCycle("monthly")}
+                      className={`py-1 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        billingCycle === "monthly"
+                          ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      {isFrench ? "Mensuel" : "Monthly"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBillingCycle("annual")}
+                      className={`py-1 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                        billingCycle === "annual"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <span>{isFrench ? "Annuel" : "Annual"}</span>
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950">
+                        {isFrench ? "-15%" : "Save"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {AVAILABLE_PLANS.map((plan) => {
                     const isSelected = selectedPlan === plan.id;
+                    const priceDisplay =
+                      billingCycle === "annual" ? plan.annualPriceDisplay : plan.monthlyPriceDisplay;
+                    const savingsDisplay =
+                      billingCycle === "annual"
+                        ? isFrench && plan.annualSavingsFr
+                          ? plan.annualSavingsFr
+                          : plan.annualSavings
+                        : null;
+
                     return (
                       <div
                         key={plan.id}
                         onClick={() => setSelectedPlan(plan.id)}
-                        className={`relative p-4 rounded-xl border cursor-pointer transition text-left flex flex-col justify-between ${
+                        className={`relative p-3.5 rounded-xl border cursor-pointer transition text-left flex flex-col justify-between ${
                           isSelected
                             ? "bg-blue-50 dark:bg-blue-600/10 border-blue-500 ring-2 ring-blue-500/50"
                             : "bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-950"
                         }`}
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="font-semibold text-slate-900 dark:text-white text-sm">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-slate-900 dark:text-white text-xs">
                               {isFrench && plan.nameFr ? plan.nameFr : plan.name}
                             </span>
                             {plan.badge && (
                               <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${
                                   plan.isFreeTrial
                                     ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30"
                                     : "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30"
@@ -485,24 +540,52 @@ export default function RegisterPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                            {isFrench
-                              ? plan.unitRange.replace("Up to", "Jusqu'à").replace("units", "logements")
-                              : plan.unitRange}
+
+                          <div className="flex items-baseline gap-1 mt-1">
+                            <span className="text-base font-extrabold text-slate-900 dark:text-white">
+                              {priceDisplay}
+                            </span>
+                            <span className="text-[10px] text-slate-500">
+                              {plan.isFreeTrial
+                                ? ""
+                                : billingCycle === "annual"
+                                ? (isFrench ? "/ an" : "/ yr")
+                                : (isFrench ? "/ mois" : "/ mo")}
+                            </span>
+                          </div>
+
+                          {savingsDisplay && (
+                            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                              {savingsDisplay}
+                            </div>
+                          )}
+
+                          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                            {isFrench ? plan.unitRangeFr : plan.unitRange}
                           </p>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-snug">
-                            {isFrench && plan.taglineFr ? plan.taglineFr : plan.tagline}
+
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+                            <span className="font-semibold text-slate-800 dark:text-slate-300">
+                              {isFrench ? "Cible : " : "Target: "}
+                            </span>
+                            {isFrench ? plan.targetFr : plan.target}
                           </p>
                         </div>
 
-                        <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                          <span>{isFrench ? "Durée : 30 jours" : "Duration: 30 days"}</span>
+                        <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                          <span>
+                            {plan.isFreeTrial
+                              ? (isFrench ? "30 jours" : "30 days")
+                              : billingCycle === "annual"
+                              ? (isFrench ? "365 jours" : "365 days")
+                              : (isFrench ? "30 jours" : "30 days")}
+                          </span>
                           {isSelected ? (
-                            <span className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> {isFrench ? "Sélectionné" : "Selected"}
+                            <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> {isFrench ? "Sélectionné" : "Selected"}
                             </span>
                           ) : (
-                            <span className="text-slate-500">{isFrench ? "Cliquer pour choisir" : "Tap to select"}</span>
+                            <span className="text-slate-400">{isFrench ? "Choisir" : "Select"}</span>
                           )}
                         </div>
                       </div>
@@ -511,8 +594,8 @@ export default function RegisterPage() {
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {isFrench
-                    ? "* Remarque : L'offre d'essai gratuite ne peut être réclamée qu'une seule fois par utilisateur. Toutes les formules offrent un accès de 30 jours et peuvent être renouvelées avant expiration."
-                    : "* Note: The Free Plan can be claimed only once per user. All plans grant 30-day access and can be renewed before expiration."}
+                    ? "* Remarque : L'offre d'essai gratuite ne peut être réclamée qu'une seule fois par utilisateur. Les formules payantes sont disponibles en règlement mensuel ou annuel renouvelable."
+                    : "* Note: Free trial can only be claimed once per user. Paid plans are available with monthly or annual terms."}
                 </p>
               </div>
 

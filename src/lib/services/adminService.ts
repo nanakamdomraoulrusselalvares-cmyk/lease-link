@@ -474,12 +474,15 @@ export async function updateLandlordPlanAdmin(
     now.getTime() + durationDays * 24 * 60 * 60 * 1000
   );
 
+  const billingCycle = durationDays >= 360 ? "annual" : "monthly";
+
   try {
     const { error } = await supabase
       .from("profiles")
       .update({
         plan: planId,
         plan_name: planConfig.name,
+        billing_cycle: billingCycle,
         plan_unit_limit: planConfig.maxUnits,
         plan_duration_days: durationDays,
         plan_status: "active",

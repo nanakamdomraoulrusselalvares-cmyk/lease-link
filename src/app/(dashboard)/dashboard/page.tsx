@@ -21,6 +21,7 @@ import {
 } from "@/lib/services/maintenanceService";
 import AudioPlayer from "@/components/AudioPlayer";
 import DashboardNav from "@/components/DashboardNav";
+import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -71,6 +72,7 @@ export default function LandlordHomePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isConfigured, setIsConfigured] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Load authenticated user and profile
   const fetchSessionAndProfile = async () => {
@@ -506,6 +508,33 @@ export default function LandlordHomePage() {
                 </span>
                 <span className="text-slate-500">{Math.max(0, unitLimit - totalUnits)} {isFrench ? "Restants" : "Left"}</span>
               </div>
+            </div>
+
+            {/* Billing Term & Upgrade / Renew Action */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="font-semibold text-slate-700 dark:text-slate-300 block">
+                  {profile?.billing_cycle === "annual"
+                    ? isFrench ? "Facturation Annuelle (365 jours)" : "Annual Billing (365 days)"
+                    : isFrench ? "Facturation Mensuelle (30 jours)" : "Monthly Billing (30 days)"}
+                </span>
+                <span>
+                  {profile?.plan_expires_at
+                    ? isFrench
+                      ? `Expire le ${new Date(profile.plan_expires_at).toLocaleDateString()}`
+                      : `Expires on ${new Date(profile.plan_expires_at).toLocaleDateString()}`
+                    : ""}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSubscriptionModal(true)}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm shadow-blue-500/25 transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-200" />
+                <span>{isFrench ? "Changer / Payer l'Abonnement" : "Upgrade / Pay Subscription"}</span>
+              </button>
             </div>
           </div>
 
@@ -1123,6 +1152,16 @@ export default function LandlordHomePage() {
           </div>
         </div>
       )}
+
+      {/* Subscription Payment & Upgrade Modal */}
+      <SubscriptionPaymentModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        profile={profile}
+        onSubscriptionUpdated={() => {
+          fetchSessionAndProfile();
+        }}
+      />
     </div>
   );
 }

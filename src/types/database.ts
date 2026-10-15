@@ -1,14 +1,32 @@
-export type SubscriptionPlanId = 'free' | 'tier_1_30' | 'tier_31_60' | 'tier_61_100';
+export type SubscriptionPlanId =
+  | 'free'
+  | 'tier_1_30'
+  | 'tier_31_60'
+  | 'tier_61_100'
+  | 'tier_100_plus'
+  | 'ultimate';
+
+export type BillingCycle = 'monthly' | 'annual';
 
 export interface PlanConfig {
   id: SubscriptionPlanId;
   name: string;
-  nameFr?: string;
+  nameFr: string;
   tagline: string;
-  taglineFr?: string;
+  taglineFr: string;
+  target: string;
+  targetFr: string;
   unitRange: string;
+  unitRangeFr: string;
   maxUnits: number;
+  monthlyPrice: number;
+  annualPrice: number | null;
+  monthlyPriceDisplay: string;
+  annualPriceDisplay: string;
+  annualSavings?: string;
+  annualSavingsFr?: string;
   durationDays: number;
+  durationDaysAnnual: number;
   isFreeTrial: boolean;
   badge?: string;
   badgeFr?: string;
@@ -17,53 +35,114 @@ export interface PlanConfig {
 export const AVAILABLE_PLANS: PlanConfig[] = [
   {
     id: 'free',
-    name: 'Free Trial',
-    nameFr: 'Essai Gratuit',
-    tagline: 'Get started and test features for 30 days',
-    taglineFr: 'Commencez et testez les fonctionnalités pendant 30 jours',
+    name: 'Free',
+    nameFr: 'Gratuit',
+    tagline: 'Lead magnet / owners on trial',
+    taglineFr: 'Pour découvrir et tester LeaseLink sans aucun engagement',
+    target: 'Lead magnet / owners on trial',
+    targetFr: 'Propriétaires en phase de test',
     unitRange: 'Up to 5 units',
+    unitRangeFr: 'Jusqu\'à 5 logements',
     maxUnits: 5,
+    monthlyPrice: 0,
+    annualPrice: null,
+    monthlyPriceDisplay: '0 FCFA',
+    annualPriceDisplay: '—',
     durationDays: 30,
+    durationDaysAnnual: 30,
     isFreeTrial: true,
-    badge: '1-Time Only',
-    badgeFr: 'Offre Unique',
+    badge: 'Trial',
+    badgeFr: 'Essai',
   },
   {
     id: 'tier_1_30',
-    name: 'Starter Plan',
-    nameFr: 'Formule Starter',
-    tagline: 'Ideal for single buildings or duplexes',
-    taglineFr: 'Idéal pour petits immeubles ou duplex',
-    unitRange: '1 - 30 units',
+    name: 'Starter',
+    nameFr: 'Starter',
+    tagline: 'Individual owners / small landlords',
+    taglineFr: 'Idéal pour propriétaires individuels et petits immeubles',
+    target: 'Individual owners / small landlords',
+    targetFr: 'Propriétaires particuliers / Petits bailleurs',
+    unitRange: '1 to 30 units',
+    unitRangeFr: '1 à 30 logements',
     maxUnits: 30,
+    monthlyPrice: 9900,
+    annualPrice: 110800,
+    monthlyPriceDisplay: '9,900 FCFA',
+    annualPriceDisplay: '110,800 FCFA',
+    annualSavings: 'Save 8,000 FCFA / yr',
+    annualSavingsFr: 'Économisez 8 000 FCFA / an',
     durationDays: 30,
+    durationDaysAnnual: 365,
     isFreeTrial: false,
     badge: 'Popular',
     badgeFr: 'Populaire',
   },
   {
     id: 'tier_31_60',
-    name: 'Growth Plan',
-    nameFr: 'Formule Croissance',
-    tagline: 'For landlords managing mid-sized portfolios',
-    taglineFr: 'Pour les bailleurs gérant des patrimoines moyens',
-    unitRange: '31 - 60 units',
+    name: 'Growth',
+    nameFr: 'Growth',
+    tagline: 'Mid-sized property owners',
+    taglineFr: 'Pour bailleurs et gestionnaires avec patrimoine en expansion',
+    target: 'Mid-sized property owners',
+    targetFr: 'Propriétaires de parcs moyens',
+    unitRange: '31 to 60 units',
+    unitRangeFr: '31 à 60 logements',
     maxUnits: 60,
+    monthlyPrice: 18900,
+    annualPrice: 220800,
+    monthlyPriceDisplay: '18,900 FCFA',
+    annualPriceDisplay: '220,800 FCFA',
+    annualSavings: 'Save 6,000 FCFA / yr',
+    annualSavingsFr: 'Économisez 6 000 FCFA / an',
     durationDays: 30,
+    durationDaysAnnual: 365,
     isFreeTrial: false,
+    badge: 'Best Value',
+    badgeFr: 'Recommandé',
   },
   {
     id: 'tier_61_100',
-    name: 'Pro Portfolio',
-    nameFr: 'Formule Pro',
-    tagline: 'Full-scale property operations and multi-building scale',
+    name: 'Pro',
+    nameFr: 'Pro',
+    tagline: 'Large real estate investors',
     taglineFr: 'Gestion intégrale multi-immeubles à grande échelle',
-    unitRange: '61 - 100 units',
+    target: 'Large real estate investors',
+    targetFr: 'Grands investisseurs immobiliers',
+    unitRange: '61 to 100 units',
+    unitRangeFr: '61 à 100 logements',
     maxUnits: 100,
+    monthlyPrice: 36900,
+    annualPrice: 440800,
+    monthlyPriceDisplay: '36,900 FCFA',
+    annualPriceDisplay: '440,800 FCFA',
+    annualSavings: 'Save 2,000 FCFA / yr',
+    annualSavingsFr: 'Économisez 2 000 FCFA / an',
     durationDays: 30,
+    durationDaysAnnual: 365,
     isFreeTrial: false,
-    badge: 'Max Scale',
-    badgeFr: 'Capacité Max',
+    badge: 'High Scale',
+    badgeFr: 'Haute Capacité',
+  },
+  {
+    id: 'tier_100_plus',
+    name: 'Ultimate',
+    nameFr: 'Ultimate',
+    tagline: 'Enterprise asset managers',
+    taglineFr: 'Pour foncières, syndics et gestionnaires de très grands parcs',
+    target: 'Enterprise asset managers',
+    targetFr: 'Gestionnaires d\'actifs & Sociétés immobilières',
+    unitRange: '100+ units',
+    unitRangeFr: '100+ logements',
+    maxUnits: 500,
+    monthlyPrice: 100900,
+    annualPrice: null,
+    monthlyPriceDisplay: 'From 100,900 FCFA',
+    annualPriceDisplay: 'Custom quote',
+    durationDays: 30,
+    durationDaysAnnual: 365,
+    isFreeTrial: false,
+    badge: 'Enterprise',
+    badgeFr: 'Entreprise',
   },
 ];
 
@@ -124,6 +203,7 @@ export interface AdminLandlordSummary {
   role: UserRole;
   plan: SubscriptionPlanId;
   plan_name: string;
+  billing_cycle?: BillingCycle;
   plan_status: string;
   plan_unit_limit: number;
   buildings_count: number;
@@ -192,6 +272,7 @@ export interface LandlordProfile {
   assigned_building_ids?: string[] | null;
   plan: SubscriptionPlanId;
   plan_name: string;
+  billing_cycle?: BillingCycle;
   plan_unit_limit: number;
   plan_duration_days: number;
   plan_starts_at: string;

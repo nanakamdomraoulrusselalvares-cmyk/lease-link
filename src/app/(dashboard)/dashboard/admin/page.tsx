@@ -2118,13 +2118,39 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {isFrench ? "Durée de validité (Jours)" : "Validity Duration (Days)"}
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isFrench ? "Durée de validité (Jours)" : "Validity Duration (Days)"}
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setNewPlanDuration(30)}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                        newPlanDuration === 30
+                          ? "bg-purple-600 text-white"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                      }`}
+                    >
+                      30j (Mensuel)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewPlanDuration(365)}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                        newPlanDuration === 365
+                          ? "bg-purple-600 text-white"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                      }`}
+                    >
+                      365j (Annuel)
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="number"
                   min="1"
-                  max="365"
+                  max="730"
                   value={newPlanDuration}
                   onChange={(e) => setNewPlanDuration(Number(e.target.value))}
                   className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"

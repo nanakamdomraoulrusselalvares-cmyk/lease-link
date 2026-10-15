@@ -37,6 +37,7 @@ export default function HomePage() {
   const [activePreviewTab, setActivePreviewTab] = useState<"ledger" | "buildings" | "receipt" | "repairs">("ledger");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [unitCountSlider, setUnitCountSlider] = useState<number>(24);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
 
   // Dynamic plan finder based on slider
   const suggestedPlan =
@@ -779,7 +780,7 @@ export default function HomePage() {
       {/* Interactive Pricing Calculator & Subscription Plans */}
       <section id="pricing" className="py-20 bg-white dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
+          <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
               {isFrench ? "Formules & Tarification" : "Pricing & Plans"}
             </span>
@@ -788,9 +789,39 @@ export default function HomePage() {
             </h2>
             <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
               {isFrench
-                ? "Toutes nos formules sont valables 30 jours, sans engagement et renouvelables à tout moment."
-                : "All plans run on flexible 30-day billing with zero lock-in. Scale up or down as your portfolio evolves."}
+                ? "Choisissez entre une facturation mensuelle souple ou un abonnement annuel pour réaliser des économies substantielles."
+                : "Choose between flexible monthly billing or an annual subscription for substantial savings."}
             </p>
+
+            {/* Monthly / Annual Billing Toggle Switch */}
+            <div className="mt-6 inline-flex items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setBillingCycle("monthly")}
+                className={`py-2 px-5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  billingCycle === "monthly"
+                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                {isFrench ? "Facturation Mensuelle" : "Monthly Billing"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBillingCycle("annual")}
+                className={`py-2 px-5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
+                  billingCycle === "annual"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <span>{isFrench ? "Facturation Annuelle" : "Annual Billing"}</span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 shadow-xs">
+                  {isFrench ? "Économisez" : "Save"}
+                </span>
+              </button>
+            </div>
 
             {/* Interactive Capacity Slider */}
             <div className="mt-8 p-5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl mx-auto text-left shadow-xs">
@@ -798,13 +829,15 @@ export default function HomePage() {
                 <span className="text-slate-800 dark:text-slate-300">
                   {isFrench ? "Combien de logements gérez-vous ?" : "How many units do you manage?"}
                 </span>
-                <span className="text-blue-600 dark:text-blue-400 text-sm font-black">{unitCountSlider} {isFrench ? "Logements" : "Units"}</span>
+                <span className="text-blue-600 dark:text-blue-400 text-sm font-black">
+                  {unitCountSlider >= 101 ? "100+ Logements" : `${unitCountSlider} ${isFrench ? "Logements" : "Units"}`}
+                </span>
               </div>
 
               <input
                 type="range"
                 min="1"
-                max="100"
+                max="120"
                 value={unitCountSlider}
                 onChange={(e) => setUnitCountSlider(Number(e.target.value))}
                 className="w-full mt-3 accent-blue-600 cursor-pointer"
@@ -819,80 +852,112 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Pricing Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Pricing Cards Grid - 5 Plans */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-5">
             {AVAILABLE_PLANS.map((plan) => {
               const isSelected = suggestedPlan.id === plan.id;
+              const priceDisplay =
+                billingCycle === "annual" ? plan.annualPriceDisplay : plan.monthlyPriceDisplay;
+              const savingsDisplay =
+                billingCycle === "annual"
+                  ? isFrench && plan.annualSavingsFr
+                    ? plan.annualSavingsFr
+                    : plan.annualSavings
+                  : null;
+
               return (
                 <div
                   key={plan.id}
-                  className={`bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 relative shadow-sm ${
+                  className={`bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 relative shadow-sm ${
                     isSelected
-                      ? "border-2 border-blue-600 shadow-lg shadow-blue-500/10 scale-[1.02]"
+                      ? "border-2 border-blue-600 shadow-lg shadow-blue-500/10 scale-[1.02] z-10"
                       : plan.isFreeTrial
                       ? "border-2 border-amber-500/60"
                       : "border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   {isSelected && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-blue-600 text-white font-black text-[10px] uppercase tracking-wider shadow-md">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-blue-600 text-white font-black text-[9px] uppercase tracking-wider shadow-md whitespace-nowrap">
                       {isFrench ? "Recommandé" : "Best Fit"}
                     </div>
                   )}
 
                   <div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-1">
                       <h3 className="text-base font-bold text-slate-900 dark:text-white">
                         {isFrench && plan.nameFr ? plan.nameFr : plan.name}
                       </h3>
                       {plan.badge && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 shrink-0">
                           {isFrench && plan.badgeFr ? plan.badgeFr : plan.badge}
                         </span>
                       )}
                     </div>
 
-                    <div className="mt-4">
-                      <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                        {isFrench
-                          ? plan.unitRange.replace("Up to", "Jusqu'à").replace("units", "logements")
-                          : plan.unitRange}
+                    {/* Unit Capacity */}
+                    <div className="mt-3">
+                      <div className="text-lg font-black text-blue-600 dark:text-blue-400">
+                        {isFrench ? plan.unitRangeFr : plan.unitRange}
                       </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">
-                        {isFrench ? "Durée 30 jours renouvelable" : "30-day active validity"}
-                      </span>
                     </div>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-3 leading-relaxed">
-                      {isFrench && plan.taglineFr ? plan.taglineFr : plan.tagline}
-                    </p>
+                    {/* Price */}
+                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                        {priceDisplay}
+                      </div>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 block">
+                        {plan.isFreeTrial
+                          ? isFrench
+                            ? "Essai 30 jours (Sans carte)"
+                            : "30-day trial (No card)"
+                          : billingCycle === "annual"
+                          ? isFrench
+                            ? "/ an (Facturation annuelle)"
+                            : "/ year (Annual billing)"
+                          : isFrench
+                          ? "/ mois (Facturation mensuelle)"
+                          : "/ month (Monthly billing)"}
+                      </span>
 
-                    <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800/80 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>{isFrench ? "Quittances certifiées illimitées" : "Unlimited digital receipts"}</span>
+                      {savingsDisplay && (
+                        <div className="mt-1.5 inline-block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-500/20">
+                          {savingsDisplay}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Target Audience */}
+                    <div className="mt-4 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 text-[11px] text-slate-600 dark:text-slate-400">
+                      <span className="font-bold text-slate-900 dark:text-slate-200 block mb-0.5">
+                        {isFrench ? "Cible recommandée :" : "Target Audience:"}
+                      </span>
+                      <span>{isFrench ? plan.targetFr : plan.target}</span>
+                    </div>
+
+                    {/* Features list */}
+                    <div className="mt-4 space-y-2 text-[11px] text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{isFrench ? "Quittances certifiées" : "Certified receipts"}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>{isFrench ? "Accès locataires WhatsApp" : "WhatsApp tenant logins"}</span>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{isFrench ? "Portail Locataire PWA" : "Tenant Web App"}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>{isFrench ? "Guichet des réclamations" : "Repairs ticketing desk"}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>{isFrench ? "Notifications d'arrivée" : "Community arrival alerts"}</span>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{isFrench ? "Mémos vocaux & Tickets" : "Voice notes & Repairs"}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-7 pt-4">
+                  <div className="mt-6 pt-3">
                     <Link
-                      href="/register"
-                      className={`w-full block text-center py-3 rounded-xl font-bold text-xs transition cursor-pointer ${
+                      href={`/register?plan=${plan.id}&cycle=${billingCycle}`}
+                      className={`w-full block text-center py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
                         isSelected
-                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25"
+                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25"
                           : plan.isFreeTrial
                           ? "bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-2 border-amber-400 dark:border-amber-500/30"
                           : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
@@ -900,11 +965,11 @@ export default function HomePage() {
                     >
                       {plan.isFreeTrial
                         ? isFrench
-                          ? "Activer l'Essai Gratuit"
-                          : "Start Free Trial"
+                          ? "Activer l'Essai"
+                          : "Start Trial"
                         : isFrench
-                        ? "Choisir cette Formule"
-                        : "Select This Plan"}
+                        ? "Choisir"
+                        : "Select Plan"}
                     </Link>
                   </div>
                 </div>
