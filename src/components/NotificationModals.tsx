@@ -29,8 +29,8 @@ import {
 } from "lucide-react";
 import { AppNotification } from "@/types/database";
 
-// Audio synthesized chime mimicking WhatsApp incoming heads-up notification
-export function playWhatsAppChime() {
+// Synthesized acoustic chime tuned to LeaseLink's clean platform frequency (C5 ~523.25Hz -> G5 ~783.99Hz)
+export function playPlatformNotificationChime() {
   if (typeof window === "undefined") return;
   try {
     const AudioContextClass =
@@ -40,38 +40,41 @@ export function playWhatsAppChime() {
     const ctx = new AudioContextClass();
     const now = ctx.currentTime;
 
-    // First chime pulse (D5 ~587Hz)
+    // First harmonious tone (C5)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = "sine";
-    osc1.frequency.setValueAtTime(587.33, now);
-    gain1.gain.setValueAtTime(0.09, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc1.frequency.setValueAtTime(523.25, now);
+    gain1.gain.setValueAtTime(0.08, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
     osc1.start(now);
-    osc1.stop(now + 0.18);
+    osc1.stop(now + 0.22);
 
-    // Second chime pulse (A5 ~880Hz)
+    // Second elegant resonance (G5)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = "sine";
-    osc2.frequency.setValueAtTime(880, now + 0.08);
-    gain2.gain.setValueAtTime(0.12, now + 0.08);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+    osc2.frequency.setValueAtTime(783.99, now + 0.09);
+    gain2.gain.setValueAtTime(0.1, now + 0.09);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
-    osc2.start(now + 0.08);
-    osc2.stop(now + 0.42);
+    osc2.start(now + 0.09);
+    osc2.stop(now + 0.45);
   } catch (_) {
-    // Silently ignore if audio context requires user interaction
+    // Silently ignore if audio context requires prior user interaction
   }
 }
 
+// Backwards-compatible export alias
+export const playWhatsAppChime = playPlatformNotificationChime;
+
 // ============================================================================
-// 1. WhatsApp Heads-Up Floating Banner Notification
+// 1. LeaseLink Platform Heads-Up Floating Banner Notification
 // ============================================================================
-interface WhatsAppHeadsUpBannerProps {
+interface PlatformHeadsUpBannerProps {
   notification: AppNotification | null;
   onClose: () => void;
   onViewMore: (notif: AppNotification) => void;
@@ -80,19 +83,19 @@ interface WhatsAppHeadsUpBannerProps {
   formatCurrency?: (val: number) => string;
 }
 
-export function WhatsAppHeadsUpBanner({
+export function PlatformHeadsUpBanner({
   notification,
   onClose,
   onViewMore,
   onMarkRead,
   isFrench,
   formatCurrency = (n) => `${n.toLocaleString()} FCFA`,
-}: WhatsAppHeadsUpBannerProps) {
+}: PlatformHeadsUpBannerProps) {
   if (!notification) return null;
 
   const senderName =
     (notification.metadata?.sender_name as string) ||
-    (isFrench ? "Bailleur LeaseLink" : "LeaseLink Landlord");
+    (isFrench ? "Bailleur LeaseLink" : "LeaseLink Property Manager");
 
   const title = isFrench
     ? notification.title_fr || notification.title
@@ -107,27 +110,27 @@ export function WhatsAppHeadsUpBanner({
       role="alert"
       className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] w-[95%] max-w-lg animate-in fade-in slide-in-from-top-6 duration-300 pointer-events-auto"
     >
-      <div className="relative overflow-hidden rounded-2xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border border-emerald-500/40 text-white shadow-2xl shadow-emerald-950/60 p-4 ring-1 ring-emerald-400/20">
-        {/* Subtle accent bar */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-green-400 to-teal-400" />
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border border-blue-500/30 text-white shadow-2xl shadow-blue-950/60 p-4 ring-1 ring-blue-400/20">
+        {/* LeaseLink signature blue gradient top bar */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-sky-400" />
 
-        {/* Header row: WhatsApp icon, Sender, "Now", and Close */}
+        {/* Header row: LeaseLink logo, Sender, "Now", and Close */}
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* WhatsApp Green Icon Badge */}
-            <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/30 shrink-0">
-              <MessageCircle className="w-4 h-4 fill-white text-emerald-500" />
+            {/* LeaseLink Official App Badge */}
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-600/30 shrink-0">
+              <Building2 className="w-4 h-4 text-white" />
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black tracking-tight text-white truncate">
-                  {senderName}
+                  Lease<span className="text-blue-400">Link</span> • {senderName}
                 </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-ping" />
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 animate-ping" />
               </div>
-              <span className="text-[10px] text-emerald-400 font-medium block">
-                {isFrench ? "WhatsApp • Notification Directe" : "WhatsApp • Push Notification"}
+              <span className="text-[10px] text-blue-300 font-semibold block">
+                {isFrench ? "Notification Plateforme LeaseLink" : "LeaseLink Property Notification"}
               </span>
             </div>
           </div>
@@ -139,7 +142,7 @@ export function WhatsAppHeadsUpBanner({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition"
+              className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
               title={isFrench ? "Fermer" : "Dismiss"}
             >
               <X className="w-4 h-4" />
@@ -149,7 +152,7 @@ export function WhatsAppHeadsUpBanner({
 
         {/* Message body */}
         <div className="space-y-1.5 pr-1">
-          <h4 className="text-xs font-bold text-emerald-300 leading-snug">
+          <h4 className="text-xs font-bold text-blue-200 leading-snug">
             {title}
           </h4>
           <p className="text-xs text-slate-200 leading-relaxed line-clamp-2">
@@ -159,16 +162,21 @@ export function WhatsAppHeadsUpBanner({
           {/* Metadata pill: amount / unit */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {notification.amount && (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-200 text-[11px] font-bold font-mono">
                 {isFrench ? "Solde dû :" : "Due :"} {formatCurrency(notification.amount)}
               </span>
             )}
             {notification.unit_number && (
               <span className="px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] font-semibold flex items-center gap-1">
-                <DoorOpen className="w-3 h-3 text-emerald-400" />
+                <DoorOpen className="w-3 h-3 text-blue-400" />
                 <span>
                   {isFrench ? "Logement" : "Unit"} {notification.unit_number}
                 </span>
+              </span>
+            )}
+            {notification.building_name && (
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] font-medium truncate max-w-[150px]">
+                {notification.building_name}
               </span>
             )}
           </div>
@@ -183,9 +191,9 @@ export function WhatsAppHeadsUpBanner({
                 onMarkRead(notification.id);
                 onClose();
               }}
-              className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 transition flex items-center gap-1"
+              className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 transition flex items-center gap-1 cursor-pointer"
             >
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-3.5 h-3.5 text-blue-400" />
               <span>{isFrench ? "Marquer comme lu" : "Mark as read"}</span>
             </button>
           )}
@@ -193,7 +201,7 @@ export function WhatsAppHeadsUpBanner({
           <button
             type="button"
             onClick={() => onViewMore(notification)}
-            className="ml-auto px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+            className="ml-auto px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
           >
             <span>{isFrench ? "Voir plus" : "View more"}</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -203,6 +211,9 @@ export function WhatsAppHeadsUpBanner({
     </div>
   );
 }
+
+// Backwards-compatible export alias so existing references keep working
+export const WhatsAppHeadsUpBanner = PlatformHeadsUpBanner;
 
 // ============================================================================
 // 2. Full Notification Reader Modal ("Voir Plus")

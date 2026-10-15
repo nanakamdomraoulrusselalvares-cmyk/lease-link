@@ -25,10 +25,10 @@ import {
   clearNotification,
 } from "@/lib/services/notificationService";
 import {
-  WhatsAppHeadsUpBanner,
+  PlatformHeadsUpBanner,
   FullNotificationModal,
   AllNotificationsModal,
-  playWhatsAppChime,
+  playPlatformNotificationChime,
 } from "@/components/NotificationModals";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
@@ -112,7 +112,7 @@ export default function NotificationBell({
         if (topUnreadReminder) {
           seenNotifIdsRef.current.add(topUnreadReminder.id);
           setActiveBannerNotif(topUnreadReminder);
-          playWhatsAppChime();
+          playPlatformNotificationChime();
         }
       }
     } catch (err) {
@@ -151,7 +151,7 @@ export default function NotificationBell({
       if (!seenNotifIdsRef.current.has(incoming.id)) {
         seenNotifIdsRef.current.add(incoming.id);
         setActiveBannerNotif(incoming);
-        playWhatsAppChime();
+        playPlatformNotificationChime();
         if (typeof window !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate?.([40, 60, 40]);
         }
@@ -629,8 +629,8 @@ export default function NotificationBell({
         </div>
       )}
 
-      {/* Floating WhatsApp-style Heads-Up Banner */}
-      <WhatsAppHeadsUpBanner
+      {/* Floating LeaseLink Platform Heads-Up Banner */}
+      <PlatformHeadsUpBanner
         notification={activeBannerNotif}
         onClose={() => setActiveBannerNotif(null)}
         onViewMore={(n) => {

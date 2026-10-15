@@ -425,23 +425,24 @@ export default function BroadcastReminderModal({
                     </span>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-950 text-white p-4 border border-emerald-500/40 shadow-xl space-y-2 ring-1 ring-emerald-500/20">
+                  <div className="relative overflow-hidden rounded-2xl bg-slate-950 text-white p-4 border border-blue-500/30 shadow-xl space-y-2 ring-1 ring-blue-500/20">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-sky-400" />
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                          <MessageCircle className="w-3.5 h-3.5 fill-white text-emerald-500" />
+                        <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
+                          <Building2 className="w-3.5 h-3.5" />
                         </div>
                         <span className="text-xs font-bold text-white">
-                          {landlordName} (Bailleur)
+                          Lease<span className="text-blue-400">Link</span> • {landlordName}
                         </span>
-                        <span className="text-[10px] text-emerald-400 font-medium">
+                        <span className="text-[10px] text-blue-300 font-medium">
                           • {isFrench ? "à l'instant" : "now"}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400">WhatsApp Push</span>
+                      <span className="text-[10px] text-blue-300 font-semibold">{isFrench ? "Pop-up Plateforme" : "Platform Pop-up"}</span>
                     </div>
 
-                    <h5 className="text-xs font-bold text-emerald-300">
+                    <h5 className="text-xs font-bold text-blue-200">
                       {customTitle}
                     </h5>
 
@@ -450,11 +451,11 @@ export default function BroadcastReminderModal({
                     </p>
 
                     <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
-                      <span className="text-emerald-400 font-bold font-mono">
+                      <span className="text-blue-300 font-bold font-mono">
                         {isFrench ? "Solde dû :" : "Due:"}{" "}
                         {formatCurrency(previewTenant.balance_owing_current_month || 0)}
                       </span>
-                      <span className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px]">
+                      <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-bold text-[11px] shadow-sm">
                         {isFrench ? "Voir plus →" : "View more →"}
                       </span>
                     </div>
