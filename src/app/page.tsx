@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -40,9 +40,22 @@ export default function HomePage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
 
   // Dynamic plan finder based on slider
-  const suggestedPlan =
-    AVAILABLE_PLANS.find((p) => unitCountSlider <= p.maxUnits) ||
-    AVAILABLE_PLANS[AVAILABLE_PLANS.length - 1];
+  const suggestedPlan = useMemo(() => {
+    return (
+      AVAILABLE_PLANS.find((p) => {
+        if (billingCycle === "annual" && p.isFreeTrial) return false;
+        return unitCountSlider <= p.maxUnits;
+      }) || AVAILABLE_PLANS[AVAILABLE_PLANS.length - 1]
+    );
+  }, [unitCountSlider, billingCycle]);
+
+  // When annual, hide the 30-day Free Trial because it cannot be subscribed annually
+  const displayedPlans = useMemo(() => {
+    if (billingCycle === "annual") {
+      return AVAILABLE_PLANS.filter((p) => !p.isFreeTrial);
+    }
+    return AVAILABLE_PLANS;
+  }, [billingCycle]);
 
   const faqs = isFrench
     ? [
@@ -852,9 +865,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Pricing Cards Grid - 5 Plans */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-5">
-            {AVAILABLE_PLANS.map((plan) => {
+          {/* Pricing Cards Grid */}
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 ${
+              billingCycle === "annual" ? "lg:grid-cols-4 max-w-6xl mx-auto" : "lg:grid-cols-5"
+            } gap-4 lg:gap-5`}
+          >
+            {displayedPlans.map((plan) => {
               const isSelected = suggestedPlan.id === plan.id;
               const priceDisplay =
                 billingCycle === "annual" ? plan.annualPriceDisplay : plan.monthlyPriceDisplay;

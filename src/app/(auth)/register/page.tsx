@@ -54,11 +54,15 @@ export default function RegisterPage() {
       const planParam = params.get("plan") as SubscriptionPlanId | null;
       const cycleParam = params.get("cycle") as BillingCycle | null;
 
-      if (planParam && AVAILABLE_PLANS.some((p) => p.id === planParam)) {
-        setSelectedPlan(planParam);
-      }
       if (cycleParam === "monthly" || cycleParam === "annual") {
         setBillingCycle(cycleParam);
+      }
+      if (planParam && AVAILABLE_PLANS.some((p) => p.id === planParam)) {
+        if (cycleParam === "annual" && planParam === "free") {
+          setSelectedPlan("tier_1_30");
+        } else {
+          setSelectedPlan(planParam);
+        }
       }
     }
   }, []);
@@ -486,7 +490,12 @@ export default function RegisterPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setBillingCycle("annual")}
+                      onClick={() => {
+                        setBillingCycle("annual");
+                        if (selectedPlan === "free") {
+                          setSelectedPlan("tier_1_30");
+                        }
+                      }}
                       className={`py-1 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
                         billingCycle === "annual"
                           ? "bg-blue-600 text-white shadow-xs"
@@ -501,8 +510,8 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {AVAILABLE_PLANS.map((plan) => {
+                <div className={`grid grid-cols-1 sm:grid-cols-2 ${billingCycle === "annual" ? "lg:grid-cols-2" : "lg:grid-cols-3"} gap-3`}>
+                  {AVAILABLE_PLANS.filter((p) => billingCycle === "monthly" || !p.isFreeTrial).map((plan) => {
                     const isSelected = selectedPlan === plan.id;
                     const priceDisplay =
                       billingCycle === "annual" ? plan.annualPriceDisplay : plan.monthlyPriceDisplay;
