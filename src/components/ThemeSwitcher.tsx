@@ -50,7 +50,7 @@ export default function ThemeSwitcher({
       <button
         type="button"
         onClick={toggleTheme}
-        className="sm:hidden inline-flex items-center justify-center p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition cursor-pointer shadow-xs active:scale-95"
+        className="sm:hidden inline-flex items-center justify-center p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition cursor-pointer shadow-xs active:scale-95"
         title={
           isDark
             ? isFrench
@@ -63,9 +63,9 @@ export default function ThemeSwitcher({
         aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       >
         {isDark ? (
-          <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+          <Sun className="w-3.5 h-3.5 text-amber-400 hover:rotate-45 transition-transform" />
         ) : (
-          <Moon className="w-4 h-4 text-blue-600 hover:-rotate-12 transition-transform" />
+          <Moon className="w-3.5 h-3.5 text-blue-600 hover:-rotate-12 transition-transform" />
         )}
       </button>
 

@@ -107,14 +107,14 @@ export default function HomePage() {
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
       {/* Navigation Header */}
       <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-4 sm:gap-8 shrink-0">
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-400 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform duration-300 shrink-0">
-                <Building2 className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-400 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform duration-300 shrink-0">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div className="shrink-0">
-                <span className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight">
+                <span className="font-extrabold text-base sm:text-xl text-slate-900 dark:text-white tracking-tight">
                   Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
                 </span>
                 <span className="hidden sm:inline-block ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 uppercase tracking-widest">
@@ -153,7 +153,7 @@ export default function HomePage() {
 
             <Link
               href="/login"
-              className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-white px-2 py-1.5 transition shrink-0 whitespace-nowrap"
+              className="hidden sm:inline-flex text-xs sm:text-sm font-semibold text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-white px-2 py-1.5 transition shrink-0 whitespace-nowrap"
             >
               {isFrench ? "Connexion" : "Sign In"}
             </Link>
@@ -163,7 +163,7 @@ export default function HomePage() {
               className="text-xs sm:text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-1.5 group cursor-pointer shrink-0 whitespace-nowrap"
             >
               <span>{isFrench ? "Essai Gratuit" : "Start Free"}</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform hidden xs:inline" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform hidden sm:inline" />
             </Link>
           </div>
         </div>
@@ -239,6 +239,20 @@ export default function HomePage() {
             </Link>
           </div>
 
+          {/* Mobile-only Sign In Link */}
+          <div className="pt-1 flex sm:hidden items-center justify-center gap-2 text-xs">
+            <span className="text-slate-600 dark:text-slate-400">
+              {isFrench ? "Déjà un compte bailleur ?" : "Already registered as a landlord?"}
+            </span>
+            <Link
+              href="/login"
+              className="font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+            >
+              <span>{isFrench ? "Se connecter" : "Sign in"}</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
           {/* Reassurance Badges: High Contrast & Visible */}
           <div className="pt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs text-slate-800 dark:text-slate-300 font-semibold border-t border-slate-200 dark:border-slate-800 max-w-4xl mx-auto">
             <div className="flex items-center gap-2">
@@ -283,76 +297,80 @@ export default function HomePage() {
         {/* Mac-Style Window Container */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden ring-1 ring-slate-200/80 dark:ring-slate-800/80">
           {/* Window Header */}
-          <div className="px-4 sm:px-5 py-3.5 bg-slate-50 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            <div className="flex items-center justify-between md:justify-start gap-2 shrink-0">
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
-                <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block" />
-                <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
+          <div className="px-3.5 sm:px-5 py-3 bg-slate-50 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
+            {/* Top row: Traffic dots + clean URL + live sync indicator */}
+            <div className="flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                </div>
+                <span className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono ml-1">
+                  app.leaselink.cm<span className="hidden sm:inline">/dashboard</span>
+                </span>
               </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono ml-2">app.leaselink.cm/dashboard</span>
-            </div>
 
-            {/* Interactive Tabs with Horizontal Scroll & No Truncation */}
-            <div className="w-full md:w-auto overflow-x-auto no-scrollbar scrollbar-none pb-0.5">
-              <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl text-xs font-semibold min-w-max">
-                <button
-                  type="button"
-                  onClick={() => setActivePreviewTab("ledger")}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                    activePreviewTab === "ledger"
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  <Receipt className="w-3.5 h-3.5" />
-                  <span>{isFrench ? "Registre Loyers" : "Rent Ledger"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActivePreviewTab("buildings")}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                    activePreviewTab === "buildings"
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  <Building2 className="w-3.5 h-3.5" />
-                  <span>{isFrench ? "Immeubles" : "Buildings"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActivePreviewTab("receipt")}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                    activePreviewTab === "receipt"
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  <FileCheck2 className="w-3.5 h-3.5" />
-                  <span>{isFrench ? "Quittance Certifiée" : "Certified Receipt"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActivePreviewTab("repairs")}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
-                    activePreviewTab === "repairs"
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  <Wrench className="w-3.5 h-3.5" />
-                  <span>{isFrench ? "Réclamations" : "Repairs Desk"}</span>
-                </button>
+              {/* Live sync badge - visible on mobile too */}
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                <span>{isFrench ? "En direct" : "Live Sync"}</span>
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-              <span>{isFrench ? "Synchronisation en direct" : "Live Real-Time Sync"}</span>
+            {/* Interactive Tabs: 2x2 grid on mobile (<md) so all 4 tabs are 100% visible, flex on desktop (>=md) */}
+            <div className="grid grid-cols-2 md:flex md:items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl text-xs font-semibold w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("ledger")}
+                className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 text-center ${
+                  activePreviewTab === "ledger"
+                    ? "bg-blue-600 text-white shadow-sm font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{isFrench ? "Registre Loyers" : "Rent Ledger"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("buildings")}
+                className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 text-center ${
+                  activePreviewTab === "buildings"
+                    ? "bg-blue-600 text-white shadow-sm font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{isFrench ? "Immeubles" : "Buildings"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("receipt")}
+                className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 text-center ${
+                  activePreviewTab === "receipt"
+                    ? "bg-blue-600 text-white shadow-sm font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <FileCheck2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{isFrench ? "Quittance Certifiée" : "Certified Receipt"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActivePreviewTab("repairs")}
+                className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 text-center ${
+                  activePreviewTab === "repairs"
+                    ? "bg-blue-600 text-white shadow-sm font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{isFrench ? "Réclamations" : "Repairs Desk"}</span>
+              </button>
             </div>
           </div>
 

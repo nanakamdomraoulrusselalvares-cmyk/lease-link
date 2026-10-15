@@ -41,7 +41,7 @@ export default function LanguageSwitcher({
       <button
         type="button"
         onClick={() => setLanguage(isFrench ? "en" : "fr")}
-        className="sm:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-800 transition cursor-pointer shadow-xs active:scale-95"
+        className="sm:hidden inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px] font-bold border border-slate-200 dark:border-slate-800 transition cursor-pointer shadow-xs active:scale-95"
         title={isFrench ? "Changer de langue (Passer en Anglais)" : "Switch language (Switch to French)"}
         aria-label="Toggle language"
       >
