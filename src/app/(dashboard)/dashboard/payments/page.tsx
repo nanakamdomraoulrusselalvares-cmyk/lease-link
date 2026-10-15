@@ -21,6 +21,7 @@ import {
   buildPaymentConfirmationWhatsAppUrl,
 } from "@/lib/services/paymentService";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
+import BroadcastReminderModal from "@/components/BroadcastReminderModal";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -52,6 +53,7 @@ import {
   Copy,
   Check,
   Sparkles,
+  BellRing,
 } from "lucide-react";
 
 function PaymentsContent() {
@@ -94,6 +96,9 @@ function PaymentsContent() {
   // Drawer / view all receipts for a tenant
   const [inspectTenantReceipts, setInspectTenantReceipts] =
     useState<TenantRentStatus | null>(null);
+
+  // Broadcast payment reminder modal to all owing tenants
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
   const currentMonth = getCurrentRentMonth();
 
@@ -310,13 +315,42 @@ function PaymentsContent() {
             </p>
           </div>
 
-          <div className="text-right">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">
-              {isFrench ? "Période de facturation" : "Billing Period"}
-            </span>
-            <span className="text-base font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-800 inline-block mt-0.5 shadow-sm">
-              {currentMonth}
-            </span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowBroadcastModal(true)}
+              disabled={totalOwingTenants === 0}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-md cursor-pointer ${
+                totalOwingTenants > 0
+                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white shadow-amber-500/25 active:scale-95"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
+              }`}
+              title={
+                totalOwingTenants > 0
+                  ? isFrench
+                    ? "Envoyer une alerte WhatsApp directe à tous les locataires débiteurs"
+                    : "Send instant push reminder to all unpaid tenants"
+                  : isFrench
+                  ? "Tous les locataires sont à jour"
+                  : "All tenants are fully settled"
+              }
+            >
+              <BellRing className={`w-4 h-4 ${totalOwingTenants > 0 ? "animate-bounce" : ""}`} />
+              <span>
+                {isFrench
+                  ? `Rappel groupé aux débiteurs (${totalOwingTenants})`
+                  : `Broadcast Reminder (${totalOwingTenants})`}
+              </span>
+            </button>
+
+            <div className="text-left sm:text-right">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">
+                {isFrench ? "Période de facturation" : "Billing Period"}
+              </span>
+              <span className="text-base font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-800 inline-block mt-0.5 shadow-sm">
+                {currentMonth}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -392,6 +426,17 @@ function PaymentsContent() {
                 ? "Tous les locataires sont à jour"
                 : "All tenants fully settled"}
             </span>
+
+            {totalOwingTenants > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowBroadcastModal(true)}
+                className="mt-1 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:text-amber-950 dark:hover:text-amber-200 flex items-center gap-1 cursor-pointer transition"
+              >
+                <BellRing className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span>{isFrench ? "Diffuser un rappel groupé →" : "Broadcast reminder →"}</span>
+              </button>
+            )}
           </div>
 
           {/* Tenant Compliance Stats */}
@@ -1415,6 +1460,19 @@ function PaymentsContent() {
         payment={selectedReceipt}
         landlordName={profile?.full_name || (isFrench ? "Gestion Immobilière" : "Landlord Management")}
         landlordPhone={profile?.phone || undefined}
+      />
+
+      {/* Broadcast Payment Reminder Modal */}
+      <BroadcastReminderModal
+        isOpen={showBroadcastModal}
+        onClose={() => setShowBroadcastModal(false)}
+        landlordId={user?.id || profile?.id || ""}
+        landlordName={profile?.full_name || (isFrench ? "Votre Bailleur" : "Your Landlord")}
+        unpaidTenants={statuses}
+        currentMonth={currentMonth}
+        onBroadcastSuccess={() => {
+          loadData();
+        }}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Bell,
   CheckCheck,
@@ -12,6 +12,10 @@ import {
   X,
   Sparkles,
   ShieldAlert,
+  ArrowRight,
+  Eye,
+  MessageCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { AppNotification } from "@/types/database";
 import {
@@ -20,6 +24,12 @@ import {
   markAllNotificationsAsRead,
   clearNotification,
 } from "@/lib/services/notificationService";
+import {
+  WhatsAppHeadsUpBanner,
+  FullNotificationModal,
+  AllNotificationsModal,
+  playWhatsAppChime,
+} from "@/components/NotificationModals";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface NotificationBellProps {
@@ -50,6 +60,12 @@ export default function NotificationBell({
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
 
+  // Detailed Modals state
+  const [activeBannerNotif, setActiveBannerNotif] = useState<AppNotification | null>(null);
+  const [selectedNotifForView, setSelectedNotifForView] = useState<AppNotification | null>(null);
+  const [showAllNotifsModal, setShowAllNotifsModal] = useState(false);
+  const seenNotifIdsRef = useRef<Set<string>>(new Set());
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const readerId =
@@ -57,8 +73,20 @@ export default function NotificationBell({
       ? unitId || "tenant"
       : userId || landlordId || "management_user";
 
+  // Robust determination of unread status
+  const isNotificationUnread = useCallback(
+    (notif: AppNotification): boolean => {
+      if (notif.is_read) return false;
+      if (readerId && Array.isArray(notif.read_by) && notif.read_by.includes(readerId)) {
+        return false;
+      }
+      return true;
+    },
+    [readerId]
+  );
+
   // Load notifications based on exact role and parameters
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       const list = await getNotificationsForUser({
         role,
@@ -69,27 +97,122 @@ export default function NotificationBell({
         unitId,
       });
       setNotifications(list);
+
+      // If tenant has an unread urgent reminder not yet seen in this session, trigger heads-up popup
+      if (role === "tenant" && list.length > 0) {
+        const topUnreadReminder = list.find(
+          (n) =>
+            isNotificationUnread(n) &&
+            !seenNotifIdsRef.current.has(n.id) &&
+            (n.type === "broadcast_reminder" ||
+              n.type === "rent_due_reminder" ||
+              n.type === "rent_overdue")
+        );
+
+        if (topUnreadReminder) {
+          seenNotifIdsRef.current.add(topUnreadReminder.id);
+          setActiveBannerNotif(topUnreadReminder);
+          playWhatsAppChime();
+        }
+      }
     } catch (err) {
       console.warn("Error loading notifications:", err);
     }
-  };
+  }, [role, userId, landlordId, assignedBuildingIds, buildingId, unitId, isNotificationUnread]);
 
   useEffect(() => {
     loadNotifications();
 
-    // Listen to custom notification broadcast event
-    const handleUpdate = () => {
+    // Check if incoming notification belongs to current context
+    const isNotificationForMe = (n: AppNotification): boolean => {
+      if (role === "tenant") {
+        if (unitId && n.unit_id) return n.unit_id === unitId;
+        if (buildingId && n.building_id === buildingId) {
+          return !n.unit_id || n.recipient_role === "building_community";
+        }
+        return false;
+      }
+      if (role === "landlord") {
+        const myId = userId || landlordId;
+        return Boolean(myId && n.landlord_id === myId && n.recipient_role !== "admin");
+      }
+      if (role === "admin") return true;
+      return false;
+    };
+
+    const handleIncoming = (incoming: AppNotification) => {
+      if (!incoming || !isNotificationForMe(incoming)) return;
+
+      setNotifications((prev) => [
+        incoming,
+        ...prev.filter((item) => item.id !== incoming.id),
+      ]);
+
+      if (!seenNotifIdsRef.current.has(incoming.id)) {
+        seenNotifIdsRef.current.add(incoming.id);
+        setActiveBannerNotif(incoming);
+        playWhatsAppChime();
+        if (typeof window !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate?.([40, 60, 40]);
+        }
+      }
+    };
+
+    const handleNewNotifEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<AppNotification>;
+      if (customEvent.detail) {
+        handleIncoming(customEvent.detail);
+      } else {
+        loadNotifications();
+      }
+    };
+
+    const handleBroadcastSent = (e: Event) => {
       loadNotifications();
     };
 
-    window.addEventListener("leaselink:notification_updated", handleUpdate);
-    window.addEventListener("storage", handleUpdate);
+    // Storage event for cross-tab notification synchronization
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "leaselink_latest_notif_ping" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed?.notif) {
+            handleIncoming(parsed.notif);
+          }
+        } catch (_) {}
+      } else {
+        loadNotifications();
+      }
+    };
+
+    // BroadcastChannel for instant cross-tab communication
+    let channel: BroadcastChannel | null = null;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      try {
+        channel = new BroadcastChannel("leaselink_notifications_channel");
+        channel.onmessage = (event) => {
+          if (event.data?.notif) {
+            handleIncoming(event.data.notif);
+          }
+        };
+      } catch (_) {}
+    }
+
+    window.addEventListener("leaselink:notification_updated", loadNotifications);
+    window.addEventListener("leaselink:new_notification", handleNewNotifEvent);
+    window.addEventListener("leaselink:broadcast_sent", handleBroadcastSent);
+    window.addEventListener("storage", handleStorage);
 
     return () => {
-      window.removeEventListener("leaselink:notification_updated", handleUpdate);
-      window.removeEventListener("storage", handleUpdate);
+      window.removeEventListener("leaselink:notification_updated", loadNotifications);
+      window.removeEventListener("leaselink:new_notification", handleNewNotifEvent);
+      window.removeEventListener("leaselink:broadcast_sent", handleBroadcastSent);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) {
+        channel.close();
+      }
     };
-  }, [role, userId, landlordId, assignedBuildingIds, buildingId, unitId]);
+  }, [loadNotifications, role, userId, landlordId, buildingId, unitId]);
 
   // Handle outside click to close dropdown
   useEffect(() => {
@@ -107,14 +230,6 @@ export default function NotificationBell({
     };
   }, [isOpen]);
 
-  // Robust determination of unread status
-  const isNotificationUnread = (notif: AppNotification): boolean => {
-    if (notif.is_read) return false;
-    if (readerId && Array.isArray(notif.read_by) && notif.read_by.includes(readerId)) {
-      return false;
-    }
-    return true;
-  };
 
   // Count unread
   const unreadCount = notifications.filter(isNotificationUnread).length;
@@ -356,6 +471,14 @@ export default function NotificationBell({
                         </div>
                       )}
 
+                      {(notif.type === "broadcast_reminder" ||
+                        notif.type === "rent_due_reminder" ||
+                        notif.type === "rent_overdue") && (
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-xs">
+                          <AlertTriangle className="w-4 h-4" />
+                        </div>
+                      )}
+
                       {notif.type === "tenant_arrived" && (
                         <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs">
                           <UserPlus className="w-4 h-4" />
@@ -375,6 +498,9 @@ export default function NotificationBell({
                       )}
 
                       {notif.type !== "payment_received" &&
+                        notif.type !== "broadcast_reminder" &&
+                        notif.type !== "rent_due_reminder" &&
+                        notif.type !== "rent_overdue" &&
                         notif.type !== "tenant_arrived" &&
                         notif.type !== "tenant_departed" &&
                         notif.type !== "landlord_registered" && (
@@ -385,7 +511,7 @@ export default function NotificationBell({
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0 space-y-1 pr-4">
+                    <div className="flex-1 min-w-0 space-y-1 pr-1">
                       <div className="flex items-center justify-between gap-2">
                         <h4
                           className={`text-xs truncate ${
@@ -442,6 +568,27 @@ export default function NotificationBell({
                           </span>
                         )}
                       </div>
+
+                      {/* "Voir plus" Action Link */}
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800/60 mt-1">
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {notif.rent_month
+                            ? `${isFrench ? "Période :" : "Period:"} ${notif.rent_month}`
+                            : ""}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(notif.id);
+                            setSelectedNotifForView(notif);
+                          }}
+                          className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 ml-auto cursor-pointer"
+                        >
+                          <span>{isFrench ? "Voir plus" : "View more"}</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Quick Clear Button */}
@@ -460,8 +607,68 @@ export default function NotificationBell({
               })
             )}
           </div>
+
+          {/* Sticky View All Notifications Footer */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                setShowAllNotifsModal(true);
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>
+                {isFrench
+                  ? `Voir toutes les notifications (${notifications.length})`
+                  : `View all notifications (${notifications.length})`}
+              </span>
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Floating WhatsApp-style Heads-Up Banner */}
+      <WhatsAppHeadsUpBanner
+        notification={activeBannerNotif}
+        onClose={() => setActiveBannerNotif(null)}
+        onViewMore={(n) => {
+          setActiveBannerNotif(null);
+          handleMarkAsRead(n.id);
+          setSelectedNotifForView(n);
+        }}
+        onMarkRead={handleMarkAsRead}
+        isFrench={isFrench}
+        formatCurrency={formatCurrency}
+      />
+
+      {/* Full Notification Modal Reader */}
+      <FullNotificationModal
+        notification={selectedNotifForView}
+        onClose={() => setSelectedNotifForView(null)}
+        onMarkAsRead={handleMarkAsRead}
+        role={role}
+        isFrench={isFrench}
+        formatCurrency={formatCurrency}
+      />
+
+      {/* Notification Center: View all notifications */}
+      <AllNotificationsModal
+        isOpen={showAllNotifsModal}
+        onClose={() => setShowAllNotifsModal(false)}
+        notifications={notifications}
+        onSelectNotification={(n) => {
+          setSelectedNotifForView(n);
+        }}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllRead}
+        onClear={handleClear}
+        isNotificationUnread={isNotificationUnread}
+        role={role}
+        isFrench={isFrench}
+        formatCurrency={formatCurrency}
+      />
     </div>
   );
 }

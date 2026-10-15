@@ -560,6 +560,7 @@ export type NotificationType =
   | 'maintenance_update'
   | 'rent_due_reminder'
   | 'rent_overdue'
+  | 'broadcast_reminder'
   | 'system';
 
 export type NotificationRecipientRole =

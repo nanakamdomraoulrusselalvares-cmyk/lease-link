@@ -502,13 +502,13 @@ alter table public.notifications add column if not exists updated_at timestamptz
 do $$
 begin
     update public.notifications set recipient_role = 'landlord' where recipient_role is null or recipient_role not in ('landlord', 'manager', 'management', 'tenant', 'building_community', 'admin');
-    update public.notifications set type = 'system' where type is null or type not in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'rent_due_reminder', 'rent_overdue', 'system');
+    update public.notifications set type = 'system' where type is null or type not in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'rent_due_reminder', 'rent_overdue', 'broadcast_reminder', 'system');
 
     alter table public.notifications drop constraint if exists notifications_recipient_role_check;
     alter table public.notifications add constraint notifications_recipient_role_check check (recipient_role in ('landlord', 'manager', 'management', 'tenant', 'building_community', 'admin'));
 
     alter table public.notifications drop constraint if exists notifications_type_check;
-    alter table public.notifications add constraint notifications_type_check check (type in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'rent_due_reminder', 'rent_overdue', 'system'));
+    alter table public.notifications add constraint notifications_type_check check (type in ('payment_received', 'tenant_arrived', 'tenant_departed', 'landlord_registered', 'maintenance_update', 'rent_due_reminder', 'rent_overdue', 'broadcast_reminder', 'system'));
 exception
     when others then
         raise notice 'Notifications migration notice: %', sqlerrm;
@@ -997,11 +997,11 @@ create policy "Notifications select policy"
             and type != 'landlord_registered'
         )
         or
-        -- Tenants ONLY see arrivals/departures in their SAME building
+        -- Tenants ONLY see community notices and their rent/due reminders for their building/unit
         (
             auth.role() = 'anon'
             and recipient_role in ('tenant', 'building_community')
-            and type in ('tenant_arrived', 'tenant_departed', 'system', 'maintenance_update')
+            and type in ('tenant_arrived', 'tenant_departed', 'system', 'maintenance_update', 'rent_due_reminder', 'rent_overdue', 'broadcast_reminder')
             and exists (
                 select 1 from public.units u
                 where u.building_id = notifications.building_id

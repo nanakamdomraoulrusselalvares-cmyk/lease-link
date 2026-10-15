@@ -146,6 +146,28 @@ export async function createNotification(
   const localList = getLocalNotifications();
   setLocalNotifications([newNotif, ...localList]);
 
+  // Dispatch cross-tab and cross-window events so WhatsApp-style popup triggers in any tab
+  if (typeof window !== "undefined") {
+    try {
+      if ("BroadcastChannel" in window) {
+        const channel = new BroadcastChannel("leaselink_notifications_channel");
+        channel.postMessage({ notif: newNotif, timestamp: Date.now() });
+        channel.close();
+      }
+    } catch (_) {}
+
+    try {
+      localStorage.setItem(
+        "leaselink_latest_notif_ping",
+        JSON.stringify({ notif: newNotif, timestamp: Date.now() })
+      );
+    } catch (_) {}
+
+    window.dispatchEvent(
+      new CustomEvent("leaselink:new_notification", { detail: newNotif })
+    );
+  }
+
   return newNotif;
 }
 
@@ -245,6 +267,10 @@ function isNotificationPermittedForUser(
   if (role === "tenant") {
     if (n.recipient_role === "landlord" || n.recipient_role === "management") {
       return false;
+    }
+    // If notification is explicitly targeted to a specific unit (like rent due, rent overdue, or broadcast reminder), ONLY that unit may see it!
+    if (n.unit_id) {
+      return Boolean(params.unitId && n.unit_id === params.unitId);
     }
     if (params.buildingId && n.building_id === params.buildingId) {
       return true;
@@ -747,4 +773,108 @@ export async function notifyNewLandlordRegistered(details: {
       landlord_name: details.landlordName,
     },
   });
+}
+
+export interface UnpaidTenantTarget {
+  unitId: string;
+  unitNumber: string;
+  buildingId: string;
+  buildingName: string;
+  tenantName: string;
+  tenantPhone?: string;
+  balanceOwing: number;
+  currentMonth: string;
+}
+
+export interface BroadcastReminderParams {
+  landlordId: string;
+  landlordName?: string;
+  customMessage?: string;
+  customTitle?: string;
+  tenants: UnpaidTenantTarget[];
+}
+
+/**
+ * Broadcasts an official payment reminder to all tenants with unpaid/owing dues for a specific landlord.
+ * Triggers instant in-app WhatsApp-style heads-up notifications for each targeted tenant.
+ */
+export async function broadcastRentReminderToUnpaidTenants(
+  params: BroadcastReminderParams
+): Promise<{ success: boolean; sentCount: number; notifications: AppNotification[] }> {
+  const { landlordId, landlordName, customMessage, customTitle, tenants } = params;
+
+  if (!tenants || tenants.length === 0) {
+    return { success: true, sentCount: 0, notifications: [] };
+  }
+
+  const createdNotifications: AppNotification[] = [];
+
+  for (const tenant of tenants) {
+    const formattedAmount = (tenant.balanceOwing || 0).toLocaleString();
+    const defaultMsgFr = customMessage
+      ? customMessage
+          .replace(/\{tenant\}/gi, tenant.tenantName)
+          .replace(/\{unit\}/gi, tenant.unitNumber)
+          .replace(/\{building\}/gi, tenant.buildingName)
+          .replace(/\{amount\}/gi, formattedAmount)
+          .replace(/\{month\}/gi, tenant.currentMonth)
+      : `Bonjour ${tenant.tenantName}, rappel amical de votre bailleur : votre loyer pour le logement ${tenant.unitNumber} (${tenant.buildingName}) présente un solde impayé de ${formattedAmount} FCFA au titre du mois de ${tenant.currentMonth}. Merci de régulariser rapidement via Mobile Money ou auprès du gestionnaire.`;
+
+    const defaultMsgEn = customMessage
+      ? customMessage
+          .replace(/\{tenant\}/gi, tenant.tenantName)
+          .replace(/\{unit\}/gi, tenant.unitNumber)
+          .replace(/\{building\}/gi, tenant.buildingName)
+          .replace(/\{amount\}/gi, formattedAmount)
+          .replace(/\{month\}/gi, tenant.currentMonth)
+      : `Hello ${tenant.tenantName}, friendly reminder from your landlord: your rent for unit ${tenant.unitNumber} (${tenant.buildingName}) has an unpaid balance of ${formattedAmount} FCFA for ${tenant.currentMonth}. Please settle promptly via Mobile Money or with property management.`;
+
+    const titleFr = customTitle || `📢 Rappel de loyer : Solde impayé (${tenant.unitNumber})`;
+    const titleEn = customTitle || `📢 Rent Reminder: Pending Balance (${tenant.unitNumber})`;
+
+    try {
+      const notif = await createNotification({
+        type: "broadcast_reminder",
+        title: titleEn,
+        title_fr: titleFr,
+        message: defaultMsgEn,
+        message_fr: defaultMsgFr,
+        recipient_role: "tenant",
+        landlord_id: landlordId,
+        building_id: tenant.buildingId,
+        building_name: tenant.buildingName,
+        unit_id: tenant.unitId,
+        unit_number: tenant.unitNumber,
+        tenant_name: tenant.tenantName,
+        amount: tenant.balanceOwing,
+        rent_month: tenant.currentMonth,
+        metadata: {
+          broadcast: true,
+          sender_name: landlordName || "Bailleur",
+          tenant_phone: tenant.tenantPhone,
+          sent_at: new Date().toISOString(),
+          action_url: "/tenant/portal",
+        },
+      });
+
+      createdNotifications.push(notif);
+    } catch (err) {
+      console.warn("Error creating broadcast notification for tenant:", tenant.tenantName, err);
+    }
+  }
+
+  // Trigger high-priority window broadcast event
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("leaselink:broadcast_sent", {
+        detail: { count: createdNotifications.length, notifications: createdNotifications },
+      })
+    );
+  }
+
+  return {
+    success: true,
+    sentCount: createdNotifications.length,
+    notifications: createdNotifications,
+  };
 }
