@@ -1238,10 +1238,10 @@ export default function BuildingsManagementPage() {
                         )}
                       </div>
 
-                      {/* Right stats and expand button */}
-                      <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-2">
-                          <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center">
+                      {/* Right stats and expand button: responsive stack on mobile to keep text 100% visible */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between md:justify-end gap-2.5 sm:gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-800">
+                        <div className="grid grid-cols-3 sm:flex items-center gap-2">
+                          <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center">
                             <span className="block text-[10px] text-slate-500 uppercase font-bold">
                               {isFrench ? "Logements" : "Units"}
                             </span>
@@ -1250,7 +1250,7 @@ export default function BuildingsManagementPage() {
                             </span>
                           </div>
 
-                          <div className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-center">
+                          <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-center">
                             <span className="block text-[10px] text-blue-700 dark:text-blue-400 uppercase font-bold">
                               {isFrench ? "Occupés" : "Occupied"}
                             </span>
@@ -1259,7 +1259,7 @@ export default function BuildingsManagementPage() {
                             </span>
                           </div>
 
-                          <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-center">
+                          <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-center">
                             <span className="block text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-bold">
                               {isFrench ? "Vacants" : "Vacant"}
                             </span>
@@ -1271,7 +1271,7 @@ export default function BuildingsManagementPage() {
 
                         <button
                           onClick={() => toggleExpand(building.id)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 hover:text-slate-900 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 hover:text-slate-900 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition cursor-pointer shrink-0"
                         >
                           <span>
                             {isExpanded
@@ -1527,18 +1527,18 @@ export default function BuildingsManagementPage() {
                                     )}
                                   </div>
 
-                                  {/* Actions: Modify Unit & Credentials Buttons */}
-                                  <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex items-center gap-2">
+                                  {/* Actions: Modify Unit & Credentials Buttons - Stack vertically on phone (from top to bottom), row on desktop */}
+                                  <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                     <button
                                       onClick={() => handleOpenEditUnit(unit, building.name)}
-                                      className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer active:scale-[0.98] ${
+                                      className={`w-full sm:flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer active:scale-[0.98] ${
                                         isOccupied
                                           ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
                                           : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
                                       }`}
                                     >
-                                      <Edit3 className="w-3.5 h-3.5 text-white" />
-                                      <span>
+                                      <Edit3 className="w-3.5 h-3.5 text-white shrink-0" />
+                                      <span className="truncate">
                                         {isOccupied ? (isFrench ? "Modifier Pièces & Locataire" : "Modify Specs & Tenant") : hasConfiguredSpecs ? (isFrench ? "Modifier Pièces / Assigner" : "Modify Specs / Assign Tenant") : (isFrench ? "Configurer & Assigner Locataire" : "Configure & Assign Tenant")}
                                       </span>
                                     </button>
@@ -1574,7 +1574,7 @@ export default function BuildingsManagementPage() {
                                             daysDiff: dueStatus.daysDiff,
                                           }).catch(console.warn);
                                         }}
-                                        className={`inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-white font-bold text-xs shadow-sm active:scale-[0.98] transition shrink-0 cursor-pointer ${
+                                        className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3 rounded-xl text-white font-bold text-xs shadow-sm active:scale-[0.98] transition shrink-0 cursor-pointer ${
                                           dueStatus.status === "overdue"
                                             ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
                                             : "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
@@ -1585,7 +1585,7 @@ export default function BuildingsManagementPage() {
                                             : (isFrench ? "Envoyer rappel d'échéance sur WhatsApp" : "Send rent due reminder via WhatsApp")
                                         }
                                       >
-                                        <Bell className="w-3.5 h-3.5 text-white" />
+                                        <Bell className="w-3.5 h-3.5 text-white shrink-0" />
                                         <span>{dueStatus.status === "overdue" ? (isFrench ? "Relancer" : "Overdue") : (isFrench ? "Rappeler" : "Remind")}</span>
                                       </a>
                                     )}
@@ -1593,10 +1593,10 @@ export default function BuildingsManagementPage() {
                                     {isOccupied && unit.tenant_name && (
                                       <Link
                                         href={`/dashboard/credentials?unitId=${unit.id}`}
-                                        className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 active:scale-[0.98] transition shrink-0"
+                                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 active:scale-[0.98] transition shrink-0"
                                         title={isFrench ? "Partager sur WhatsApp" : "Share on WhatsApp"}
                                       >
-                                        <MessageCircle className="w-3.5 h-3.5 text-white" />
+                                        <MessageCircle className="w-3.5 h-3.5 text-white shrink-0" />
                                         <span>WhatsApp</span>
                                       </Link>
                                     )}
