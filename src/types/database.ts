@@ -72,6 +72,7 @@ export type UserRole = 'landlord' | 'manager' | 'admin';
 export interface AdminStats {
   total_landlords: number;
   total_managers: number;
+  total_tenants: number;
   total_buildings: number;
   total_units: number;
   occupied_units: number;
@@ -85,6 +86,34 @@ export interface AdminStats {
   plan_distribution: Record<string, number>;
   cash_volume_xaf: number;
   digital_volume_xaf: number;
+}
+
+export interface AdminManagerSummary {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  landlord_id: string;
+  landlord_name: string;
+  assigned_building_ids: string[];
+  assigned_building_names: string[];
+  created_at: string;
+}
+
+export interface AdminTenantSummary {
+  id: string;
+  tenant_name: string;
+  tenant_phone: string;
+  tenant_email: string;
+  building_id: string;
+  building_name: string;
+  unit_id: string;
+  unit_number: string;
+  rent_amount: number;
+  landlord_id: string;
+  landlord_name: string;
+  status: string;
+  created_at: string;
 }
 
 export interface AdminLandlordSummary {

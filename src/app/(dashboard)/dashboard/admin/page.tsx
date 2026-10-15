@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import {
   AdminStats,
   AdminLandlordSummary,
+  AdminManagerSummary,
+  AdminTenantSummary,
   AdminActivityEvent,
   AdminGlobalTransaction,
   LandlordProfile,
@@ -18,6 +20,8 @@ import {
 import {
   getAdminPlatformStats,
   getAdminLandlords,
+  getAdminManagers,
+  getAdminTenants,
   getAdminGlobalTransactions,
   getAdminAllMaintenance,
   getAdminActivityStream,
@@ -64,9 +68,10 @@ import {
   ShieldCheck,
   ArrowUpRight,
   Radio,
+  ArrowUpDown,
 } from "lucide-react";
 
-type AdminTab = "overview" | "landlords" | "transactions" | "activity" | "maintenance";
+type AdminTab = "overview" | "landlords" | "managers" | "tenants" | "transactions" | "maintenance" | "activity";
 
 export default function AdminDashboardPage() {
   const { isFrench, language, formatDate } = useLanguage();
@@ -83,6 +88,8 @@ export default function AdminDashboardPage() {
   // Data States
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [landlords, setLandlords] = useState<AdminLandlordSummary[]>([]);
+  const [managers, setManagers] = useState<AdminManagerSummary[]>([]);
+  const [tenants, setTenants] = useState<AdminTenantSummary[]>([]);
   const [transactions, setTransactions] = useState<AdminGlobalTransaction[]>([]);
   const [maintenance, setMaintenance] = useState<MaintenanceRequest[]>([]);
   const [activity, setActivity] = useState<AdminActivityEvent[]>([]);
@@ -92,10 +99,35 @@ export default function AdminDashboardPage() {
   // Search & Filter States
   const [landlordSearch, setLandlordSearch] = useState("");
   const [landlordPlanFilter, setLandlordPlanFilter] = useState<string>("all");
+  const [landlordSort, setLandlordSort] = useState<"name_asc" | "name_desc" | "buildings_desc" | "units_desc" | "revenue_desc">("name_asc");
+
   const [transactionSearch, setTransactionSearch] = useState("");
   const [transactionMethodFilter, setTransactionMethodFilter] = useState<string>("all");
+  const [transactionBuildingFilter, setTransactionBuildingFilter] = useState<string>("all");
+  const [transactionLandlordFilter, setTransactionLandlordFilter] = useState<string>("all");
+  const [transactionSort, setTransactionSort] = useState<
+    "date_desc" | "date_asc" | "building_asc" | "building_desc" | "landlord_asc" | "landlord_desc" | "amount_desc" | "amount_asc"
+  >("date_desc");
+
+  const [managerSearch, setManagerSearch] = useState("");
+  const [managerLandlordFilter, setManagerLandlordFilter] = useState<string>("all");
+  const [managerBuildingFilter, setManagerBuildingFilter] = useState<string>("all");
+  const [managerSort, setManagerSort] = useState<
+    "landlord_asc" | "landlord_desc" | "building_asc" | "building_desc" | "name_asc" | "name_desc" | "date_desc"
+  >("landlord_asc");
+
+  const [tenantSearch, setTenantSearch] = useState("");
+  const [tenantLandlordFilter, setTenantLandlordFilter] = useState<string>("all");
+  const [tenantBuildingFilter, setTenantBuildingFilter] = useState<string>("all");
+  const [tenantSort, setTenantSort] = useState<
+    "building_asc" | "building_desc" | "landlord_asc" | "landlord_desc" | "name_asc" | "name_desc" | "rent_desc" | "rent_asc" | "date_desc"
+  >("building_asc");
+
   const [maintenanceUrgencyFilter, setMaintenanceUrgencyFilter] = useState<string>("all");
   const [maintenanceStatusFilter, setMaintenanceStatusFilter] = useState<string>("all");
+  const [maintenanceBuildingFilter, setMaintenanceBuildingFilter] = useState<string>("all");
+  const [maintenanceSort, setMaintenanceSort] = useState<"date_desc" | "building_asc" | "urgency_desc">("date_desc");
+
   const [activityTypeFilter, setActivityTypeFilter] = useState<string>("all");
 
   // Plan Edit Modal State
@@ -157,9 +189,11 @@ export default function AdminDashboardPage() {
   const loadAdminData = async () => {
     setLoadingData(true);
     try {
-      const [statsData, landlordsData, txData, maintData, activityData] = await Promise.all([
+      const [statsData, landlordsData, managersData, tenantsData, txData, maintData, activityData] = await Promise.all([
         getAdminPlatformStats(),
         getAdminLandlords(),
+        getAdminManagers(),
+        getAdminTenants(),
         getAdminGlobalTransactions(),
         getAdminAllMaintenance(),
         getAdminActivityStream(),
@@ -167,6 +201,8 @@ export default function AdminDashboardPage() {
 
       setStats(statsData);
       setLandlords(landlordsData);
+      setManagers(managersData);
+      setTenants(tenantsData);
       setTransactions(txData);
       setMaintenance(maintData);
       setActivity(activityData);
@@ -217,9 +253,31 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Filtered Landlords
+  // Unique Building Names across all records (for building dropdown filter)
+  const availableBuildingNames = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((t) => t.building_name && set.add(t.building_name.trim()));
+    tenants.forEach((t) => t.building_name && set.add(t.building_name.trim()));
+    managers.forEach((m) =>
+      m.assigned_building_names?.forEach((bn) => bn && set.add(bn.trim()))
+    );
+    maintenance.forEach((m) => m.building_name && set.add(m.building_name.trim()));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [transactions, tenants, managers, maintenance]);
+
+  // Unique Landlord Names across all records (for landlord dropdown filter)
+  const availableLandlordNames = useMemo(() => {
+    const set = new Set<string>();
+    landlords.forEach((l) => l.full_name && set.add(l.full_name.trim()));
+    transactions.forEach((t) => t.landlord_name && set.add(t.landlord_name.trim()));
+    tenants.forEach((t) => t.landlord_name && set.add(t.landlord_name.trim()));
+    managers.forEach((m) => m.landlord_name && set.add(m.landlord_name.trim()));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [landlords, transactions, tenants, managers]);
+
+  // Filtered & Sorted Landlords
   const filteredLandlords = useMemo(() => {
-    return landlords.filter((l) => {
+    const filtered = landlords.filter((l) => {
       const matchesSearch =
         l.full_name.toLowerCase().includes(landlordSearch.toLowerCase()) ||
         l.email.toLowerCase().includes(landlordSearch.toLowerCase()) ||
@@ -228,11 +286,108 @@ export default function AdminDashboardPage() {
         landlordPlanFilter === "all" || l.plan === landlordPlanFilter;
       return matchesSearch && matchesPlan;
     });
-  }, [landlords, landlordSearch, landlordPlanFilter]);
 
-  // Filtered Transactions
+    return filtered.sort((a, b) => {
+      if (landlordSort === "name_asc") return a.full_name.localeCompare(b.full_name);
+      if (landlordSort === "name_desc") return b.full_name.localeCompare(a.full_name);
+      if (landlordSort === "buildings_desc") return b.buildings_count - a.buildings_count;
+      if (landlordSort === "units_desc") return b.units_count - a.units_count;
+      if (landlordSort === "revenue_desc")
+        return (b.total_revenue_collected_xaf || 0) - (a.total_revenue_collected_xaf || 0);
+      return 0;
+    });
+  }, [landlords, landlordSearch, landlordPlanFilter, landlordSort]);
+
+  // Filtered & Sorted Managers
+  const filteredManagers = useMemo(() => {
+    const filtered = managers.filter((m) => {
+      const q = managerSearch.toLowerCase();
+      const matchesSearch =
+        m.full_name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        m.phone.includes(q) ||
+        m.landlord_name.toLowerCase().includes(q);
+
+      const matchesLandlord =
+        managerLandlordFilter === "all" || m.landlord_name === managerLandlordFilter;
+
+      const matchesBuilding =
+        managerBuildingFilter === "all" ||
+        m.assigned_building_names?.some((bn) => bn === managerBuildingFilter);
+
+      return matchesSearch && matchesLandlord && matchesBuilding;
+    });
+
+    return filtered.sort((a, b) => {
+      if (managerSort === "landlord_asc")
+        return a.landlord_name.localeCompare(b.landlord_name);
+      if (managerSort === "landlord_desc")
+        return b.landlord_name.localeCompare(a.landlord_name);
+      if (managerSort === "building_asc") {
+        const bA = a.assigned_building_names[0] || "";
+        const bB = b.assigned_building_names[0] || "";
+        return bA.localeCompare(bB);
+      }
+      if (managerSort === "building_desc") {
+        const bA = a.assigned_building_names[0] || "";
+        const bB = b.assigned_building_names[0] || "";
+        return bB.localeCompare(bA);
+      }
+      if (managerSort === "name_asc") return a.full_name.localeCompare(b.full_name);
+      if (managerSort === "name_desc") return b.full_name.localeCompare(a.full_name);
+      if (managerSort === "date_desc")
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return 0;
+    });
+  }, [managers, managerSearch, managerLandlordFilter, managerBuildingFilter, managerSort]);
+
+  // Filtered & Sorted Tenants
+  const filteredTenants = useMemo(() => {
+    const filtered = tenants.filter((t) => {
+      const q = tenantSearch.toLowerCase();
+      const matchesSearch =
+        t.tenant_name.toLowerCase().includes(q) ||
+        t.tenant_phone.includes(q) ||
+        t.tenant_email.toLowerCase().includes(q) ||
+        t.building_name.toLowerCase().includes(q) ||
+        t.unit_number.toLowerCase().includes(q) ||
+        t.landlord_name.toLowerCase().includes(q);
+
+      const matchesLandlord =
+        tenantLandlordFilter === "all" || t.landlord_name === tenantLandlordFilter;
+
+      const matchesBuilding =
+        tenantBuildingFilter === "all" || t.building_name === tenantBuildingFilter;
+
+      return matchesSearch && matchesLandlord && matchesBuilding;
+    });
+
+    return filtered.sort((a, b) => {
+      if (tenantSort === "building_asc")
+        return a.building_name.localeCompare(b.building_name);
+      if (tenantSort === "building_desc")
+        return b.building_name.localeCompare(a.building_name);
+      if (tenantSort === "landlord_asc")
+        return a.landlord_name.localeCompare(b.landlord_name);
+      if (tenantSort === "landlord_desc")
+        return b.landlord_name.localeCompare(a.landlord_name);
+      if (tenantSort === "name_asc")
+        return a.tenant_name.localeCompare(b.tenant_name);
+      if (tenantSort === "name_desc")
+        return b.tenant_name.localeCompare(a.tenant_name);
+      if (tenantSort === "rent_desc")
+        return b.rent_amount - a.rent_amount;
+      if (tenantSort === "rent_asc")
+        return a.rent_amount - b.rent_amount;
+      if (tenantSort === "date_desc")
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return 0;
+    });
+  }, [tenants, tenantSearch, tenantLandlordFilter, tenantBuildingFilter, tenantSort]);
+
+  // Filtered & Sorted Transactions
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
+    const filtered = transactions.filter((t) => {
       const q = transactionSearch.toLowerCase();
       const matchesSearch =
         t.tenant_name.toLowerCase().includes(q) ||
@@ -242,20 +397,70 @@ export default function AdminDashboardPage() {
         t.landlord_name.toLowerCase().includes(q);
       const matchesMethod =
         transactionMethodFilter === "all" || t.payment_method === transactionMethodFilter;
-      return matchesSearch && matchesMethod;
-    });
-  }, [transactions, transactionSearch, transactionMethodFilter]);
+      const matchesBuilding =
+        transactionBuildingFilter === "all" || t.building_name === transactionBuildingFilter;
+      const matchesLandlord =
+        transactionLandlordFilter === "all" || t.landlord_name === transactionLandlordFilter;
 
-  // Filtered Maintenance
+      return matchesSearch && matchesMethod && matchesBuilding && matchesLandlord;
+    });
+
+    return filtered.sort((a, b) => {
+      if (transactionSort === "date_desc")
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (transactionSort === "date_asc")
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (transactionSort === "building_asc")
+        return a.building_name.localeCompare(b.building_name);
+      if (transactionSort === "building_desc")
+        return b.building_name.localeCompare(a.building_name);
+      if (transactionSort === "landlord_asc")
+        return a.landlord_name.localeCompare(b.landlord_name);
+      if (transactionSort === "landlord_desc")
+        return b.landlord_name.localeCompare(a.landlord_name);
+      if (transactionSort === "amount_desc")
+        return b.amount_paid - a.amount_paid;
+      if (transactionSort === "amount_asc")
+        return a.amount_paid - b.amount_paid;
+      return 0;
+    });
+  }, [
+    transactions,
+    transactionSearch,
+    transactionMethodFilter,
+    transactionBuildingFilter,
+    transactionLandlordFilter,
+    transactionSort,
+  ]);
+
+  // Filtered & Sorted Maintenance
   const filteredMaintenance = useMemo(() => {
-    return maintenance.filter((m) => {
+    const filtered = maintenance.filter((m) => {
       const matchesUrgency =
         maintenanceUrgencyFilter === "all" || m.urgency === maintenanceUrgencyFilter;
       const matchesStatus =
         maintenanceStatusFilter === "all" || m.status === maintenanceStatusFilter;
-      return matchesUrgency && matchesStatus;
+      const matchesBuilding =
+        maintenanceBuildingFilter === "all" || m.building_name === maintenanceBuildingFilter;
+      return matchesUrgency && matchesStatus && matchesBuilding;
     });
-  }, [maintenance, maintenanceUrgencyFilter, maintenanceStatusFilter]);
+
+    return filtered.sort((a, b) => {
+      if (maintenanceSort === "building_asc")
+        return (a.building_name || "").localeCompare(b.building_name || "");
+      if (maintenanceSort === "urgency_desc") {
+        const order: Record<string, number> = { emergency: 4, high: 3, medium: 2, low: 1 };
+        return (order[b.urgency] || 0) - (order[a.urgency] || 0);
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [
+    maintenance,
+    maintenanceUrgencyFilter,
+    maintenanceStatusFilter,
+    maintenanceBuildingFilter,
+    maintenanceSort,
+  ]);
 
   // Filtered Activity
   const filteredActivity = useMemo(() => {
@@ -457,7 +662,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* ===================================================================== */}
-        {/* NAVIGATION TABS: 5 CORE VIEWS                                         */}
+        {/* NAVIGATION TABS: 7 CORE PLATFORM VIEWS                                */}
         {/* ===================================================================== */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200 dark:border-slate-800">
           <button
@@ -485,6 +690,30 @@ export default function AdminDashboardPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab("managers")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+              activeTab === "managers"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-600/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>{isFrench ? "Gestionnaires" : "Managers"} ({managers.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("tenants")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+              activeTab === "tenants"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-600/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            <DoorOpen className="w-4 h-4" />
+            <span>{isFrench ? "Locataires" : "Tenants"} ({tenants.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("transactions")}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
               activeTab === "transactions"
@@ -494,18 +723,6 @@ export default function AdminDashboardPage() {
           >
             <DollarSign className="w-4 h-4" />
             <span>{isFrench ? "Transactions & Quittances" : "Transactions"} ({transactions.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("activity")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-              activeTab === "activity"
-                ? "bg-purple-600 text-white shadow-md shadow-purple-600/25"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>{isFrench ? "Journal d'Audit" : "Activity Stream"} ({activity.length})</span>
           </button>
 
           <button
@@ -522,6 +739,18 @@ export default function AdminDashboardPage() {
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
             )}
           </button>
+
+          <button
+            onClick={() => setActiveTab("activity")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+              activeTab === "activity"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-600/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>{isFrench ? "Journal d'Audit" : "Activity Stream"} ({activity.length})</span>
+          </button>
         </div>
 
         {/* ===================================================================== */}
@@ -529,8 +758,8 @@ export default function AdminDashboardPage() {
         {/* ===================================================================== */}
         {activeTab === "overview" && (
           <div className="space-y-6">
-            {/* 5 Core Top-Level KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Top-Level KPI Cards: 7 Core Ecosystem Indicators */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Gross Volume */}
               <div className="bg-white dark:bg-slate-900 border-2 border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
@@ -551,29 +780,79 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Card 2: Registered Landlords */}
-              <div className="bg-white dark:bg-slate-900 border-2 border-blue-200 dark:border-blue-500/30 rounded-2xl p-5 shadow-sm space-y-3">
+              <div
+                onClick={() => setActiveTab("landlords")}
+                className="bg-white dark:bg-slate-900 border-2 border-blue-200 dark:border-blue-500/30 hover:border-blue-400 dark:hover:border-blue-500 rounded-2xl p-5 shadow-sm space-y-3 cursor-pointer transition group"
+              >
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
                   <span>{isFrench ? "Bailleurs Inscrits" : "Total Landlords"}</span>
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition">
                     <Users className="w-4 h-4" />
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white">
-                    {stats?.total_landlords || 0}
+                  <div className="text-2xl font-black text-slate-900 dark:text-white flex items-center justify-between">
+                    <span>{stats?.total_landlords || 0}</span>
+                    <ArrowRight className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition" />
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    <span>{stats?.total_managers || 0} {isFrench ? "gestionnaires" : "managers"}</span>
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">{isFrench ? "Comptes Actifs" : "Active"}</span>
+                    <span>{isFrench ? "Propriétaires actifs" : "Active accounts"}</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{isFrench ? "Voir répertoire →" : "View directory →"}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Card 3: Buildings & Units */}
-              <div className="bg-white dark:bg-slate-900 border-2 border-purple-200 dark:border-purple-500/30 rounded-2xl p-5 shadow-sm space-y-3">
+              {/* Card 3: Registered Managers */}
+              <div
+                onClick={() => setActiveTab("managers")}
+                className="bg-white dark:bg-slate-900 border-2 border-purple-200 dark:border-purple-500/30 hover:border-purple-400 dark:hover:border-purple-500 rounded-2xl p-5 shadow-sm space-y-3 cursor-pointer transition group"
+              >
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  <span>{isFrench ? "Gestionnaires Délégués" : "Delegated Managers"}</span>
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white flex items-center justify-between">
+                    <span>{stats?.total_managers || 0}</span>
+                    <ArrowRight className="w-4 h-4 text-purple-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition" />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    <span>{isFrench ? "Délégués par bailleur" : "Delegated to estates"}</span>
+                    <span className="text-purple-600 dark:text-purple-400 font-semibold">{isFrench ? "Voir répertoire →" : "View managers →"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Registered Tenants */}
+              <div
+                onClick={() => setActiveTab("tenants")}
+                className="bg-white dark:bg-slate-900 border-2 border-indigo-200 dark:border-indigo-500/30 hover:border-indigo-400 dark:hover:border-indigo-500 rounded-2xl p-5 shadow-sm space-y-3 cursor-pointer transition group"
+              >
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  <span>{isFrench ? "Locataires Résidents" : "Active Tenants"}</span>
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition">
+                    <DoorOpen className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white flex items-center justify-between">
+                    <span>{stats?.total_tenants || stats?.occupied_units || 0}</span>
+                    <ArrowRight className="w-4 h-4 text-indigo-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition" />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    <span>{stats?.occupied_units || 0} {isFrench ? "lots occupés" : "units leased"}</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{isFrench ? "Voir registre →" : "View registry →"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 5: Buildings & Units */}
+              <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
                   <span>{isFrench ? "Parc Immobilier Global" : "Buildings & Units"}</span>
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
                     <Building2 className="w-4 h-4" />
                   </div>
                 </div>
@@ -588,11 +867,11 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Card 4: Occupancy Ratio */}
-              <div className="bg-white dark:bg-slate-900 border-2 border-indigo-200 dark:border-indigo-500/30 rounded-2xl p-5 shadow-sm space-y-3">
+              {/* Card 6: Occupancy Ratio */}
+              <div className="bg-white dark:bg-slate-900 border-2 border-teal-200 dark:border-teal-500/30 rounded-2xl p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
                   <span>{isFrench ? "Taux d'Occupation" : "Occupancy Rate"}</span>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
                     <UserCheck className="w-4 h-4" />
                   </div>
                 </div>
@@ -607,25 +886,31 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Card 5: Maintenance & Incidents */}
-              <div className="bg-white dark:bg-slate-900 border-2 border-amber-200 dark:border-amber-500/30 rounded-2xl p-5 shadow-sm space-y-3">
+              {/* Card 7: Maintenance & Incidents */}
+              <div
+                onClick={() => setActiveTab("maintenance")}
+                className="bg-white dark:bg-slate-900 border-2 border-amber-200 dark:border-amber-500/30 hover:border-amber-400 dark:hover:border-amber-500 rounded-2xl p-5 shadow-sm space-y-3 cursor-pointer transition group sm:col-span-2 lg:col-span-2"
+              >
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                  <span>{isFrench ? "Incidents Maintenance" : "Repairs & Urgency"}</span>
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <span>{isFrench ? "Incidents Maintenance & Interventions" : "Repairs & Maintenance"}</span>
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition">
                     <Wrench className="w-4 h-4" />
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white">
-                    {stats?.total_maintenance_requests || 0}
+                  <div className="text-2xl font-black text-slate-900 dark:text-white flex items-center justify-between">
+                    <span>{stats?.total_maintenance_requests || 0}</span>
+                    <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition flex items-center gap-1">
+                      {isFrench ? "Voir tous les tickets →" : "View tickets →"}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                     <span className="text-amber-700 dark:text-amber-400 font-semibold">
-                      {stats?.pending_maintenance_requests || 0} {isFrench ? "en attente" : "pending"}
+                      {stats?.pending_maintenance_requests || 0} {isFrench ? "en attente de traitement" : "pending resolution"}
                     </span>
                     {stats && stats.emergency_maintenance_requests > 0 ? (
                       <span className="text-rose-600 dark:text-rose-400 font-bold animate-pulse">
-                        {stats.emergency_maintenance_requests} {isFrench ? "urgences" : "urgents"}
+                        {stats.emergency_maintenance_requests} {isFrench ? "urgences vitales" : "emergencies"}
                       </span>
                     ) : (
                       <span className="text-emerald-600 dark:text-emerald-400">0 urgence</span>
@@ -755,6 +1040,32 @@ export default function AdminDashboardPage() {
                   </button>
 
                   <button
+                    onClick={() => setActiveTab("managers")}
+                    className="w-full p-3 rounded-xl bg-slate-50 hover:bg-purple-50 dark:bg-slate-800/60 dark:hover:bg-purple-900/20 border border-slate-200 dark:border-slate-700 text-left flex items-center justify-between transition group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                        {isFrench ? "Gérer les Gestionnaires Délégués" : "Manage Delegated Managers"}
+                      </span>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-1 transition" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("tenants")}
+                    className="w-full p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800/60 dark:hover:bg-indigo-900/20 border border-slate-200 dark:border-slate-700 text-left flex items-center justify-between transition group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <DoorOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                        {isFrench ? "Consulter la Base des Locataires" : "Inspect Tenant Registry"}
+                      </span>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-1 transition" />
+                  </button>
+
+                  <button
                     onClick={() => setActiveTab("transactions")}
                     className="w-full p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800/60 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-700 text-left flex items-center justify-between transition group cursor-pointer"
                   >
@@ -824,7 +1135,7 @@ export default function AdminDashboardPage() {
                     placeholder={isFrench ? "Rechercher un bailleur..." : "Search landlord..."}
                     value={landlordSearch}
                     onChange={(e) => setLandlordSearch(e.target.value)}
-                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 w-48 sm:w-64"
+                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 w-48 sm:w-60"
                   />
                 </div>
 
@@ -839,6 +1150,22 @@ export default function AdminDashboardPage() {
                   <option value="tier_31_60">Growth (31-60)</option>
                   <option value="tier_61_100">Pro (61-100)</option>
                 </select>
+
+                {/* Sort Landlords */}
+                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <select
+                    value={landlordSort}
+                    onChange={(e) => setLandlordSort(e.target.value as any)}
+                    className="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="name_asc">{isFrench ? "Nom (A → Z)" : "Name (A → Z)"}</option>
+                    <option value="name_desc">{isFrench ? "Nom (Z → A)" : "Name (Z → A)"}</option>
+                    <option value="buildings_desc">{isFrench ? "Immeubles (Plus au moins)" : "Most Buildings"}</option>
+                    <option value="units_desc">{isFrench ? "Logements (Plus au moins)" : "Most Units"}</option>
+                    <option value="revenue_desc">{isFrench ? "Volume Encaissé (Max)" : "Highest Revenue"}</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -920,11 +1247,370 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ===================================================================== */}
-        {/* TAB 3: PLATFORM-WIDE TRANSACTIONS                                     */}
+        {/* TAB 3: MANAGERS DIRECTORY (NEW)                                       */}
+        {/* ===================================================================== */}
+        {activeTab === "managers" && (
+          <div className="space-y-5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <span>{isFrench ? "Répertoire des Gestionnaires Délégués" : "Delegated Managers Directory"}</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono font-bold">
+                    {filteredManagers.length}
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isFrench
+                    ? "Gestionnaires habilités par les propriétaires pour administrer les immeubles et percevoir les loyers."
+                    : "Managers authorized by landlords to administer buildings, collect rents, and log repairs."}
+                </p>
+              </div>
+
+              {/* Filters & Sorting */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder={isFrench ? "Nom, email, bailleur..." : "Name, email, landlord..."}
+                    value={managerSearch}
+                    onChange={(e) => setManagerSearch(e.target.value)}
+                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 w-44 sm:w-56"
+                  />
+                </div>
+
+                {/* Filter by Landlord */}
+                <select
+                  value={managerLandlordFilter}
+                  onChange={(e) => setManagerLandlordFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 max-w-[170px]"
+                >
+                  <option value="all">{isFrench ? "Tous les Bailleurs" : "All Landlords"}</option>
+                  {availableLandlordNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+
+                {/* Filter by Building */}
+                <select
+                  value={managerBuildingFilter}
+                  onChange={(e) => setManagerBuildingFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 max-w-[170px]"
+                >
+                  <option value="all">{isFrench ? "Tous les Immeubles" : "All Buildings"}</option>
+                  {availableBuildingNames.map((bName) => (
+                    <option key={bName} value={bName}>{bName}</option>
+                  ))}
+                </select>
+
+                {/* Sort dropdown */}
+                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <select
+                    value={managerSort}
+                    onChange={(e) => setManagerSort(e.target.value as any)}
+                    className="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="landlord_asc">{isFrench ? "Trier par Bailleur (A → Z)" : "Sort by Landlord (A → Z)"}</option>
+                    <option value="landlord_desc">{isFrench ? "Trier par Bailleur (Z → A)" : "Sort by Landlord (Z → A)"}</option>
+                    <option value="building_asc">{isFrench ? "Trier par Immeuble (A → Z)" : "Sort by Building (A → Z)"}</option>
+                    <option value="building_desc">{isFrench ? "Trier par Immeuble (Z → A)" : "Sort by Building (Z → A)"}</option>
+                    <option value="name_asc">{isFrench ? "Trier par Nom (A → Z)" : "Sort by Name (A → Z)"}</option>
+                    <option value="date_desc">{isFrench ? "Plus récents" : "Recently Added"}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Managers Cards Grid */}
+            {filteredManagers.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3">
+                <ShieldCheck className="w-12 h-12 text-slate-400 mx-auto opacity-40" />
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+                  {isFrench ? "Aucun gestionnaire trouvé" : "No managers found"}
+                </h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  {isFrench
+                    ? "Aucun compte gestionnaire ne correspond aux critères de recherche ou de filtre sélectionnés."
+                    : "No manager account matches the specified search and filter criteria."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredManagers.map((m) => (
+                  <div
+                    key={m.id}
+                    className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500/50 rounded-2xl p-5 space-y-4 shadow-sm transition"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-600/20 border border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-sm shrink-0">
+                          {m.full_name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                            {m.full_name}
+                          </h3>
+                          <span className="text-[11px] text-slate-500 truncate block">
+                            {m.email}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/20 shrink-0">
+                        {isFrench ? "Gestionnaire" : "Manager"}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">{isFrench ? "Bailleur Responsable :" : "Parent Landlord:"}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{m.landlord_name}</span>
+                      </div>
+                      <div className="text-xs">
+                        <span className="text-slate-500 block mb-1">{isFrench ? "Immeubles assignés :" : "Assigned Properties:"}</span>
+                        {m.assigned_building_names.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {m.assigned_building_names.map((bName, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                              >
+                                {bName}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium italic">
+                            {isFrench ? "Aucun immeuble assigné" : "No property assigned"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        {isFrench ? "Inscrit le " : "Created "} {new Date(m.created_at).toLocaleDateString()}
+                      </span>
+                      {m.phone && m.phone !== "N/A" && (
+                        <a
+                          href={`https://wa.me/${m.phone.replace(/[^0-9]/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:underline font-mono"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>{m.phone}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* TAB 4: TENANTS REGISTRY (NEW)                                         */}
+        {/* ===================================================================== */}
+        {activeTab === "tenants" && (
+          <div className="space-y-5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <DoorOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <span>{isFrench ? "Registre Central des Locataires" : "Platform-Wide Tenant Registry"}</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-mono font-bold">
+                    {filteredTenants.length}
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isFrench
+                    ? "Ensemble des locataires résidents sur la plateforme, leurs lots occupés, loyers et bailleurs respectifs."
+                    : "Comprehensive list of all tenants across properties, units leased, rent obligations, and landlords."}
+                </p>
+              </div>
+
+              {/* Filters & Sorting */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder={isFrench ? "Locataire, téléphone, lot..." : "Tenant, phone, unit..."}
+                    value={tenantSearch}
+                    onChange={(e) => setTenantSearch(e.target.value)}
+                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-44 sm:w-56"
+                  />
+                </div>
+
+                {/* Filter by Landlord */}
+                <select
+                  value={tenantLandlordFilter}
+                  onChange={(e) => setTenantLandlordFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[170px]"
+                >
+                  <option value="all">{isFrench ? "Tous les Bailleurs" : "All Landlords"}</option>
+                  {availableLandlordNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+
+                {/* Filter by Building */}
+                <select
+                  value={tenantBuildingFilter}
+                  onChange={(e) => setTenantBuildingFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[170px]"
+                >
+                  <option value="all">{isFrench ? "Tous les Immeubles" : "All Buildings"}</option>
+                  {availableBuildingNames.map((bName) => (
+                    <option key={bName} value={bName}>{bName}</option>
+                  ))}
+                </select>
+
+                {/* Sort dropdown */}
+                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <select
+                    value={tenantSort}
+                    onChange={(e) => setTenantSort(e.target.value as any)}
+                    className="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="building_asc">{isFrench ? "Trier par Immeuble (A → Z)" : "Sort by Building (A → Z)"}</option>
+                    <option value="building_desc">{isFrench ? "Trier par Immeuble (Z → A)" : "Sort by Building (Z → A)"}</option>
+                    <option value="landlord_asc">{isFrench ? "Trier par Bailleur (A → Z)" : "Sort by Landlord (A → Z)"}</option>
+                    <option value="landlord_desc">{isFrench ? "Trier par Bailleur (Z → A)" : "Sort by Landlord (Z → A)"}</option>
+                    <option value="name_asc">{isFrench ? "Trier par Locataire (A → Z)" : "Sort by Tenant (A → Z)"}</option>
+                    <option value="rent_desc">{isFrench ? "Loyer (Décroissant)" : "Highest Rent"}</option>
+                    <option value="date_desc">{isFrench ? "Date d'entrée (Récente)" : "Newest Lease"}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Tenants Table */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold uppercase text-[10px]">
+                    <tr>
+                      <th
+                        onClick={() => setTenantSort(tenantSort === "name_asc" ? "name_desc" : "name_asc")}
+                        className="px-4 py-3.5 cursor-pointer hover:text-indigo-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Locataire" : "Tenant"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => setTenantSort(tenantSort === "building_asc" ? "building_desc" : "building_asc")}
+                        className="px-4 py-3.5 cursor-pointer hover:text-indigo-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Immeuble & Lot" : "Building & Unit"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => setTenantSort(tenantSort === "landlord_asc" ? "landlord_desc" : "landlord_asc")}
+                        className="px-4 py-3.5 cursor-pointer hover:text-indigo-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Propriétaire Bailleur" : "Landlord"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => setTenantSort(tenantSort === "rent_desc" ? "rent_asc" : "rent_desc")}
+                        className="px-4 py-3.5 cursor-pointer hover:text-indigo-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Loyer Mensuel" : "Monthly Rent"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
+                      <th className="px-4 py-3.5">{isFrench ? "Statut" : "Status"}</th>
+                      <th className="px-4 py-3.5 text-right">{isFrench ? "Contact" : "Contact"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredTenants.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                          {isFrench ? "Aucun locataire trouvé." : "No tenants found."}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTenants.map((t) => (
+                        <tr key={t.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0">
+                                {t.tenant_name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-900 dark:text-white block">
+                                  {t.tenant_name}
+                                </span>
+                                <span className="text-[11px] text-slate-500 font-mono">
+                                  {t.tenant_phone}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-slate-800 dark:text-slate-200 block">
+                              {t.building_name}
+                            </span>
+                            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 mt-0.5">
+                              {isFrench ? "Lot" : "Unit"} {t.unit_number}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+                            {t.landlord_name}
+                          </td>
+                          <td className="px-4 py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {Number(t.rent_amount).toLocaleString()} XAF
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                              {isFrench ? "Occupé" : "Occupied"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {t.tenant_phone && t.tenant_phone !== "Non renseigné" ? (
+                              <a
+                                href={`https://wa.me/${t.tenant_phone.replace(/[^0-9]/g, "")}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-600/20 dark:hover:bg-emerald-600/30 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] transition"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>WhatsApp</span>
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-[11px] italic">N/A</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* TAB 5: PLATFORM-WIDE TRANSACTIONS                                     */}
         {/* ===================================================================== */}
         {activeTab === "transactions" && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                   {isFrench ? "Flux Financier & Quittances Délivrées" : "Platform-Wide Transactions & Certified Receipts"}
@@ -936,17 +1622,41 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
-                    placeholder={isFrench ? "Locataire, reçu, immeuble..." : "Tenant, receipt, property..."}
+                    placeholder={isFrench ? "Locataire, reçu, lot..." : "Tenant, receipt, unit..."}
                     value={transactionSearch}
                     onChange={(e) => setTransactionSearch(e.target.value)}
-                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 w-48 sm:w-64"
+                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 w-44 sm:w-56"
                   />
                 </div>
+
+                {/* Filter by Landlord */}
+                <select
+                  value={transactionLandlordFilter}
+                  onChange={(e) => setTransactionLandlordFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 max-w-[170px]"
+                >
+                  <option value="all">{isFrench ? "Tous les Bailleurs" : "All Landlords"}</option>
+                  {availableLandlordNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+
+                {/* Filter by Building */}
+                <select
+                  value={transactionBuildingFilter}
+                  onChange={(e) => setTransactionBuildingFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 max-w-[170px]"
+                >
+                  <option value="all">{isFrench ? "Tous les Immeubles" : "All Buildings"}</option>
+                  {availableBuildingNames.map((bName) => (
+                    <option key={bName} value={bName}>{bName}</option>
+                  ))}
+                </select>
 
                 <select
                   value={transactionMethodFilter}
@@ -958,6 +1668,25 @@ export default function AdminDashboardPage() {
                   <option value="mtn_momo">MTN Mobile Money</option>
                   <option value="orange_money">Orange Money</option>
                 </select>
+
+                {/* Sort Transactions */}
+                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <select
+                    value={transactionSort}
+                    onChange={(e) => setTransactionSort(e.target.value as any)}
+                    className="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="date_desc">{isFrench ? "Plus récents" : "Newest First"}</option>
+                    <option value="date_asc">{isFrench ? "Plus anciens" : "Oldest First"}</option>
+                    <option value="building_asc">{isFrench ? "Immeuble (A → Z)" : "Building (A → Z)"}</option>
+                    <option value="building_desc">{isFrench ? "Immeuble (Z → A)" : "Building (Z → A)"}</option>
+                    <option value="landlord_asc">{isFrench ? "Bailleur (A → Z)" : "Landlord (A → Z)"}</option>
+                    <option value="landlord_desc">{isFrench ? "Bailleur (Z → A)" : "Landlord (Z → A)"}</option>
+                    <option value="amount_desc">{isFrench ? "Montant (Décroissant)" : "Highest Amount"}</option>
+                    <option value="amount_asc">{isFrench ? "Montant (Croissant)" : "Lowest Amount"}</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -968,64 +1697,120 @@ export default function AdminDashboardPage() {
                   <thead className="bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold uppercase text-[10px]">
                     <tr>
                       <th className="px-4 py-3.5">{isFrench ? "Reçu N°" : "Receipt N°"}</th>
-                      <th className="px-4 py-3.5">{isFrench ? "Locataire & Logement" : "Tenant & Unit"}</th>
-                      <th className="px-4 py-3.5">{isFrench ? "Propriétaire Bailleur" : "Landlord"}</th>
+                      <th
+                        onClick={() =>
+                          setTransactionSort(
+                            transactionSort === "building_asc" ? "building_desc" : "building_asc"
+                          )
+                        }
+                        className="px-4 py-3.5 cursor-pointer hover:text-purple-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Locataire & Logement" : "Tenant & Unit"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() =>
+                          setTransactionSort(
+                            transactionSort === "landlord_asc" ? "landlord_desc" : "landlord_asc"
+                          )
+                        }
+                        className="px-4 py-3.5 cursor-pointer hover:text-purple-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Propriétaire Bailleur" : "Landlord"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
                       <th className="px-4 py-3.5">{isFrench ? "Période" : "Period"}</th>
-                      <th className="px-4 py-3.5">{isFrench ? "Montant" : "Amount"}</th>
+                      <th
+                        onClick={() =>
+                          setTransactionSort(
+                            transactionSort === "amount_desc" ? "amount_asc" : "amount_desc"
+                          )
+                        }
+                        className="px-4 py-3.5 cursor-pointer hover:text-purple-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Montant" : "Amount"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
                       <th className="px-4 py-3.5">{isFrench ? "Mode" : "Method"}</th>
-                      <th className="px-4 py-3.5">{isFrench ? "Date" : "Date"}</th>
+                      <th
+                        onClick={() =>
+                          setTransactionSort(
+                            transactionSort === "date_desc" ? "date_asc" : "date_desc"
+                          )
+                        }
+                        className="px-4 py-3.5 cursor-pointer hover:text-purple-600 transition"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{isFrench ? "Date" : "Date"}</span>
+                          <ArrowUpDown className="w-3 h-3" />
+                        </div>
+                      </th>
                       <th className="px-4 py-3.5 text-right">{isFrench ? "Action" : "Action"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {filteredTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
-                        <td className="px-4 py-3 font-mono font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <Receipt className="w-3.5 h-3.5 text-blue-500" />
-                          <span>{tx.receipt_number}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 block">
-                            {tx.tenant_name}
-                          </span>
-                          <span className="text-[11px] text-slate-500">
-                            {tx.unit_number} • {tx.building_name}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
-                          {tx.landlord_name}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                          {tx.rent_month}
-                        </td>
-                        <td className="px-4 py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          {Number(tx.amount_paid).toLocaleString()} XAF
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              tx.payment_method === "cash"
-                                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
-                                : "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20"
-                            }`}
-                          >
-                            {tx.payment_method === "cash" ? (isFrench ? "Espèces" : "Cash") : tx.payment_method}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-[11px] text-slate-500 font-mono">
-                          {new Date(tx.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleOpenReceiptModal(tx)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-300 font-semibold text-[11px] transition cursor-pointer"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span>{isFrench ? "Quittance" : "Receipt"}</span>
-                          </button>
+                    {filteredTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                          {isFrench ? "Aucune transaction trouvée." : "No transactions found."}
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredTransactions.map((tx) => (
+                        <tr key={tx.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                          <td className="px-4 py-3 font-mono font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <Receipt className="w-3.5 h-3.5 text-blue-500" />
+                            <span>{tx.receipt_number}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                              {tx.tenant_name}
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              {tx.unit_number} • <strong className="text-slate-700 dark:text-slate-300">{tx.building_name}</strong>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+                            {tx.landlord_name}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                            {tx.rent_month}
+                          </td>
+                          <td className="px-4 py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {Number(tx.amount_paid).toLocaleString()} XAF
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                tx.payment_method === "cash"
+                                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
+                                  : "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20"
+                              }`}
+                            >
+                              {tx.payment_method === "cash" ? (isFrench ? "Espèces" : "Cash") : tx.payment_method}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-[11px] text-slate-500 font-mono">
+                            {new Date(tx.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => handleOpenReceiptModal(tx)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-300 font-semibold text-[11px] transition cursor-pointer"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>{isFrench ? "Quittance" : "Receipt"}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1120,11 +1905,11 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ===================================================================== */}
-        {/* TAB 5: GLOBAL MAINTENANCE HUB                                         */}
+        {/* TAB 6: GLOBAL MAINTENANCE HUB                                         */}
         {/* ===================================================================== */}
         {activeTab === "maintenance" && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                   {isFrench ? "Centre Global de Maintenance & Réparations" : "Platform-Wide Maintenance & Incidents"}
@@ -1136,7 +1921,19 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Filter by Building */}
+                <select
+                  value={maintenanceBuildingFilter}
+                  onChange={(e) => setMaintenanceBuildingFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 max-w-[170px]"
+                >
+                  <option value="all">{isFrench ? "Tous les Immeubles" : "All Buildings"}</option>
+                  {availableBuildingNames.map((bName) => (
+                    <option key={bName} value={bName}>{bName}</option>
+                  ))}
+                </select>
+
                 <select
                   value={maintenanceUrgencyFilter}
                   onChange={(e) => setMaintenanceUrgencyFilter(e.target.value)}
@@ -1159,6 +1956,20 @@ export default function AdminDashboardPage() {
                   <option value="in_progress">{isFrench ? "En cours" : "In Progress"}</option>
                   <option value="resolved">{isFrench ? "Résolue" : "Resolved"}</option>
                 </select>
+
+                {/* Sort Maintenance */}
+                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <select
+                    value={maintenanceSort}
+                    onChange={(e) => setMaintenanceSort(e.target.value as any)}
+                    className="bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer py-1"
+                  >
+                    <option value="date_desc">{isFrench ? "Plus récents" : "Newest"}</option>
+                    <option value="building_asc">{isFrench ? "Immeuble (A → Z)" : "Building (A → Z)"}</option>
+                    <option value="urgency_desc">{isFrench ? "Priorité Urgence" : "Urgency Priority"}</option>
+                  </select>
+                </div>
               </div>
             </div>
 

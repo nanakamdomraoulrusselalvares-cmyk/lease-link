@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/client";
 import {
   AdminStats,
   AdminLandlordSummary,
+  AdminManagerSummary,
+  AdminTenantSummary,
   AdminActivityEvent,
   AdminGlobalTransaction,
   LandlordProfile,
@@ -151,6 +153,7 @@ export async function getAdminPlatformStats(): Promise<AdminStats> {
     return {
       total_landlords: landlords.length,
       total_managers: managers.length,
+      total_tenants: occupiedUnits,
       total_buildings: totalBuildings,
       total_units: totalUnits,
       occupied_units: occupiedUnits,
@@ -170,6 +173,7 @@ export async function getAdminPlatformStats(): Promise<AdminStats> {
     return {
       total_landlords: 0,
       total_managers: 0,
+      total_tenants: 0,
       total_buildings: 0,
       total_units: 0,
       occupied_units: 0,
@@ -522,3 +526,208 @@ export async function updateLandlordPlanAdmin(
     return false;
   }
 }
+
+/**
+ * Fetch all managers across all landlords on the platform
+ */
+export async function getAdminManagers(): Promise<AdminManagerSummary[]> {
+  const supabase = createClient();
+  try {
+    const { data: managersData } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("role", "manager")
+      .order("created_at", { ascending: false });
+
+    const { data: landlordsData } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .neq("role", "manager");
+
+    const { data: buildingsData } = await supabase
+      .from("buildings")
+      .select("id, name, landlord_id");
+
+    let managers = (managersData || []) as any[];
+    let landlords = (landlordsData || []) as any[];
+    let buildings = (buildingsData || []) as any[];
+
+    if (typeof window !== "undefined") {
+      try {
+        const rawProfiles = localStorage.getItem(LOCAL_STORAGE_PROFILES_KEY);
+        if (rawProfiles) {
+          const parsed = JSON.parse(rawProfiles);
+          if (managers.length === 0) {
+            managers = parsed.filter((p: any) => p.role === "manager");
+          }
+          if (landlords.length === 0) {
+            landlords = parsed.filter((p: any) => p.role !== "manager");
+          }
+        }
+        // Also check manager-specific local storage keys
+        const rawLocalMng1 = localStorage.getItem("leaselink_local_managers");
+        const rawLocalMng2 = localStorage.getItem(LOCAL_STORAGE_MANAGERS_KEY);
+        const combinedRaw = [rawLocalMng1, rawLocalMng2].filter(Boolean);
+        combinedRaw.forEach((raw) => {
+          try {
+            const parsedLocal = JSON.parse(raw!);
+            if (Array.isArray(parsedLocal)) {
+              parsedLocal.forEach((lm: any) => {
+                if (!managers.some((m) => m.id === lm.id)) {
+                  managers.push(lm);
+                }
+              });
+            }
+          } catch (_) {}
+        });
+
+        if (buildings.length === 0) {
+          const rawB = localStorage.getItem(LOCAL_STORAGE_BUILDINGS_KEY);
+          if (rawB) buildings = JSON.parse(rawB);
+        }
+      } catch (_) {}
+    }
+
+    const landlordMap = new Map<string, string>();
+    landlords.forEach((l) => landlordMap.set(l.id, l.full_name || l.email || "Bailleur"));
+
+    const buildingMap = new Map<string, string>();
+    buildings.forEach((b) => buildingMap.set(b.id, b.name || "Immeuble"));
+
+    return managers.map((m) => {
+      const assignedIds: string[] = Array.isArray(m.assigned_building_ids)
+        ? m.assigned_building_ids
+        : [];
+      const assignedNames: string[] = assignedIds
+        .map((id) => buildingMap.get(id))
+        .filter(Boolean) as string[];
+
+      const landlordName = m.landlord_id
+        ? landlordMap.get(m.landlord_id) || "Bailleur assigné"
+        : "Non assigné";
+
+      return {
+        id: m.id,
+        full_name: m.full_name || "Gestionnaire",
+        email: m.email || "N/A",
+        phone: m.phone || "N/A",
+        landlord_id: m.landlord_id || "",
+        landlord_name: landlordName,
+        assigned_building_ids: assignedIds,
+        assigned_building_names: assignedNames,
+        created_at: m.created_at || new Date().toISOString(),
+      };
+    });
+  } catch (err) {
+    console.error("Error fetching admin managers:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetch all registered tenants across all units on the platform
+ */
+export async function getAdminTenants(): Promise<AdminTenantSummary[]> {
+  const supabase = createClient();
+  try {
+    const { data: unitsData } = await supabase
+      .from("units")
+      .select("id, unit_number, rent_amount, status, tenant_name, tenant_phone, tenant_email, building_id, created_at")
+      .order("created_at", { ascending: false });
+
+    const { data: buildingsData } = await supabase
+      .from("buildings")
+      .select("id, name, landlord_id");
+
+    const { data: landlordsData } = await supabase
+      .from("profiles")
+      .select("id, full_name, email");
+
+    let units = (unitsData || []) as any[];
+    let buildings = (buildingsData || []) as any[];
+    let landlords = (landlordsData || []) as any[];
+
+    if (typeof window !== "undefined") {
+      try {
+        if (buildings.length === 0) {
+          const rawB = localStorage.getItem(LOCAL_STORAGE_BUILDINGS_KEY);
+          if (rawB) buildings = JSON.parse(rawB);
+        }
+        if (units.length === 0) {
+          const embeddedUnits: any[] = [];
+          buildings.forEach((b: any) => {
+            if (Array.isArray(b.units)) {
+              b.units.forEach((u: any) => {
+                embeddedUnits.push({ ...u, building_id: u.building_id || b.id });
+              });
+            }
+          });
+          const rawUnits = localStorage.getItem("leaselink_mock_units");
+          if (rawUnits) {
+            try {
+              const parsedU = JSON.parse(rawUnits);
+              if (Array.isArray(parsedU)) {
+                parsedU.forEach((pu: any) => {
+                  if (!embeddedUnits.some((eu) => eu.id === pu.id)) {
+                    embeddedUnits.push(pu);
+                  }
+                });
+              }
+            } catch (_) {}
+          }
+          if (embeddedUnits.length > 0) units = embeddedUnits;
+        }
+        if (landlords.length === 0) {
+          const rawP = localStorage.getItem(LOCAL_STORAGE_PROFILES_KEY);
+          if (rawP) landlords = JSON.parse(rawP);
+        }
+      } catch (_) {}
+    }
+
+    const buildingMap = new Map<string, { name: string; landlord_id: string }>();
+    buildings.forEach((b) =>
+      buildingMap.set(b.id, {
+        name: b.name || "Immeuble",
+        landlord_id: b.landlord_id || "",
+      })
+    );
+
+    const landlordMap = new Map<string, string>();
+    landlords.forEach((l) => landlordMap.set(l.id, l.full_name || l.email || "Bailleur"));
+
+    // Filter units that have a tenant or are occupied
+    const activeUnits = units.filter(
+      (u) => Boolean(u.tenant_name?.trim()) || u.status === "occupied"
+    );
+
+    return activeUnits.map((u) => {
+      const bInfo = buildingMap.get(u.building_id) || {
+        name: "Immeuble non spécifié",
+        landlord_id: "",
+      };
+      const landlordName = bInfo.landlord_id
+        ? landlordMap.get(bInfo.landlord_id) || "Bailleur Propriétaire"
+        : "Non spécifié";
+
+      return {
+        id: u.id,
+        tenant_name: u.tenant_name?.trim() || "Locataire Occupant",
+        tenant_phone: u.tenant_phone?.trim() || "Non renseigné",
+        tenant_email: u.tenant_email?.trim() || "Non renseigné",
+        building_id: u.building_id || "",
+        building_name: bInfo.name,
+        unit_id: u.id,
+        unit_number: u.unit_number || "Lot",
+        rent_amount: Number(u.rent_amount || 0),
+        landlord_id: bInfo.landlord_id,
+        landlord_name: landlordName,
+        status: u.status || "occupied",
+        created_at: u.created_at || new Date().toISOString(),
+      };
+    });
+  } catch (err) {
+    console.error("Error fetching admin tenants:", err);
+    return [];
+  }
+}
+
