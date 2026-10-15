@@ -295,40 +295,42 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative selection:bg-blue-500 selection:text-white">
-      {/* Top Bar Navigation: Go Back button & switches */}
-      <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-20 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
+      {/* Top Bar Navigation: In natural document flow to prevent any overlap */}
+      <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-2 flex items-center justify-between gap-3 shrink-0">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold shadow-xs backdrop-blur-md transition group cursor-pointer"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold shadow-xs backdrop-blur-md transition group cursor-pointer shrink-0"
           title={isFrench ? "Retourner à la page d'accueil" : "Return to landing page"}
         >
           <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-transform group-hover:-translate-x-1" />
           <span>{isFrench ? "Retour à l'accueil" : "Back to Home"}</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <LanguageSwitcher variant="pill" />
           <ThemeSwitcher variant="pill" />
         </div>
-      </div>
+      </header>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-2xl text-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
-          <span>Lease<span className="text-blue-600 dark:text-blue-500">Link</span></span>
-        </Link>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-          {isFrench ? "Inscription Compte Bailleur" : "Register Landlord Account"}
-        </h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          {isFrench
-            ? "Créez votre portefeuille immobilier. Gérez immeubles, logements, locataires et encaissements de loyers."
-            : "Create your digital property portfolio. Manage buildings, units, tenants, and rent collections."}
-        </p>
-      </div>
+      {/* Main Form Content */}
+      <main className="flex-1 flex flex-col justify-center py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-2xl text-center">
+          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white group">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+              <Building2 className="w-6 h-6 text-white" />
+            </div>
+            <span>Lease<span className="text-blue-600 dark:text-blue-500">Link</span></span>
+          </Link>
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            {isFrench ? "Inscription Compte Bailleur" : "Register Landlord Account"}
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            {isFrench
+              ? "Créez votre portefeuille immobilier. Gérez immeubles, logements, locataires et encaissements de loyers."
+              : "Create your digital property portfolio. Manage buildings, units, tenants, and rent collections."}
+          </p>
+        </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 py-8 px-6 shadow-xl dark:shadow-2xl rounded-2xl sm:px-10">
@@ -708,6 +710,7 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+      </main>
     </div>
   );
 }

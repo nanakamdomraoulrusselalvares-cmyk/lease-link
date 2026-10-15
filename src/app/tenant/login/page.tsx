@@ -8,6 +8,7 @@ import {
   Lock,
   Mail,
   ArrowRight,
+  ArrowLeft,
   Loader2,
   AlertCircle,
   CheckCircle2,
@@ -64,33 +65,46 @@ function TenantLoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 selection:bg-blue-500 selection:text-white relative">
-      {/* Top right language & theme switches */}
-      <div className="absolute top-5 right-5 z-20 flex items-center gap-2">
-        <LanguageSwitcher variant="pill" />
-        <ThemeSwitcher variant="pill" />
-      </div>
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
-          <span>Lease<span className="text-blue-600 dark:text-blue-500">Link</span></span>
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
+      {/* Top Bar Navigation: In natural document flow to prevent any overlap */}
+      <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-2 flex items-center justify-between gap-3 shrink-0">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold shadow-xs backdrop-blur-md transition group cursor-pointer shrink-0"
+          title={isFrench ? "Retourner à la page d'accueil" : "Return to landing page"}
+        >
+          <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-transform group-hover:-translate-x-1" />
+          <span>{isFrench ? "Retour à l'accueil" : "Back to Home"}</span>
         </Link>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-semibold mt-4">
-          <UserCheck className="w-3.5 h-3.5" />
-          <span>{isFrench ? "Portail Espace Locataire" : "Tenant Portal Access"}</span>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <LanguageSwitcher variant="pill" />
+          <ThemeSwitcher variant="pill" />
         </div>
-        <h2 className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">
-          {isFrench ? "Connexion à votre Espace Locataire" : "Sign In to Your Tenant Space"}
-        </h2>
-        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-          {isFrench
-            ? "Entrez votre e-mail ou numéro de téléphone et le mot de passe d'accès remis par votre bailleur."
-            : "Enter your login email or phone number and the access password provided by your landlord."}
-        </p>
-      </div>
+      </header>
+
+      {/* Main Tenant Login Content */}
+      <main className="flex-1 flex flex-col justify-center py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white group">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+              <Building2 className="w-6 h-6 text-white" />
+            </div>
+            <span>Lease<span className="text-blue-600 dark:text-blue-500">Link</span></span>
+          </Link>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-semibold mt-4">
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>{isFrench ? "Portail Espace Locataire" : "Tenant Portal Access"}</span>
+          </div>
+          <h2 className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">
+            {isFrench ? "Connexion à votre Espace Locataire" : "Sign In to Your Tenant Space"}
+          </h2>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+            {isFrench
+              ? "Entrez votre e-mail ou numéro de téléphone et le mot de passe d'accès remis par votre bailleur."
+              : "Enter your login email or phone number and the access password provided by your landlord."}
+          </p>
+        </div>
 
       <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 py-8 px-6 shadow-xl dark:shadow-2xl rounded-2xl sm:px-10 space-y-6">
@@ -208,6 +222,7 @@ function TenantLoginForm() {
           </div>
         </div>
       </div>
+      </main>
     </div>
   );
 }
