@@ -190,12 +190,19 @@ export default function PayRentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isProcessing) {
+          onClose();
+        }
+      }}
+    >
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden select-text animate-in fade-in zoom-in-95 duration-150">
+        {/* Header - Fixed & Pinned */}
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 shrink-0 z-10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <DollarSign className="w-4 h-4" />
             </div>
             <div>
@@ -222,7 +229,7 @@ export default function PayRentModal({
 
         {/* Processing Simulation Screen */}
         {isProcessing ? (
-          <div className="p-8 sm:p-10 text-center space-y-6">
+          <div className="p-8 sm:p-10 text-center space-y-6 overflow-y-auto">
             <div className="relative w-20 h-20 mx-auto">
               <div className="w-20 h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -259,8 +266,8 @@ export default function PayRentModal({
             </div>
           </div>
         ) : (
-          /* Payment Form */
-          <form onSubmit={handleStartPayment} className="p-6 space-y-4">
+          /* Payment Form - Scrollable */
+          <form onSubmit={handleStartPayment} className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1">
             {/* Rent Overview Strip */}
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
               <div className="space-y-0.5">
@@ -531,29 +538,70 @@ export default function PayRentModal({
               </div>
             </div>
 
-            {/* REAL PAYMENT METHODS ONLY (No Cash) */}
+            {/* REAL PAYMENT METHODS ONLY (No Cash) - Polished with Icons */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                 {isFrench
                   ? "Sélectionnez le mode de paiement (Pas d'espèces) :"
-                  : "Select Real Payment Method (No Cash):"}
+                  : "Select Payment Method (Digital / Non-Cash):"}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 {REAL_TENANT_PAYMENT_METHODS.map((method) => {
                   const isSelected = paymentMethod === method;
-                  const meta = PAYMENT_METHOD_LABELS[method];
+                  const getMethodDisplay = () => {
+                    switch (method) {
+                      case "momo":
+                        return {
+                          icon: <Smartphone className="w-4 h-4 text-amber-500" />,
+                          label: "MTN MoMo",
+                          sub: "Mobile Money",
+                        };
+                      case "orange_money":
+                        return {
+                          icon: <Smartphone className="w-4 h-4 text-orange-500" />,
+                          label: "Orange Money",
+                          sub: "OM Wallet",
+                        };
+                      case "card":
+                        return {
+                          icon: <CreditCard className="w-4 h-4 text-blue-500" />,
+                          label: isFrench ? "Carte Bancaire" : "Bank Card",
+                          sub: "Visa / MC",
+                        };
+                      case "bank_transfer":
+                        return {
+                          icon: <Building2 className="w-4 h-4 text-emerald-500" />,
+                          label: isFrench ? "Virement" : "Wire Transfer",
+                          sub: isFrench ? "Bancaire" : "Direct Wire",
+                        };
+                      default:
+                        return {
+                          icon: <CreditCard className="w-4 h-4" />,
+                          label: method,
+                          sub: "",
+                        };
+                    }
+                  };
+                  const display = getMethodDisplay();
+
                   return (
                     <button
                       key={method}
                       type="button"
                       onClick={() => setPaymentMethod(method)}
-                      className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
+                      className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center gap-1 ${
                         isSelected
-                          ? "bg-blue-50 dark:bg-slate-800 border-blue-500 text-blue-700 dark:text-white ring-1 ring-blue-500/50 shadow-sm"
+                          ? "bg-blue-50 dark:bg-slate-800 border-blue-500 text-blue-700 dark:text-white ring-2 ring-blue-500/40 shadow-sm"
                           : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
-                      <span className="text-[11px] font-bold">{meta.short}</span>
+                      <div className="p-1 rounded-lg bg-slate-100 dark:bg-slate-900 shrink-0">
+                        {display.icon}
+                      </div>
+                      <span className="text-[11px] font-bold leading-tight">{display.label}</span>
+                      <span className="text-[9px] text-slate-500 dark:text-slate-400 leading-none">
+                        {display.sub}
+                      </span>
                     </button>
                   );
                 })}
