@@ -843,14 +843,16 @@ export default function HomePage() {
                   {isFrench ? "Combien de logements gérez-vous ?" : "How many units do you manage?"}
                 </span>
                 <span className="text-blue-600 dark:text-blue-400 text-sm font-black">
-                  {unitCountSlider >= 101 ? "100+ Logements" : `${unitCountSlider} ${isFrench ? "Logements" : "Units"}`}
+                  {unitCountSlider > 300
+                    ? isFrench ? "300+ Logements (Sur-mesure)" : "300+ Units (Custom Pack)"
+                    : `${unitCountSlider} ${isFrench ? "Logements" : "Units"}`}
                 </span>
               </div>
 
               <input
                 type="range"
                 min="1"
-                max="120"
+                max="320"
                 value={unitCountSlider}
                 onChange={(e) => setUnitCountSlider(Number(e.target.value))}
                 className="w-full mt-3 accent-blue-600 cursor-pointer"
@@ -859,7 +861,9 @@ export default function HomePage() {
               <div className="mt-3 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <span>{isFrench ? "Formule recommandée :" : "Recommended tier:"}</span>
                 <span className="font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/20 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30">
-                  {isFrench && suggestedPlan.nameFr ? suggestedPlan.nameFr : suggestedPlan.name} ({suggestedPlan.unitRange})
+                  {unitCountSlider > 300
+                    ? isFrench ? "Pack Grands Comptes (Sur-mesure)" : "Enterprise Pack (Custom Quote)"
+                    : `${isFrench && suggestedPlan.nameFr ? suggestedPlan.nameFr : suggestedPlan.name} (${suggestedPlan.unitRange})`}
                 </span>
               </div>
             </div>
@@ -992,6 +996,84 @@ export default function HomePage() {
                 </div>
               );
             })}
+          </div>
+
+          {/* Enterprise / Grands Comptes Banner (> 300 units) */}
+          <div
+            id="enterprise-tier"
+            className={`mt-12 rounded-3xl p-8 sm:p-10 border transition-all duration-300 relative overflow-hidden ${
+              unitCountSlider > 300
+                ? "border-amber-400/80 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 shadow-2xl shadow-blue-500/20 ring-2 ring-amber-400/50"
+                : "border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white shadow-xl"
+            }`}
+          >
+            {/* Ambient glows */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+              <div className="space-y-4 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400/10 border border-amber-400/30 text-amber-300">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {isFrench ? "Sur-Mesure & Grands Comptes • 300+ Logements" : "Custom Enterprise • 300+ Units"}
+                </div>
+                
+                <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  {isFrench
+                    ? "Vous gérez un parc de plus de 300 logements ?"
+                    : "Managing a portfolio of over 300 units?"}
+                </h3>
+                
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                  {isFrench
+                    ? "Sociétés immobilières, foncières institutionnelles et syndics professionnels : bénéficiez d'une infrastructure dédiée, de migrations de données clés en main et d'un contrat de niveau de service (SLA) sur-mesure."
+                    : "Institutional asset managers, real estate agencies, and large property syndics: get dedicated infrastructure, white-glove data onboarding, and guaranteed custom SLAs."}
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs font-semibold text-slate-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{isFrench ? "Account Manager dédié & support WhatsApp VIP" : "Dedicated Account Manager & VIP WhatsApp"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{isFrench ? "Importation & migration gratuite de vos baux" : "Free data & lease migration onboarding"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{isFrench ? "Exports comptables & intégrations sur-mesure" : "Custom accounting sync & API exports"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{isFrench ? "Tarification dégressive par tranche de volume" : "Volume-tiered progressive volume pricing"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto shrink-0">
+                <a
+                  href={`https://wa.me/237671234567?text=${encodeURIComponent(
+                    isFrench
+                      ? "Bonjour LeaseLink, je gère un portefeuille de plus de 300 logements et je souhaite obtenir un devis Grands Comptes sur-mesure."
+                      : "Hello LeaseLink, I manage a real estate portfolio of 300+ units and would like a custom Enterprise quote."
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-sm shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2 transition hover:scale-[1.02] cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{isFrench ? "Discuter sur WhatsApp" : "Chat on WhatsApp"}</span>
+                </a>
+                
+                <Link
+                  href="/register"
+                  className="px-6 py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] text-center"
+                >
+                  <span>{isFrench ? "Demander un Devis par Email" : "Request Quote by Email"}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>

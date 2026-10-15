@@ -1092,8 +1092,8 @@ begin
         v_unit_limit := 100;
         v_has_trial := false;
     elsif v_plan in ('tier_100_plus', 'ultimate') then
-        v_plan_name := 'Ultimate (100+ Units)';
-        v_unit_limit := 500;
+        v_plan_name := 'Ultimate (101 to 300 Units)';
+        v_unit_limit := 300;
         v_has_trial := false;
     else
         v_plan := 'free';
