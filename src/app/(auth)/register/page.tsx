@@ -62,41 +62,24 @@ export default function RegisterPage() {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) return;
 
-    try {
-      const supabase = createClient();
-      const { data: existing } = await supabase
-        .from("profiles")
-        .select("id")
-        .ilike("email", cleanEmail)
-        .maybeSingle();
-
-      if (existing) {
-        setEmailWarning(
-          isFrench
-            ? "Cette adresse e-mail est déjà associée à un compte LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail."
-            : "An account with this email address already exists. A person can only register once with an email."
-        );
-      } else {
-        // Also check local mock store if offline
-        if (typeof window !== "undefined") {
-          try {
-            const raw = localStorage.getItem("leaselink_mock_profiles");
-            if (raw) {
-              const list = JSON.parse(raw);
-              if (list.some((p: any) => p.email?.toLowerCase() === cleanEmail)) {
-                setEmailWarning(
-                  isFrench
-                    ? "Cette adresse e-mail est déjà associée à un compte LeaseLink."
-                    : "An account with this email address already exists."
-                );
-                return;
-              }
-            }
-          } catch (_) {}
+    // Check local mock store if offline
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("leaselink_mock_profiles");
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (list.some((p: any) => p.email?.toLowerCase() === cleanEmail)) {
+            setEmailWarning(
+              isFrench
+                ? "Cette adresse e-mail est déjà associée à un compte LeaseLink."
+                : "An account with this email address already exists."
+            );
+            return;
+          }
         }
-        setEmailWarning(null);
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
+    setEmailWarning(null);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -160,24 +143,6 @@ export default function RegisterPage() {
       const supabase = createClient();
       const cleanEmail = email.trim().toLowerCase();
 
-      // 1. Strict pre-check in profiles table to guarantee an email is used only once
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id, email")
-        .ilike("email", cleanEmail)
-        .maybeSingle();
-
-      if (existingProfile) {
-        setErrorMsg(
-          isFrench
-            ? "Cette adresse e-mail est déjà associée à un compte LeaseLink. Un utilisateur ne peut s'inscrire qu'une seule fois avec la même adresse e-mail. Veuillez vous connecter."
-            : "An account with this email address already exists on LeaseLink. A person can only register once with an email. Please sign in instead."
-        );
-        setIsEmailDuplicate(true);
-        setLoading(false);
-        return;
-      }
-
       // Check local mock store if offline
       if (typeof window !== "undefined") {
         try {
@@ -197,6 +162,7 @@ export default function RegisterPage() {
           }
         } catch (_) {}
       }
+
 
       // 2. Sign up with Supabase Auth including metadata for the landlord profile trigger
       const { data, error } = await supabase.auth.signUp({
@@ -277,10 +243,16 @@ export default function RegisterPage() {
       }
     } catch (err: unknown) {
       let message = err instanceof Error ? err.message : (isFrench ? "Échec de l'inscription." : "Failed to register account.");
-      if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+      if (
+        message.includes("Failed to fetch") ||
+        message.includes("NetworkError") ||
+        message.includes("timeout") ||
+        message.includes("timed out") ||
+        message.includes("network")
+      ) {
         message = isFrench
-          ? "Impossible de contacter le serveur Supabase. Veuillez vérifier votre connexion internet."
-          : "Could not reach Supabase server. Please check your internet connection and verify the Supabase URL in .env.local.";
+          ? "Impossible de joindre le serveur Supabase. Votre connexion internet semble interrompue ou instable (Délai d'attente dépassé ou réseau inaccessible). Veuillez vérifier votre connexion Wi-Fi, câble réseau ou données mobiles."
+          : "Could not reach Supabase server. Your internet connection appears to be offline or unstable (Network connection timed out). Please check your Wi-Fi, network cable, or mobile data.";
       }
       setErrorMsg(message);
       setLoading(false);
