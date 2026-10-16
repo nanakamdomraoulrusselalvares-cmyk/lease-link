@@ -71,7 +71,11 @@ export default function UnpaidRentsPage() {
   const [showReceiptModal, setShowReceiptModal] = useState<boolean>(false);
   const [cashConfirmedPayment, setCashConfirmedPayment] = useState<RentPayment | null>(null);
 
-  const currentMonth = getCurrentRentMonth();
+  const [currentMonth, setCurrentMonth] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentMonth(getCurrentRentMonth());
+  }, []);
 
   const loadData = async () => {
     const supabase = createClient();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -26,6 +26,7 @@ import {
   Sliders,
   DollarSign,
   Download,
+  ArrowUp,
 } from "lucide-react";
 import { AVAILABLE_PLANS } from "@/types/database";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -37,7 +38,30 @@ export default function HomePage() {
   const [activePreviewTab, setActivePreviewTab] = useState<"ledger" | "buildings" | "receipt" | "repairs">("ledger");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [unitCountSlider, setUnitCountSlider] = useState<number>(24);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   // Dynamic plan finder based on slider
   const suggestedPlan = useMemo(() => {
@@ -69,7 +93,7 @@ export default function HomePage() {
         },
         {
           q: "Comment sont générées les quittances de loyer ?",
-          a: "Dès que vous enregistrez un encaissement (Espèces, Orange Money, MTN Mobile Money, Virement), LeaseLink génère instantanément une quittance certifiée conforme avec QR code, tampon officiel et signature du bailleur, prête à être partagée sur WhatsApp ou téléchargée en PDF.",
+          a: "Dès que vous enregistrez un encaissement (MTN Mobile Money, Orange Money, Espèces), LeaseLink génère instantanément une quittance certifiée conforme avec QR code, tampon officiel et signature du bailleur, prête à être partagée sur WhatsApp ou téléchargée en PDF.",
         },
         {
           q: "Mes locataires reçoivent-ils des notifications lors de l'arrivée de nouveaux voisins ?",
@@ -91,7 +115,7 @@ export default function HomePage() {
         },
         {
           q: "How are certified rent receipts generated?",
-          a: "The moment a payment is recorded (Cash, Orange Money, MTN MoMo, Bank Transfer), LeaseLink instantly produces a tamper-proof receipt bearing an official seal, QR code, and landlord signature, ready for instant WhatsApp dispatch or PDF download.",
+          a: "The moment a payment is recorded (MTN MoMo, Orange Money, Cash), LeaseLink instantly produces a tamper-proof receipt bearing an official seal, QR code, and landlord signature, ready for instant WhatsApp dispatch or PDF download.",
         },
         {
           q: "Are tenants informed when new neighbors move into their building?",
@@ -106,7 +130,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
       {/* Navigation Header */}
-      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 shadow-xs">
+      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/80 backdrop-blur-xl sticky top-[var(--pwa-banner-height,0px)] z-50 shadow-xs transition-[top] duration-150">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-4 sm:gap-8 shrink-0">
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
@@ -835,7 +859,7 @@ export default function HomePage() {
                 onClick={() => setBillingCycle("monthly")}
                 className={`py-2 px-5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   billingCycle === "monthly"
-                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -852,7 +876,13 @@ export default function HomePage() {
                 }`}
               >
                 <span>{isFrench ? "Facturation Annuelle" : "Annual Billing"}</span>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 shadow-xs">
+                <span
+                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-xs ${
+                    billingCycle === "annual"
+                      ? "bg-emerald-400 text-slate-950"
+                      : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  }`}
+                >
                   {isFrench ? "Économisez" : "Save"}
                 </span>
               </button>
@@ -1074,7 +1104,7 @@ export default function HomePage() {
 
               <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto shrink-0">
                 <a
-                  href={`https://wa.me/237671234567?text=${encodeURIComponent(
+                  href={`https://wa.me/237675993378?text=${encodeURIComponent(
                     isFrench
                       ? "Bonjour LeaseLink, je gère un portefeuille de plus de 300 logements et je souhaite obtenir un devis Grands Comptes sur-mesure."
                       : "Hello LeaseLink, I manage a real estate portfolio of 300+ units and would like a custom Enterprise quote."
@@ -1087,13 +1117,21 @@ export default function HomePage() {
                   <span>{isFrench ? "Discuter sur WhatsApp" : "Chat on WhatsApp"}</span>
                 </a>
                 
-                <Link
-                  href="/register"
-                  className="px-6 py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] text-center"
+                <a
+                  href={`mailto:nanakamdomraoulrusselalvares@gmail.com?subject=${encodeURIComponent(
+                    isFrench
+                      ? "Demande de Devis Grands Comptes (300+ logements) - LeaseLink"
+                      : "Enterprise Custom Quote Request (300+ units) - LeaseLink"
+                  )}&body=${encodeURIComponent(
+                    isFrench
+                      ? "Bonjour,\n\nJe gère un portefeuille immobilier de plus de 300 logements et je souhaite recevoir une proposition commerciale et un devis sur-mesure pour la solution LeaseLink.\n\nNom / Société :\nTéléphone :\nNombre approximatif de logements :\nVille / Pays :\n\nMerci d'avance pour votre retour."
+                      : "Hello,\n\nI manage a real estate portfolio of over 300 units and would like to receive a tailored Enterprise proposal and custom quote for LeaseLink.\n\nName / Company:\nPhone number:\nApproximate number of units:\nCity / Country:\n\nThank you."
+                  )}`}
+                  className="px-6 py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] text-center cursor-pointer"
                 >
                   <span>{isFrench ? "Demander un Devis par Email" : "Request Quote by Email"}</span>
                   <ArrowRight className="w-4 h-4" />
-                </Link>
+                </a>
               </div>
             </div>
           </div>
@@ -1210,6 +1248,9 @@ export default function HomePage() {
               <a href="#pricing" className="hover:text-slate-900 dark:hover:text-white transition font-medium">
                 {isFrench ? "Tarifs" : "Pricing"}
               </a>
+              <Link href="/terms" className="hover:text-blue-600 dark:hover:text-blue-400 transition font-medium">
+                {isFrench ? "Conditions & Confidentialité" : "Terms & Privacy"}
+              </Link>
             </div>
 
             <div className="flex items-center gap-2">
@@ -1219,6 +1260,21 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Floating Back to Top Button - Appears only when scrolling on public home page */}
+      <button
+        type="button"
+        id="back-to-top-btn"
+        onClick={scrollToTop}
+        aria-label={isFrench ? "Retour en haut de page" : "Back to top"}
+        className={`fixed bottom-6 right-6 z-40 p-3 sm:p-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 dark:shadow-blue-500/20 border border-white/20 active:scale-95 transition-all duration-300 flex items-center justify-center group cursor-pointer ${
+          showScrollTop
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 translate-y-6 pointer-events-none"
+        }`}
+      >
+        <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+      </button>
     </div>
   );
 }

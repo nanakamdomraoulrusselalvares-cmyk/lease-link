@@ -15,7 +15,6 @@ import {
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
   X,
-  CreditCard,
   DollarSign,
   Smartphone,
   ShieldCheck,
@@ -39,12 +38,10 @@ interface PayRentModalProps {
   onPaymentSuccess: (payment: RentPayment) => void;
 }
 
-// Tenants are strictly limited to real digital / mobile payment methods (NO CASH)
+// Tenants are strictly limited to Mobile Money payment methods (MTN MoMo & Orange Money)
 const REAL_TENANT_PAYMENT_METHODS: PaymentMethod[] = [
   "momo",
   "orange_money",
-  "card",
-  "bank_transfer",
 ];
 
 export default function PayRentModal({
@@ -545,7 +542,7 @@ export default function PayRentModal({
                   ? "Sélectionnez le mode de paiement (Pas d'espèces) :"
                   : "Select Payment Method (Digital / Non-Cash):"}
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 {REAL_TENANT_PAYMENT_METHODS.map((method) => {
                   const isSelected = paymentMethod === method;
                   const getMethodDisplay = () => {
@@ -554,29 +551,17 @@ export default function PayRentModal({
                         return {
                           icon: <Smartphone className="w-4 h-4 text-amber-500" />,
                           label: "MTN MoMo",
-                          sub: "Mobile Money",
+                          sub: "MTN Mobile Money",
                         };
                       case "orange_money":
                         return {
                           icon: <Smartphone className="w-4 h-4 text-orange-500" />,
                           label: "Orange Money",
-                          sub: "OM Wallet",
-                        };
-                      case "card":
-                        return {
-                          icon: <CreditCard className="w-4 h-4 text-blue-500" />,
-                          label: isFrench ? "Carte Bancaire" : "Bank Card",
-                          sub: "Visa / MC",
-                        };
-                      case "bank_transfer":
-                        return {
-                          icon: <Building2 className="w-4 h-4 text-emerald-500" />,
-                          label: isFrench ? "Virement" : "Wire Transfer",
-                          sub: isFrench ? "Bancaire" : "Direct Wire",
+                          sub: "Orange Wallet",
                         };
                       default:
                         return {
-                          icon: <CreditCard className="w-4 h-4" />,
+                          icon: <Smartphone className="w-4 h-4 text-blue-500" />,
                           label: method,
                           sub: "",
                         };

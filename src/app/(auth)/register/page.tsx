@@ -45,7 +45,9 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>("free");
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
 
   // Read URL query params (?plan=...&cycle=...)
   useEffect(() => {
@@ -146,6 +148,16 @@ export default function RegisterPage() {
         isFrench
           ? "Les mots de passe ne correspondent pas. Veuillez réessayer."
           : "Passwords do not match. Please re-enter."
+      );
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setTermsError(true);
+      setErrorMsg(
+        isFrench
+          ? "Veuillez lire et accepter les Conditions Générales d'Utilisation et la Politique de Confidentialité pour finaliser votre inscription."
+          : "Please read and accept the Terms of Service and Privacy Policy before completing your registration."
       );
       return;
     }
@@ -484,7 +496,7 @@ export default function RegisterPage() {
                       onClick={() => setBillingCycle("monthly")}
                       className={`py-1 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                         billingCycle === "monthly"
-                          ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                          ? "bg-blue-600 text-white shadow-xs"
                           : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
                     >
@@ -505,7 +517,13 @@ export default function RegisterPage() {
                       }`}
                     >
                       <span>{isFrench ? "Annuel" : "Annual"}</span>
-                      <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950">
+                      <span
+                        className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full ${
+                          billingCycle === "annual"
+                            ? "bg-emerald-400 text-slate-950"
+                            : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                        }`}
+                      >
                         {isFrench ? "-15%" : "Save"}
                       </span>
                     </button>
@@ -674,6 +692,68 @@ export default function RegisterPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Mandatory Terms of Service & Confidentiality Agreement */}
+              <div
+                className={`p-4 rounded-2xl border transition-all duration-200 ${
+                  termsError && !acceptedTerms
+                    ? "bg-rose-50 dark:bg-rose-950/30 border-rose-400 dark:border-rose-500/50 shadow-xs"
+                    : "bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800"
+                }`}
+              >
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    id="accept-terms-checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => {
+                      setAcceptedTerms(e.target.checked);
+                      if (e.target.checked) setTermsError(false);
+                    }}
+                    className="mt-1 w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                  />
+                  <div className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                    <span>
+                      {isFrench
+                        ? "Je confirme avoir lu et j'accepte sans réserve les "
+                        : "I confirm that I have read and unconditionally accept the "}
+                    </span>
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {isFrench ? "Conditions Générales d'Utilisation" : "Terms of Service"}
+                    </Link>
+                    <span>{isFrench ? " ainsi que la " : " and the "}</span>
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                    >
+                      {isFrench ? "Politique de Confidentialité" : "Privacy Policy"}
+                    </Link>
+                    <span>
+                      {isFrench
+                        ? " de LeaseLink. Je consens au traitement sécurisé et au chiffrement de mes données et des registres locatifs associés."
+                        : " of LeaseLink. I consent to the secure and cryptographic processing of my personal data and property ledgers."}
+                    </span>
+                  </div>
+                </label>
+
+                {termsError && !acceptedTerms && (
+                  <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 animate-pulse">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {isFrench
+                        ? "Vous devez cocher cette case pour valider votre accord avant de continuer."
+                        : "You must check this box to confirm your agreement before continuing."}
+                    </span>
+                  </p>
+                )}
               </div>
 
               {/* Submit Button */}

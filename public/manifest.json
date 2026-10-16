@@ -1,16 +1,39 @@
 {
-  "name": "LeaseLink Property Management",
+  "name": "LeaseLink - Digital Property Management",
   "short_name": "LeaseLink",
   "description": "Transition from paper ledgers to digital property management. Track buildings, units, tenants, rent collections, and maintenance requests.",
   "start_url": "/",
+  "id": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0b1120",
   "theme_color": "#0b1120",
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

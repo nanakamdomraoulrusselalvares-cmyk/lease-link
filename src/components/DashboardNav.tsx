@@ -292,7 +292,7 @@ export default function DashboardNav({
       {/* ========================================================================= */}
       {/* 1. TOP DESKTOP & TABLET HEADER BAR (Sticky Glassmorphic)                  */}
       {/* ========================================================================= */}
-      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 transition-colors shadow-sm w-full max-w-full">
+      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md sticky top-[var(--pwa-banner-height,0px)] z-40 transition-[top,background-color] duration-150 shadow-sm w-full max-w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4 w-full min-w-0">
           {/* Left: Brand Identity & Plan Badge */}
           <div className="flex items-center gap-3 shrink-0">

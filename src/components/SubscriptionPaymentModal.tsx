@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   X,
   ShieldCheck,
-  CreditCard,
   Building2,
   Phone,
   Layers,
@@ -46,7 +45,7 @@ export default function SubscriptionPaymentModal({
 }: SubscriptionPaymentModalProps) {
   const { isFrench } = useLanguage();
 
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlanId>("tier_1_30");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("momo");
   const [payerPhone, setPayerPhone] = useState(profile?.phone || "");
@@ -224,7 +223,7 @@ export default function SubscriptionPaymentModal({
                 onClick={() => setBillingCycle("monthly")}
                 className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
                   billingCycle === "monthly"
-                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -241,7 +240,13 @@ export default function SubscriptionPaymentModal({
                 }`}
               >
                 <span>{isFrench ? "Paiement Annuel (365 Jours)" : "Annual Billing (365 Days)"}</span>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 shadow-xs">
+                <span
+                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-xs ${
+                    billingCycle === "annual"
+                      ? "bg-emerald-400 text-slate-950"
+                      : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  }`}
+                >
                   {isFrench ? "Économisez" : "Save"}
                 </span>
               </button>
@@ -323,30 +328,33 @@ export default function SubscriptionPaymentModal({
               })}
             </div>
 
-            {/* 3. Payment Method */}
+            {/* 3. Payment Method - Strictly MTN MoMo and Orange Money */}
             <div className="space-y-2 pt-1">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                {isFrench ? "Mode de Règlement" : "Payment Method"}
+                {isFrench ? "Mode de Règlement (MoMo / Orange Money)" : "Payment Method (Mobile Money Only)"}
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { id: "momo", label: "MTN MoMo", badge: "MTN Money" },
-                  { id: "orange_money", label: "Orange Money", badge: "Orange" },
-                  { id: "card", label: "Carte Bancaire", badge: "Visa/Mastercard" },
-                  { id: "bank_transfer", label: "Virement", badge: "Banque" },
+                  { id: "momo", label: "MTN Mobile Money", badge: "MTN MoMo" },
+                  { id: "orange_money", label: "Orange Money", badge: "OM Wallet" },
                 ].map((m) => (
                   <button
                     key={m.id}
                     type="button"
                     onClick={() => setPaymentMethod(m.id as PaymentMethod)}
-                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                    className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex items-center justify-between gap-3 ${
                       paymentMethod === m.id
-                        ? "bg-blue-50 dark:bg-blue-600/10 border-blue-500 text-blue-700 dark:text-blue-300 font-bold"
+                        ? "bg-blue-50 dark:bg-blue-600/10 border-blue-500 text-blue-700 dark:text-blue-300 font-bold ring-2 ring-blue-500/20"
                         : "bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                     }`}
                   >
-                    <span className="text-xs font-bold">{m.label}</span>
-                    <span className="text-[10px] text-slate-500 mt-1">{m.badge}</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold">{m.label}</span>
+                      <span className="text-[10px] text-slate-500 mt-0.5">{m.badge}</span>
+                    </div>
+                    {paymentMethod === m.id && (
+                      <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    )}
                   </button>
                 ))}
               </div>
