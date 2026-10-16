@@ -1590,11 +1590,11 @@ export default function BuildingsManagementPage() {
                                     )}
                                   </div>
 
-                                  {/* Actions: Modify Unit & Credentials Buttons - Stack vertically on phone (from top to bottom), row on desktop */}
-                                  <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                  {/* Actions: Modify Unit & Credentials Buttons - Aligned vertically from top to bottom */}
+                                  <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex flex-col items-stretch gap-2">
                                     <button
                                       onClick={() => handleOpenEditUnit(unit, building.name)}
-                                      className={`w-full sm:flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer active:scale-[0.98] ${
+                                      className={`w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer active:scale-[0.98] ${
                                         isOccupied
                                           ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
                                           : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
@@ -1637,7 +1637,7 @@ export default function BuildingsManagementPage() {
                                             daysDiff: dueStatus.daysDiff,
                                           }).catch(console.warn);
                                         }}
-                                        className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3 rounded-xl text-white font-bold text-xs shadow-sm active:scale-[0.98] transition shrink-0 cursor-pointer ${
+                                        className={`w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-white font-bold text-xs shadow-sm active:scale-[0.98] transition cursor-pointer ${
                                           dueStatus.status === "overdue"
                                             ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
                                             : "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
@@ -1649,18 +1649,22 @@ export default function BuildingsManagementPage() {
                                         }
                                       >
                                         <Bell className="w-3.5 h-3.5 text-white shrink-0" />
-                                        <span>{dueStatus.status === "overdue" ? (isFrench ? "Relancer" : "Overdue") : (isFrench ? "Rappeler" : "Remind")}</span>
+                                        <span>
+                                          {dueStatus.status === "overdue"
+                                            ? (isFrench ? "Relancer Loyers sur WhatsApp" : "Send Overdue Notice on WhatsApp")
+                                            : (isFrench ? "Rappel d'Échéance sur WhatsApp" : "Send Rent Due Reminder on WhatsApp")}
+                                        </span>
                                       </a>
                                     )}
 
                                     {isOccupied && unit.tenant_name && (
                                       <Link
                                         href={`/dashboard/credentials?unitId=${unit.id}`}
-                                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 active:scale-[0.98] transition shrink-0"
-                                        title={isFrench ? "Partager sur WhatsApp" : "Share on WhatsApp"}
+                                        className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 active:scale-[0.98] transition"
+                                        title={isFrench ? "Partager les identifiants sur WhatsApp" : "Share tenant credentials on WhatsApp"}
                                       >
                                         <MessageCircle className="w-3.5 h-3.5 text-white shrink-0" />
-                                        <span>WhatsApp</span>
+                                        <span>{isFrench ? "Identifiants Locataire (WhatsApp)" : "Tenant Credentials (WhatsApp)"}</span>
                                       </Link>
                                     )}
                                   </div>
