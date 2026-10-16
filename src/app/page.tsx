@@ -921,6 +921,23 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Default Free Registration & Safe Upgrade Notice */}
+          <div className="max-w-3xl mx-auto mt-6 mb-8 p-3.5 sm:p-4 rounded-2xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-500/30 text-xs text-slate-700 dark:text-slate-300 flex items-start sm:items-center gap-3 shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Sparkles className="w-4 h-4 text-amber-300" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="font-bold text-slate-900 dark:text-white block">
+                {isFrench ? "Inscription Directe & Formule Gratuite Immédiate" : "Direct Registration & Default Free Plan"}
+              </span>
+              <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                {isFrench
+                  ? "Tous les comptes démarrent automatiquement avec 30 jours d'essai gratuit (jusqu'à 5 logements). Augmentez votre formule à tout moment depuis votre espace bailleur pour ajouter plus de logements : toutes vos données (immeubles, logements, locataires et quittances) restent 100% conservées et intactes !"
+                  : "All accounts begin with an automatic 30-day free trial (up to 5 units). Upgrade your plan at any time right from your landlord interface to manage more units: all your existing data (buildings, units, tenants, and receipts) remains 100% intact!"}
+              </p>
+            </div>
+          </div>
+
           {/* Pricing Cards Grid */}
           <div
             className={`grid grid-cols-1 md:grid-cols-2 ${
@@ -1027,7 +1044,7 @@ export default function HomePage() {
 
                   <div className="mt-6 pt-3">
                     <Link
-                      href={`/register?plan=${plan.id}&cycle=${billingCycle}`}
+                      href="/register"
                       className={`w-full block text-center py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
                         isSelected
                           ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25"
@@ -1038,11 +1055,11 @@ export default function HomePage() {
                     >
                       {plan.isFreeTrial
                         ? isFrench
-                          ? "Activer l'Essai"
-                          : "Start Trial"
+                          ? "Démarrer l'Essai Gratuit"
+                          : "Start Free Trial"
                         : isFrench
-                        ? "Choisir"
-                        : "Select Plan"}
+                        ? "Commencer (Essai Inclus)"
+                        : "Get Started (Free Trial)"}
                     </Link>
                   </div>
                 </div>

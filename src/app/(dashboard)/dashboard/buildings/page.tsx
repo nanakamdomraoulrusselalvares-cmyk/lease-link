@@ -26,6 +26,7 @@ import {
 } from "@/lib/services/rentDueDateService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
+import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Building2,
@@ -89,6 +90,9 @@ export default function BuildingsManagementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+
+  // Subscription upgrade modal state
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Building Form Fields (Floors and default specs removed)
   const [formData, setFormData] = useState<CreateBuildingFormInput>({
@@ -318,7 +322,9 @@ export default function BuildingsManagementPage() {
 
     if (unitsCount > remainingQuota) {
       setFormError(
-        `Unit limit reached! You have ${remainingQuota} units available on your plan. Requested: ${unitsCount} units.`
+        isFrench
+          ? `Capacité du forfait atteinte ! Votre formule actuelle autorise jusqu'à ${planUnitLimit} logements. Vous avez déjà ${totalUnitsInPortfolio} logement(s) créé(s) et vous demandez ${unitsCount} logements supplémentaires. Augmentez votre forfait pour débloquer immédiatement plus de logements (toutes vos données existantes restent 100% intactes).`
+          : `Plan capacity reached! Your current plan allows up to ${planUnitLimit} units. You already have ${totalUnitsInPortfolio} unit(s) created and requested ${unitsCount} more. Upgrade your plan to instantly unlock more units (all your existing data remains 100% intact).`
       );
       return;
     }
@@ -724,34 +730,46 @@ export default function BuildingsManagementPage() {
           </div>
 
           {/* Card 5: Quota Remaining */}
-          <div className="bg-amber-50/70 dark:bg-slate-900 border-2 border-amber-300 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md col-span-2 md:col-span-1">
-            <div className="flex items-center justify-between text-xs text-amber-900 dark:text-slate-400 font-bold">
-              <span>{isFrench ? "Quota Restant" : "Quota Remaining"}</span>
-              <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <div className="bg-amber-50/70 dark:bg-slate-900 border-2 border-amber-300 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md col-span-2 md:col-span-1 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-xs text-amber-900 dark:text-slate-400 font-bold">
+                <span>{isFrench ? "Quota Restant" : "Quota Remaining"}</span>
+                <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="mt-2.5 flex items-baseline justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-amber-950 dark:text-white font-mono">
+                  {remainingQuota}
+                </span>
+                <span className="text-xs text-amber-800 dark:text-slate-400 font-mono font-bold">
+                  {totalUnitsInPortfolio}/{planUnitLimit}
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-amber-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    quotaPercentage > 85
+                      ? "bg-rose-500"
+                      : quotaPercentage > 60
+                      ? "bg-amber-500"
+                      : "bg-blue-600"
+                  }`}
+                  style={{ width: `${quotaPercentage}%` }}
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-amber-800 dark:text-slate-500 font-semibold">
+                {isFrench ? `${quotaPercentage}% du forfait utilisé` : `${quotaPercentage}% of plan allowance used`}
+              </p>
             </div>
-            <div className="mt-2.5 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-black text-amber-950 dark:text-white font-mono">
-                {remainingQuota}
-              </span>
-              <span className="text-xs text-amber-800 dark:text-slate-400 font-mono font-bold">
-                {totalUnitsInPortfolio}/{planUnitLimit}
-              </span>
-            </div>
-            <div className="mt-2 w-full bg-amber-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  quotaPercentage > 85
-                    ? "bg-rose-500"
-                    : quotaPercentage > 60
-                    ? "bg-amber-500"
-                    : "bg-blue-600"
-                }`}
-                style={{ width: `${quotaPercentage}%` }}
-              />
-            </div>
-            <p className="mt-1 text-[11px] text-amber-800 dark:text-slate-500 font-semibold">
-              {isFrench ? `${quotaPercentage}% du forfait utilisé` : `${quotaPercentage}% of plan allowance used`}
-            </p>
+
+            <button
+              type="button"
+              id="upgrade-subscription-card-btn"
+              onClick={() => setShowSubscriptionModal(true)}
+              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>{isFrench ? "Augmenter mon forfait" : "Upgrade Plan"}</span>
+            </button>
           </div>
         </div>
 
@@ -792,12 +810,57 @@ export default function BuildingsManagementPage() {
             </div>
 
             {formError && (
-              <div className="mt-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
-                <div className="text-xs sm:text-sm">
-                  <span className="font-bold block">{isFrench ? "Erreur" : "Error"}</span>
-                  <span>{formError}</span>
+              <div className="mt-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                  <div className="text-xs sm:text-sm">
+                    <span className="font-bold block">{isFrench ? "Information Capacité" : "Capacity Notice"}</span>
+                    <span>{formError}</span>
+                  </div>
                 </div>
+                {(formError.includes("Capacité") || formError.includes("capacity") || formError.includes("limit") || formError.includes("Limite") || formError.includes("forfait")) && (
+                  <div className="pt-2 border-t border-rose-200 dark:border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <span className="text-xs text-rose-700 dark:text-rose-300 font-medium">
+                      {isFrench
+                        ? "Passez à la formule supérieure sans interruption ni perte de données."
+                        : "Upgrade to a higher tier with instant access and zero data loss."}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition cursor-pointer self-start sm:self-auto"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{isFrench ? "Augmenter mon forfait maintenant" : "Upgrade Plan Now"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {remainingQuota <= 0 && (
+              <div className="mt-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5 text-xs">
+                  <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">
+                      {isFrench ? `Capacité maximale atteinte (${planUnitLimit} logements max)` : `Maximum capacity reached (${planUnitLimit} max units)`}
+                    </span>
+                    <span>
+                      {isFrench
+                        ? "Augmentez votre forfait pour débloquer la création de nouveaux logements. Vos bâtiments, logements, locataires et paiements actuels restent 100% conservés et intacts."
+                        : "Upgrade your plan to unlock more units. All your current buildings, units, tenants, and payment records remain 100% preserved and intact."}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSubscriptionModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0 self-start sm:self-auto"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>{isFrench ? "Débloquer plus de logements" : "Unlock More Units"}</span>
+                </button>
               </div>
             )}
 
@@ -2139,6 +2202,17 @@ export default function BuildingsManagementPage() {
           </div>
         </div>
       )}
+
+      {/* Subscription Upgrade Modal */}
+      <SubscriptionPaymentModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        profile={profile}
+        onSubscriptionUpdated={async () => {
+          await loadData();
+          setShowSubscriptionModal(false);
+        }}
+      />
     </div>
   );
 }

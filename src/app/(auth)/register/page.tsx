@@ -44,30 +44,11 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>("free");
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  // Default to Free Trial Plan (up to 5 units, 30 days)
+  const selectedPlan: SubscriptionPlanId = "free";
+  const billingCycle: BillingCycle = "monthly";
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
-
-  // Read URL query params (?plan=...&cycle=...)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const planParam = params.get("plan") as SubscriptionPlanId | null;
-      const cycleParam = params.get("cycle") as BillingCycle | null;
-
-      if (cycleParam === "monthly" || cycleParam === "annual") {
-        setBillingCycle(cycleParam);
-      }
-      if (planParam && AVAILABLE_PLANS.some((p) => p.id === planParam)) {
-        if (cycleParam === "annual" && planParam === "free") {
-          setSelectedPlan("tier_1_30");
-        } else {
-          setSelectedPlan(planParam);
-        }
-      }
-    }
-  }, []);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -481,151 +462,63 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Plan Selection */}
-              <div className="space-y-3 pt-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4" />
-                    {isFrench ? "Sélectionnez votre Formule (Obligatoire)" : "Select Portfolio Plan (Mandatory)"}
-                  </h3>
+              {/* Default Free Plan Banner */}
+              <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-blue-50/90 via-indigo-50/50 to-slate-50 dark:from-blue-950/30 dark:via-slate-900 dark:to-slate-950 border border-blue-200/80 dark:border-blue-500/30 shadow-xs space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                      <Sparkles className="w-5 h-5 text-amber-300" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                          {isFrench ? "Formule Gratuite Incluse par Défaut" : "Free Plan Included by Default"}
+                        </h3>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30">
+                          {isFrench ? "30 Jours Offerts" : "30 Days Free"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                        {isFrench
+                          ? "Inscription directe • Aucun moyen de paiement requis"
+                          : "Direct registration • No payment method required"}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono shrink-0">
+                    0 FCFA
+                  </span>
+                </div>
 
-                  {/* Monthly vs Annual Toggle */}
-                  <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => setBillingCycle("monthly")}
-                      className={`py-1 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                        billingCycle === "monthly"
-                          ? "bg-blue-600 text-white shadow-xs"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                      }`}
-                    >
-                      {isFrench ? "Mensuel" : "Monthly"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBillingCycle("annual");
-                        if (selectedPlan === "free") {
-                          setSelectedPlan("tier_1_30");
-                        }
-                      }}
-                      className={`py-1 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-                        billingCycle === "annual"
-                          ? "bg-blue-600 text-white shadow-xs"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                      }`}
-                    >
-                      <span>{isFrench ? "Annuel" : "Annual"}</span>
-                      <span
-                        className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full ${
-                          billingCycle === "annual"
-                            ? "bg-emerald-400 text-slate-950"
-                            : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                        }`}
-                      >
-                        {isFrench ? "-15%" : "Save"}
-                      </span>
-                    </button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="font-semibold">{isFrench ? "Jusqu'à 5 logements" : "Up to 5 units"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="font-semibold">{isFrench ? "Quittances certifiées" : "Certified receipts"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="font-semibold">{isFrench ? "Portail locataire PWA" : "Tenant Web App"}</span>
                   </div>
                 </div>
 
-                <div className={`grid grid-cols-1 sm:grid-cols-2 ${billingCycle === "annual" ? "lg:grid-cols-2" : "lg:grid-cols-3"} gap-3`}>
-                  {AVAILABLE_PLANS.filter((p) => billingCycle === "monthly" || !p.isFreeTrial).map((plan) => {
-                    const isSelected = selectedPlan === plan.id;
-                    const priceDisplay =
-                      billingCycle === "annual" ? plan.annualPriceDisplay : plan.monthlyPriceDisplay;
-                    const savingsDisplay =
-                      billingCycle === "annual"
-                        ? isFrench && plan.annualSavingsFr
-                          ? plan.annualSavingsFr
-                          : plan.annualSavings
-                        : null;
-
-                    return (
-                      <div
-                        key={plan.id}
-                        onClick={() => setSelectedPlan(plan.id)}
-                        className={`relative p-3.5 rounded-xl border cursor-pointer transition text-left flex flex-col justify-between ${
-                          isSelected
-                            ? "bg-blue-50 dark:bg-blue-600/10 border-blue-500 ring-2 ring-blue-500/50"
-                            : "bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-950"
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-slate-900 dark:text-white text-xs">
-                              {isFrench && plan.nameFr ? plan.nameFr : plan.name}
-                            </span>
-                            {plan.badge && (
-                              <span
-                                className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${
-                                  plan.isFreeTrial
-                                    ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30"
-                                    : "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30"
-                                }`}
-                              >
-                                {isFrench && plan.badgeFr ? plan.badgeFr : plan.badge}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-baseline gap-1 mt-1">
-                            <span className="text-base font-extrabold text-slate-900 dark:text-white">
-                              {priceDisplay}
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                              {plan.isFreeTrial
-                                ? ""
-                                : billingCycle === "annual"
-                                ? (isFrench ? "/ an" : "/ yr")
-                                : (isFrench ? "/ mois" : "/ mo")}
-                            </span>
-                          </div>
-
-                          {savingsDisplay && (
-                            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                              {savingsDisplay}
-                            </div>
-                          )}
-
-                          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">
-                            {isFrench ? plan.unitRangeFr : plan.unitRange}
-                          </p>
-
-                          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-snug">
-                            <span className="font-semibold text-slate-800 dark:text-slate-300">
-                              {isFrench ? "Cible : " : "Target: "}
-                            </span>
-                            {isFrench ? plan.targetFr : plan.target}
-                          </p>
-                        </div>
-
-                        <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                          <span>
-                            {plan.isFreeTrial
-                              ? (isFrench ? "30 jours" : "30 days")
-                              : billingCycle === "annual"
-                              ? (isFrench ? "365 jours" : "365 days")
-                              : (isFrench ? "30 jours" : "30 days")}
-                          </span>
-                          {isSelected ? (
-                            <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> {isFrench ? "Sélectionné" : "Selected"}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">{isFrench ? "Choisir" : "Select"}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="pt-2 border-t border-blue-200/70 dark:border-slate-800/80 flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                  <span>
+                    {isFrench ? (
+                      <>
+                        <strong>Évolution souple et sécurisée :</strong> Vous commencez directement sans payer. Lorsque vous aurez besoin de créer plus de logements, vous pourrez augmenter votre forfait en un clic depuis votre espace bailleur. <strong>Toutes vos données (immeubles, logements, locataires et paiements) restent 100% intactes et conservées.</strong>
+                      </>
+                    ) : (
+                      <>
+                        <strong>Seamless capacity upgrades:</strong> You start right away with zero upfront payment. When you need to create more units, simply upgrade your plan from your landlord dashboard at any time. <strong>All your existing data (buildings, units, tenants, and receipts) remains 100% intact.</strong>
+                      </>
+                    )}
+                  </span>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {isFrench
-                    ? "* Remarque : L'offre d'essai gratuite ne peut être réclamée qu'une seule fois par utilisateur. Les formules payantes sont disponibles en règlement mensuel ou annuel renouvelable."
-                    : "* Note: Free trial can only be claimed once per user. Paid plans are available with monthly or annual terms."}
-                </p>
               </div>
 
               {/* Passwords */}

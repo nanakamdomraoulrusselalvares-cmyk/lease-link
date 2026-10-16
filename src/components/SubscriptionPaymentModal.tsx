@@ -216,6 +216,22 @@ export default function SubscriptionPaymentModal({
               </p>
             </div>
 
+            {/* Data Preservation Reassurance Badge */}
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <span>
+                {isFrench ? (
+                  <>
+                    <strong>Données 100% conservées :</strong> La mise à niveau n'efface aucune donnée. Vos immeubles, logements, locataires, baux et historiques de paiements restent strictement intacts.
+                  </>
+                ) : (
+                  <>
+                    <strong>100% Data Preservation:</strong> Upgrading your plan never deletes any records. All your buildings, units, tenants, leases, and payment history remain completely intact.
+                  </>
+                )}
+              </span>
+            </div>
+
             {/* 1. Monthly vs Annual Toggle */}
             <div className="bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl flex items-center border border-slate-200 dark:border-slate-800">
               <button
