@@ -17,10 +17,13 @@ import {
   CheckCircle2,
   Send,
   HelpCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
+import EmailOtpModal from "@/components/EmailOtpModal";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,6 +36,7 @@ export default function LoginPage() {
   const [isEmailUnconfirmed, setIsEmailUnconfirmed] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,21 +192,32 @@ export default function LoginPage() {
 
                 {isEmailUnconfirmed && (
                   <div className="pt-2 border-t border-rose-200 dark:border-rose-500/20 space-y-2">
-                    <button
-                      type="button"
-                      onClick={handleResendConfirmation}
-                      disabled={resending}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition disabled:opacity-50 cursor-pointer"
-                    >
-                      {resending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Send className="w-3.5 h-3.5" />
-                      )}
-                      <span>
-                        {isFrench ? "Renvoyer l'E-mail de Confirmation" : "Resend Confirmation Email"}
-                      </span>
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowOtpModal(true)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{isFrench ? "Saisir le Code à 6 Chiffres" : "Enter 6-Digit Code"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResendConfirmation}
+                        disabled={resending}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition disabled:opacity-50 cursor-pointer"
+                      >
+                        {resending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                        <span>
+                          {isFrench ? "Renvoyer l'E-mail" : "Resend Email"}
+                        </span>
+                      </button>
+                    </div>
 
                     <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-start gap-2">
                       <HelpCircle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
@@ -229,6 +244,21 @@ export default function LoginPage() {
               </p>
             </div>
           )}
+
+          {/* Google Sign In Option */}
+          <div className="mb-6 space-y-4">
+            <GoogleAuthButton
+              label={isFrench ? "Se connecter avec Google" : "Continue with Google"}
+              onError={(err) => setErrorMsg(err)}
+            />
+
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+              <span className="bg-white dark:bg-slate-900 px-3 text-xs font-semibold tracking-wider text-slate-400 dark:text-slate-500 uppercase shrink-0">
+                {isFrench ? "Ou avec vos identifiants" : "Or with your credentials"}
+              </span>
+            </div>
+          </div>
 
           <form className="space-y-5" onSubmit={handleLogin}>
             <div>
@@ -323,6 +353,13 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* 6-Digit Email OTP Verification Modal */}
+      <EmailOtpModal
+        isOpen={showOtpModal}
+        email={email}
+        onClose={() => setShowOtpModal(false)}
+      />
       </main>
     </div>
   );

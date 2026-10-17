@@ -31,6 +31,8 @@ import {
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
+import EmailOtpModal from "@/components/EmailOtpModal";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -56,6 +58,8 @@ export default function RegisterPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isEmailDuplicate, setIsEmailDuplicate] = useState(false);
   const [emailWarning, setEmailWarning] = useState<string | null>(null);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   // Real-time check on blur to inform user immediately
   const handleEmailBlur = async () => {
@@ -233,11 +237,13 @@ export default function RegisterPage() {
         router.push("/dashboard");
         router.refresh();
       } else {
-        // Email confirmation is required
+        // Email confirmation is required - trigger the 6-digit OTP modal
+        setRegisteredEmail(cleanEmail);
+        setShowOtpModal(true);
         setSuccessMsg(
           isFrench
-            ? `Inscription réussie ! Un e-mail de confirmation a été envoyé à ${cleanEmail}. Veuillez valider votre e-mail avant de vous connecter.`
-            : `Registration successful! Supabase sent a verification email to ${cleanEmail}. Please verify your email before logging in. (Tip: You can disable 'Confirm email' in Supabase Dashboard -> Auth -> Providers -> Email for instant testing without email links).`
+            ? `Inscription réussie ! Un code de confirmation à 6 chiffres a été envoyé à ${cleanEmail}.`
+            : `Registration successful! A 6-digit confirmation code was sent to ${cleanEmail}.`
         );
         setLoading(false);
       }
@@ -328,10 +334,18 @@ export default function RegisterPage() {
                 {isFrench ? "Compte Créé avec Succès" : "Account Created Successfully"}
               </h3>
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{successMsg}</p>
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(true)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{isFrench ? "Saisir le Code à 6 Chiffres" : "Enter 6-Digit Code"}</span>
+                </button>
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm transition"
                 >
                   <span>{isFrench ? "Aller à la Connexion" : "Go to Login"}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -339,7 +353,23 @@ export default function RegisterPage() {
               </div>
             </div>
           ) : (
-            <form className="space-y-6" onSubmit={handleRegister}>
+            <>
+              {/* Google Sign In Option */}
+              <div className="mb-6 space-y-4">
+                <GoogleAuthButton
+                  label={isFrench ? "S'inscrire rapidement avec Google" : "Quick sign up with Google"}
+                  onError={(err) => setErrorMsg(err)}
+                />
+
+                <div className="relative flex items-center justify-center">
+                  <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+                  <span className="bg-white dark:bg-slate-900 px-3 text-xs font-semibold tracking-wider text-slate-400 dark:text-slate-500 uppercase shrink-0">
+                    {isFrench ? "Ou par e-mail et mot de passe" : "Or with email & password"}
+                  </span>
+                </div>
+              </div>
+
+              <form className="space-y-6" onSubmit={handleRegister}>
               {/* Landlord Details */}
               <div className="space-y-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
@@ -640,6 +670,7 @@ export default function RegisterPage() {
                 )}
               </button>
             </form>
+            </>
           )}
 
           <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
@@ -655,7 +686,14 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
-      </main>
-    </div>
+
+      {/* 6-Digit Email OTP Verification Modal */}
+      <EmailOtpModal
+        isOpen={showOtpModal}
+        email={registeredEmail || email}
+        onClose={() => setShowOtpModal(false)}
+      />
+    </main>
+  </div>
   );
 }
