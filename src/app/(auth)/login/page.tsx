@@ -246,13 +246,21 @@ export default function LoginPage() {
           )}
 
           {/* Google Sign In Option */}
-          <div className="mb-6 space-y-4">
+          <div className="mb-6 space-y-3">
             <GoogleAuthButton
               label={isFrench ? "Se connecter avec Google" : "Continue with Google"}
+              requireTerms={false}
               onError={(err) => setErrorMsg(err)}
             />
 
-            <div className="relative flex items-center justify-center">
+            <p className="text-[11px] text-center text-slate-500 dark:text-slate-400">
+              {isFrench ? "En vous connectant avec Google, vous acceptez nos " : "By signing in with Google, you agree to our "}
+              <Link href="/terms" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                {isFrench ? "Conditions d'Utilisation" : "Terms"}
+              </Link>
+            </p>
+
+            <div className="relative flex items-center justify-center pt-1">
               <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
               <span className="bg-white dark:bg-slate-900 px-3 text-xs font-semibold tracking-wider text-slate-400 dark:text-slate-500 uppercase shrink-0">
                 {isFrench ? "Ou avec vos identifiants" : "Or with your credentials"}

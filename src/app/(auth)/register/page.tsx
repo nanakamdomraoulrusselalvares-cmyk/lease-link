@@ -355,13 +355,31 @@ export default function RegisterPage() {
           ) : (
             <>
               {/* Google Sign In Option */}
-              <div className="mb-6 space-y-4">
+              <div className="mb-6 space-y-3">
                 <GoogleAuthButton
                   label={isFrench ? "S'inscrire rapidement avec Google" : "Quick sign up with Google"}
+                  requireTerms={true}
+                  acceptedTerms={acceptedTerms}
+                  onTermsChange={(val) => {
+                    setAcceptedTerms(val);
+                    if (val) setTermsError(false);
+                  }}
+                  onTermsRequired={() => setTermsError(true)}
                   onError={(err) => setErrorMsg(err)}
                 />
 
-                <div className="relative flex items-center justify-center">
+                <p className="text-[11px] text-center text-slate-500 dark:text-slate-400">
+                  {isFrench ? "En continuant avec Google, vous acceptez nos " : "By continuing with Google, you agree to our "}
+                  <Link href="/terms" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                    {isFrench ? "Conditions Générales" : "Terms"}
+                  </Link>
+                  {isFrench ? " & " : " & "}
+                  <Link href="/terms" target="_blank" className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">
+                    {isFrench ? "Confidentialité" : "Privacy"}
+                  </Link>
+                </p>
+
+                <div className="relative flex items-center justify-center pt-2">
                   <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
                   <span className="bg-white dark:bg-slate-900 px-3 text-xs font-semibold tracking-wider text-slate-400 dark:text-slate-500 uppercase shrink-0">
                     {isFrench ? "Ou par e-mail et mot de passe" : "Or with email & password"}
