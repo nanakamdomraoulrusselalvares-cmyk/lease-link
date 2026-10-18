@@ -113,7 +113,7 @@ export default function GoogleAuthButton({
         type="button"
         onClick={handleButtonClick}
         disabled={loading}
-        className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-semibold text-sm transition shadow-xs hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${className}`}
+        className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-semibold text-sm transition shadow-xs hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${className}`}
       >
         {loading ? (
           <Loader2 className="w-5 h-5 animate-spin text-slate-500" />

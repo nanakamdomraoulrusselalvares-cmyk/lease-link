@@ -28,6 +28,7 @@ import {
   DollarSign,
   Download,
   ArrowUp,
+  LogIn,
 } from "lucide-react";
 import { AVAILABLE_PLANS } from "@/types/database";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -254,7 +255,7 @@ export default function HomePage() {
 
             <a
               href="#showcase"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-300 hover:border-slate-400 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-300 hover:border-slate-400 dark:border-slate-600 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isFrench ? "Explorer la Démo Interactive" : "Explore Interactive Demo"}</span>
               <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -1234,9 +1235,10 @@ export default function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-300 hover:border-slate-400 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-300 hover:border-slate-400 dark:border-slate-600 font-bold text-sm flex items-center justify-center gap-2.5 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>{isFrench ? "Connexion Bailleur" : "Landlord Sign In"}</span>
+              <LogIn className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-slate-900 dark:text-white font-bold">{isFrench ? "Connexion Bailleur" : "Landlord Sign In"}</span>
             </Link>
           </div>
         </div>
