@@ -405,15 +405,21 @@ export default function PwaInstallBanner() {
         </div>
       )}
 
-      {/* Clean iOS Safari Sheet (Only for iPhones/iPads) */}
+      {/* Apple iOS Native-Style Bottom Action Sheet */}
       {showIosGuideModal && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-[100] flex flex-col justify-end bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setShowIosGuideModal(false)}
         >
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl text-slate-900 dark:text-slate-100 animate-scaleIn">
-            
+          <div
+            className="relative w-full max-w-lg mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200 dark:border-slate-800 rounded-t-3xl p-6 shadow-2xl text-slate-900 dark:text-slate-100 animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* iOS Sheet Handle Bar */}
+            <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4" />
+
             <div className="flex items-start justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
@@ -427,10 +433,10 @@ export default function PwaInstallBanner() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base sm:text-lg">
-                    {isFrench ? "Installer sur iPhone / iPad" : "Install on iPhone / iPad"}
+                    {isFrench ? "Installer LeaseLink sur iPhone" : "Install LeaseLink on iPhone"}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {isFrench ? "Via Safari" : "Via Safari"}
+                    {isFrench ? "Ajouter à l'écran d'accueil Safari" : "Add to Safari Home Screen"}
                   </p>
                 </div>
               </div>
@@ -445,44 +451,46 @@ export default function PwaInstallBanner() {
             </div>
 
             <div className="space-y-3 my-4 text-xs sm:text-sm">
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold">
-                  1
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center shrink-0 font-bold">
+                  <Share2 className="w-5 h-5" />
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span>{isFrench ? "Appuyez sur Partager" : "Tap Share"}</span>
-                    <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    {isFrench ? "1. Appuyez sur le bouton Partager" : "1. Tap the Share button"}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isFrench ? "Dans la barre d'outils Safari." : "In the Safari toolbar."}
+                    {isFrench ? "Situé tout en bas dans la barre de Safari" : "Located at the bottom of your Safari screen"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold">
-                  2
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0 font-bold">
+                  <PlusSquare className="w-5 h-5" />
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span>{isFrench ? "Sélectionnez 'Sur l'écran d'accueil'" : "Select 'Add to Home Screen'"}</span>
-                    <PlusSquare className="w-3.5 h-3.5 text-emerald-500" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    {isFrench ? "2. Choisissez 'Sur l'écran d'accueil'" : "2. Tap 'Add to Home Screen'"}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isFrench
-                      ? "Puis appuyez sur 'Ajouter' en haut à droite."
-                      : "Then tap 'Add' in the top right corner."}
+                    {isFrench ? "Puis confirmez avec 'Ajouter' en haut à droite" : "Then tap 'Add' in the top right corner"}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+            {/* Pointer to Safari bottom bar */}
+            <div className="flex flex-col items-center justify-center gap-1 py-2 text-blue-500 dark:text-blue-400 text-xs font-semibold animate-bounce">
+              <span>{isFrench ? "Le bouton Partager se trouve juste en dessous" : "The Share button is located right below"}</span>
+              <span className="text-lg">↓</span>
+            </div>
+
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={() => setShowIosGuideModal(false)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-95 transition cursor-pointer"
+                className="w-full py-3 rounded-2xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-98 transition shadow-lg shadow-blue-500/25 cursor-pointer"
               >
                 {isFrench ? "Compris" : "Got it"}
               </button>
