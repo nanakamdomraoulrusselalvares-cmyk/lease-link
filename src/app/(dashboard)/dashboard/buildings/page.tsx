@@ -101,7 +101,7 @@ export default function BuildingsManagementPage() {
     city: "Douala",
     state_region: "Littoral",
     property_type: "apartment",
-    total_units: 4,
+    total_units: "",
     unit_prefix: "Unit",
     description: "",
   });
@@ -289,7 +289,14 @@ export default function BuildingsManagementPage() {
 
   // Live Unit Generator Preview (simple unit naming preview, no floors)
   const unitPreviewList = useMemo(() => {
-    const count = Math.min(Math.max(1, Number(formData.total_units) || 1), 50);
+    if (formData.total_units === "" || formData.total_units === null || formData.total_units === undefined) {
+      return [];
+    }
+    const rawCount = Number(formData.total_units);
+    if (isNaN(rawCount) || rawCount < 1) {
+      return [];
+    }
+    const count = Math.min(rawCount, 50);
     const prefix = formData.unit_prefix.trim() || "Unit";
 
     const list = [];
@@ -317,6 +324,15 @@ export default function BuildingsManagementPage() {
 
     if (!formData.address.trim()) {
       setFormError("Please enter the street address or location.");
+      return;
+    }
+
+    if (formData.total_units === "" || formData.total_units === null || formData.total_units === undefined || Number(formData.total_units) < 1) {
+      setFormError(
+        isFrench
+          ? "Veuillez renseigner le nombre de logements à générer (au moins 1)."
+          : "Please specify the number of units to generate (at least 1)."
+      );
       return;
     }
 
@@ -362,7 +378,7 @@ export default function BuildingsManagementPage() {
         city: "Douala",
         state_region: "Littoral",
         property_type: "apartment",
-        total_units: 4,
+        total_units: "",
         unit_prefix: "Unit",
         description: "",
       });
@@ -995,14 +1011,24 @@ export default function BuildingsManagementPage() {
                       type="number"
                       min={1}
                       max={remainingQuota || 50}
+                      placeholder={isFrench ? "ex. 4" : "e.g. 4"}
                       value={formData.total_units}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") {
+                          setFormData({
+                            ...formData,
+                            total_units: "",
+                          });
+                          return;
+                        }
+                        const parsed = parseInt(val, 10);
                         setFormData({
                           ...formData,
-                          total_units: Math.max(1, parseInt(e.target.value) || 1),
-                        })
-                      }
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition"
+                          total_units: isNaN(parsed) ? "" : parsed,
+                        });
+                      }}
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
                     />
                     <span className="text-[11px] text-slate-500 mt-1 block">
                       {isFrench ? (
@@ -1084,20 +1110,28 @@ export default function BuildingsManagementPage() {
                     : "The following vacant units will be created. You can customize rent, parlors, rooms, bathrooms, and kitchens for each unit after creation:"}
                 </p>
 
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1">
-                  {unitPreviewList.map((unitName, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs"
-                    >
-                      <span className="font-semibold text-slate-900 dark:text-white">{unitName}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                      <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
-                        {isFrench ? "Vacant" : "Vacant"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {unitPreviewList.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic py-1">
+                    {isFrench
+                      ? "Veuillez indiquer le nombre de logements ci-dessus pour afficher l'aperçu."
+                      : "Please enter a number of units above to view the preview."}
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1">
+                    {unitPreviewList.map((unitName, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs"
+                      >
+                        <span className="font-semibold text-slate-900 dark:text-white">{unitName}</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
+                          {isFrench ? "Vacant" : "Vacant"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Submit Action */}

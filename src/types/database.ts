@@ -347,7 +347,7 @@ export interface CreateBuildingFormInput {
   city: string;
   state_region: string;
   property_type: PropertyType;
-  total_units: number;
+  total_units: number | string;
   unit_prefix: string;
   description: string;
 }
