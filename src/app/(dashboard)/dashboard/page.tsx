@@ -44,8 +44,6 @@ import {
   ShieldCheck,
   ShieldAlert,
   ArrowRight,
-  Database,
-  KeyRound,
   DoorOpen,
   UserCheck,
   Camera,
@@ -365,7 +363,7 @@ export default function LandlordHomePage() {
         </div>
 
         {/* Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Card 1: Registered Identity */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
@@ -537,76 +535,6 @@ export default function LandlordHomePage() {
               >
                 <Sparkles className="w-3.5 h-3.5 text-blue-200" />
                 <span>{isFrench ? "Changer / Payer l'Abonnement" : "Upgrade / Pay Subscription"}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3: Registration Test Checklist */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
-                  {isFrench ? "Diagnostic & État du Compte" : "Registration Diagnostics"}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-slate-900 dark:text-white block">
-                    {isFrench ? "Compte Auth Supabase" : "Supabase Auth Record"}
-                  </span>
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {isFrench
-                      ? "Utilisateur créé avec hash de mot de passe sécurisé."
-                      : "User created in auth.users with secure password hash."}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-slate-900 dark:text-white block">
-                    {isFrench ? "Métadonnées Enregistrées" : "User Metadata Saved"}
-                  </span>
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {isFrench
-                      ? "Nom, téléphone et formule stockés avec succès."
-                      : "Name, phone, and plan stored in raw_user_meta_data."}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-slate-900 dark:text-white block">
-                    {isFrench ? "Profil Public du Propriétaire" : "Public Profile Record"}
-                  </span>
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {profile
-                      ? (isFrench ? "Ligne de profil chargée avec succès." : "Profile table row loaded successfully.")
-                      : (isFrench ? "Exécution en attente (repli sur métadonnées actif)." : "Pending SQL trigger execution (metadata fallback active).")}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                id="logout-test-btn"
-                onClick={() => setShowLogoutConfirm(true)}
-                disabled={loggingOut}
-                className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/10 dark:hover:bg-rose-600/20 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 hover:text-rose-800 dark:hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>
-                  {isFrench ? "Tester la Déconnexion" : "Test Logout & Return to Login"}
-                </span>
               </button>
             </div>
           </div>
