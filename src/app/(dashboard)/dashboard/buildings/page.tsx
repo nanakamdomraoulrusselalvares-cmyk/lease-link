@@ -98,8 +98,8 @@ export default function BuildingsManagementPage() {
   const [formData, setFormData] = useState<CreateBuildingFormInput>({
     name: "",
     address: "",
-    city: "Douala",
-    state_region: "Littoral",
+    city: "",
+    state_region: "",
     property_type: "apartment",
     total_units: "",
     unit_prefix: "Unit",
@@ -323,7 +323,29 @@ export default function BuildingsManagementPage() {
     }
 
     if (!formData.address.trim()) {
-      setFormError("Please enter the street address or location.");
+      setFormError(
+        isFrench
+          ? "Veuillez renseigner l'adresse ou le quartier du bâtiment."
+          : "Please enter the street address or quarter."
+      );
+      return;
+    }
+
+    if (!formData.city.trim()) {
+      setFormError(
+        isFrench
+          ? "Veuillez renseigner la ville du bâtiment."
+          : "Please enter the city for the building."
+      );
+      return;
+    }
+
+    if (!formData.state_region.trim()) {
+      setFormError(
+        isFrench
+          ? "Veuillez renseigner la région ou l'état du bâtiment."
+          : "Please enter the region or state for the building."
+      );
       return;
     }
 
@@ -375,8 +397,8 @@ export default function BuildingsManagementPage() {
       setFormData({
         name: "",
         address: "",
-        city: "Douala",
-        state_region: "Littoral",
+        city: "",
+        state_region: "",
         property_type: "apartment",
         total_units: "",
         unit_prefix: "Unit",
@@ -959,11 +981,12 @@ export default function BuildingsManagementPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      {isFrench ? "Ville" : "City"}
+                      {isFrench ? "Ville" : "City"} <span className="text-rose-500 dark:text-rose-400">*</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Douala"
+                      required
+                      placeholder={isFrench ? "ex. Douala, Yaoundé" : "e.g. Douala, Yaounde"}
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition"
@@ -971,11 +994,12 @@ export default function BuildingsManagementPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      {isFrench ? "Région / État" : "Region / State"}
+                      {isFrench ? "Région / État" : "Region / State"} <span className="text-rose-500 dark:text-rose-400">*</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Littoral"
+                      required
+                      placeholder={isFrench ? "ex. Littoral, Centre" : "e.g. Littoral, Centre"}
                       value={formData.state_region}
                       onChange={(e) =>
                         setFormData({ ...formData, state_region: e.target.value })
