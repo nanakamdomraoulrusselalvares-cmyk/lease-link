@@ -198,7 +198,7 @@ export default function PwaInstallBanner() {
             {/* Logo container with real app icon */}
             <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white p-1 shadow-md shadow-blue-500/10 border border-white/20 shrink-0 overflow-hidden flex items-center justify-center">
               <Image
-                src="/brand/leaselink-logo.png"
+                src="/brand/leaselink-symbol.png"
                 alt="LeaseLink App Icon"
                 width={44}
                 height={44}
@@ -293,9 +293,9 @@ export default function PwaInstallBanner() {
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white p-1 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
                   <Image
-                    src="/brand/leaselink-logo.png"
+                    src="/icons/apple-touch-icon.png"
                     alt="LeaseLink"
                     width={48}
                     height={48}
@@ -309,11 +309,11 @@ export default function PwaInstallBanner() {
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {platform === "ios"
                       ? isFrench
-                        ? "Sur votre iPhone ou iPad"
-                        : "On your iPhone or iPad"
+                        ? "Sur votre écran d'accueil iPhone ou iPad"
+                        : "On your iPhone or iPad home screen"
                       : isFrench
-                      ? "Sur votre appareil"
-                      : "On your computer or device"}
+                      ? "Sur l'écran d'accueil de votre téléphone"
+                      : "On your phone home screen"}
                   </p>
                 </div>
               </div>
