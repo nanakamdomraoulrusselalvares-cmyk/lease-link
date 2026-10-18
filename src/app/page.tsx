@@ -1207,14 +1207,19 @@ export default function HomePage() {
       </section>
 
       {/* Call to Action Banner */}
-      <section className="py-16 bg-gradient-to-b from-blue-50/40 via-white to-white dark:from-slate-950 dark:to-blue-950/30 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+      <section className="relative py-20 sm:py-24 bg-gradient-to-b from-slate-50 via-white to-blue-50/40 dark:from-slate-950 dark:via-slate-900/90 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800/80 overflow-hidden">
+        {/* Subtle decorative radial glow */}
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-40 dark:opacity-20">
+          <div className="w-[600px] h-[350px] rounded-full bg-blue-500/20 dark:bg-blue-600/30 blur-3xl" />
+        </div>
+
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
             {isFrench
               ? "Prêt à Moderniser la Gestion de vos Biens ?"
               : "Ready to Supercharge Your Rental Operations?"}
           </h2>
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
             {isFrench
               ? "Rejoignez les bailleurs qui ont éliminé les litiges de paiement et les quittances papier."
               : "Join forward-thinking landlords who have automated rent collection and eliminated paper disputes."}
@@ -1222,14 +1227,14 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link
               href="/register"
-              className="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-sm shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isFrench ? "Créer un Compte Gratuitement" : "Create Free Account Now"}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/login"
-              className="px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-200 border-2 border-slate-300 hover:border-slate-400 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isFrench ? "Connexion Bailleur" : "Landlord Sign In"}</span>
             </Link>
