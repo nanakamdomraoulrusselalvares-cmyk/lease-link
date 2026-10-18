@@ -64,16 +64,28 @@ export default function GoogleAuthButton({
 
       if (error) {
         setLoading(false);
-        if (onError) onError(error.message);
+        const raw = error.message || "";
+        let friendly = raw;
+        if (raw.toLowerCase().includes("provider is not enabled") || raw.toLowerCase().includes("unsupported provider")) {
+          friendly = isFrench
+            ? "L'authentification Google n'est pas encore activée dans votre projet Supabase. Rendez-vous dans votre tableau de bord Supabase (Authentication -> Providers -> Google) et activez-le avec votre Client ID & Secret Google."
+            : "Google authentication is not yet enabled in your Supabase project. Go to your Supabase Dashboard (Authentication -> Providers -> Google) and enable it with your Google Client ID & Secret.";
+        }
+        if (onError) onError(friendly);
       }
     } catch (err: unknown) {
       setLoading(false);
-      const msg =
-        err instanceof Error
-          ? err.message
-          : isFrench
-          ? "Impossible de démarrer la connexion avec Google."
-          : "Failed to initiate Google Sign In.";
+      const raw = err instanceof Error ? err.message : "";
+      let msg = isFrench
+        ? "Impossible de démarrer la connexion avec Google."
+        : "Failed to initiate Google Sign In.";
+      if (raw.toLowerCase().includes("provider is not enabled") || raw.toLowerCase().includes("unsupported provider")) {
+        msg = isFrench
+          ? "L'authentification Google n'est pas encore activée dans votre projet Supabase (Authentication -> Providers -> Google)."
+          : "Google authentication is not yet enabled in your Supabase project (Authentication -> Providers -> Google).";
+      } else if (raw) {
+        msg = raw;
+      }
       if (onError) onError(msg);
     }
   };
