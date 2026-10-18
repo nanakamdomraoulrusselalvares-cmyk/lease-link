@@ -10,8 +10,7 @@ import {
   Smartphone,
   Laptop,
   CheckCircle2,
-  Monitor,
-  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
@@ -33,11 +32,11 @@ export default function PwaInstallBanner() {
   const [isDismissed, setIsDismissed] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | "other">("desktop");
-  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showAlreadyInstalledModal, setShowAlreadyInstalledModal] = useState(false);
+  const [showIosGuideModal, setShowIosGuideModal] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
-  // Check whether the app is currently running as an installed PWA / Standalone mode
+  // Check whether the app is currently running inside the installed standalone PWA window
   const checkIsStandalone = (): boolean => {
     if (typeof window === "undefined") return false;
 
@@ -51,27 +50,6 @@ export default function PwaInstallBanner() {
     const isAndroidTWA = document.referrer.includes("android-app://");
 
     return isStandaloneMQ || isIosStandalone || isAndroidTWA;
-  };
-
-  // Helper to trigger direct download of a Windows/Mac desktop shortcut file (.url)
-  const triggerDesktopShortcutDownload = () => {
-    if (typeof window === "undefined") return;
-    try {
-      const origin = window.location.origin;
-      const shortcutContent = `[InternetShortcut]\r\nURL=${origin}/\r\nIconIndex=0\r\nIconFile=${origin}/favicon.ico\r\nHotKey=0\r\n[{000214A0-0000-0000-C000-000000000046}]\r\nProp3=19,11\r\n`;
-      const blob = new Blob([shortcutContent], { type: "application/internet-shortcut;charset=utf-8" });
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = "LeaseLink-App.url";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
-      setDownloadSuccess(true);
-    } catch (e) {
-      console.warn("[PWA] Shortcut download error:", e);
-    }
   };
 
   useEffect(() => {
@@ -91,23 +69,7 @@ export default function PwaInstallBanner() {
       return;
     }
 
-    // 2. Detect if already installed via Chrome/Edge getInstalledRelatedApps API
-    if (typeof navigator !== "undefined" && "getInstalledRelatedApps" in navigator) {
-      try {
-        (navigator as unknown as { getInstalledRelatedApps: () => Promise<Array<unknown>> })
-          .getInstalledRelatedApps()
-          .then((apps) => {
-            if (apps && apps.length > 0) {
-              setIsInstalled(true);
-            }
-          })
-          .catch(() => {});
-      } catch {
-        // ignore
-      }
-    }
-
-    // 3. Check if dismissed during current browser session only
+    // 2. Check if dismissed during current browser session only
     try {
       const sessionDismissed = sessionStorage.getItem("leaselink_pwa_banner_dismissed");
       if (sessionDismissed === "true") {
@@ -117,7 +79,7 @@ export default function PwaInstallBanner() {
       // Storage unavailable fallback
     }
 
-    // 4. Detect operating system / platform
+    // 3. Detect operating system / platform
     const ua = window.navigator.userAgent.toLowerCase();
     const isIos = /iphone|ipad|ipod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     const isAndroid = /android/.test(ua);
@@ -130,7 +92,7 @@ export default function PwaInstallBanner() {
       setPlatform("desktop");
     }
 
-    // 5. Capture early beforeinstallprompt if already caught in head
+    // 4. Capture early beforeinstallprompt if already caught in head
     if (typeof window !== "undefined" && (window as unknown as { __pwaInstallPrompt?: BeforeInstallPromptEvent }).__pwaInstallPrompt) {
       setDeferredPrompt((window as unknown as { __pwaInstallPrompt: BeforeInstallPromptEvent }).__pwaInstallPrompt);
     }
@@ -145,7 +107,7 @@ export default function PwaInstallBanner() {
     };
     window.addEventListener("leaselink:pwa_prompt_ready", handlePromptReady);
 
-    // 6. Direct listener for beforeinstallprompt event
+    // 5. Direct listener for beforeinstallprompt event (Edge, Chrome, Chromium)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvt = e as BeforeInstallPromptEvent;
@@ -155,7 +117,7 @@ export default function PwaInstallBanner() {
       setDeferredPrompt(promptEvt);
     };
 
-    // 7. Listen for appinstalled event
+    // 6. Listen for appinstalled event (fired when user finishes native install)
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
@@ -195,14 +157,14 @@ export default function PwaInstallBanner() {
   }, [mounted, isInstalled, isDismissed]);
 
   const handleInstallClick = async () => {
-    // 1. Check if deferredPrompt is ready in state or window
+    // 1. Check if deferredPrompt is ready in React state or captured in window.__pwaInstallPrompt
     let activePrompt =
       deferredPrompt ||
       (typeof window !== "undefined"
         ? (window as unknown as { __pwaInstallPrompt?: BeforeInstallPromptEvent }).__pwaInstallPrompt
         : null);
 
-    // 2. If prompt is not yet ready, give it 300ms to arrive during initial render
+    // 2. If prompt is not yet ready, briefly wait up to 300ms in case the event is dispatched on first load
     if (!activePrompt && typeof window !== "undefined") {
       setIsInstalling(true);
       activePrompt = await new Promise<BeforeInstallPromptEvent | null>((resolve) => {
@@ -220,7 +182,9 @@ export default function PwaInstallBanner() {
       setIsInstalling(false);
     }
 
-    // 3. If activePrompt is available: Trigger browser's native install modal directly!
+    // 3. CASE A: Browser has native prompt available -> TRIGGER NATIVE BROWSER INSTALL DIALOG DIRECTLY!
+    // This pops up the browser's native "Install app" dialog, followed by Microsoft Edge's
+    // "Pin to taskbar", "Pin to Start", "Create Desktop shortcut" options.
     if (activePrompt) {
       try {
         setIsInstalling(true);
@@ -230,7 +194,7 @@ export default function PwaInstallBanner() {
           setIsInstalled(true);
         }
       } catch (err) {
-        console.error("[PWA] Install error:", err);
+        console.error("[PWA] Native install prompt error:", err);
       } finally {
         setIsInstalling(false);
         setDeferredPrompt(null);
@@ -241,13 +205,15 @@ export default function PwaInstallBanner() {
       return;
     }
 
-    // 4. Fallback: If on Desktop, immediately trigger the real file download of the desktop launcher!
-    if (platform === "desktop") {
-      triggerDesktopShortcutDownload();
+    // 4. CASE B: iOS Safari (Apple does not support beforeinstallprompt)
+    if (platform === "ios") {
+      setShowIosGuideModal(true);
+      return;
     }
 
-    // 5. Open the rich Install Hub modal (not dry text points, but interactive visual hub)
-    setShowGuideModal(true);
+    // 5. CASE C: Desktop Edge / Chrome where the app is ALREADY registered in edge://apps
+    // When an app is already installed in Edge/Chrome, the browser will not re-prompt.
+    setShowAlreadyInstalledModal(true);
   };
 
   const handleDismiss = () => {
@@ -329,7 +295,7 @@ export default function PwaInstallBanner() {
               )}
             </div>
 
-            {/* Main Download / Install Button */}
+            {/* Main Native Install Button */}
             <button
               type="button"
               id="pwa-install-banner-btn"
@@ -344,8 +310,8 @@ export default function PwaInstallBanner() {
                     ? "Installation..."
                     : "Installing..."
                   : isFrench
-                  ? "Télécharger l'App"
-                  : "Download App"}
+                  ? "Installer l'App"
+                  : "Install App"}
               </span>
             </button>
 
@@ -363,17 +329,16 @@ export default function PwaInstallBanner() {
         </div>
       </aside>
 
-      {/* Rich Interactive Download & Installation Hub Modal */}
-      {showGuideModal && (
+      {/* Clean Modal for When App Is Already Installed in Edge / Chrome */}
+      {showAlreadyInstalledModal && (
         <div
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
         >
-          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl text-slate-900 dark:text-slate-100 animate-scaleIn">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl text-slate-900 dark:text-slate-100 animate-scaleIn">
             
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3 mb-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
                   <Image
@@ -386,170 +351,140 @@ export default function PwaInstallBanner() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base sm:text-lg">
-                    {isFrench ? "Installation de LeaseLink" : "Install LeaseLink App"}
+                    {isFrench ? "Application Déjà Installée" : "App Already Installed"}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {platform === "desktop"
-                      ? isFrench
-                        ? "Application Windows / macOS haute performance"
-                        : "High-performance Windows & Mac desktop experience"
-                      : platform === "ios"
-                      ? isFrench
-                        ? "Pour votre écran d'accueil iPhone ou iPad"
-                        : "For your iPhone or iPad home screen"
-                      : isFrench
-                      ? "Pour votre téléphone Android"
-                      : "For your Android device"}
+                    {isFrench ? "Microsoft Edge / Google Chrome" : "Microsoft Edge / Google Chrome"}
                   </p>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => setShowGuideModal(false)}
+                onClick={() => setShowAlreadyInstalledModal(false)}
                 className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Desktop Visual Experience */}
-            {platform === "desktop" && (
-              <div className="space-y-4 my-4">
-                {/* Download Success Notice */}
-                {downloadSuccess ? (
-                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-emerald-400">
-                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500 mt-0.5" />
-                    <div className="text-xs">
-                      <p className="font-bold text-slate-900 dark:text-white">
-                        {isFrench ? "✓ Raccourci téléchargé dans votre dossier Téléchargements !" : "✓ Shortcut downloaded to your Downloads folder!"}
-                      </p>
-                      <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
-                        {isFrench
-                          ? "Le fichier 'LeaseLink-App.url' a été enregistré. Glissez-le sur votre bureau Windows ou double-cliquez pour ouvrir LeaseLink."
-                          : "The 'LeaseLink-App.url' launcher was saved. Drag it to your desktop or double-click to open LeaseLink."}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* Primary Action Button: Direct Download of Shortcut */}
-                <button
-                  type="button"
-                  onClick={triggerDesktopShortcutDownload}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-md shadow-blue-500/20 active:scale-98 transition cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>
-                    {downloadSuccess
-                      ? isFrench
-                        ? "Télécharger à nouveau le raccourci (.url)"
-                        : "Download Shortcut Again (.url)"
-                      : isFrench
-                      ? "Télécharger le Raccourci Bureau (.url)"
-                      : "Download Desktop Shortcut (.url)"}
-                  </span>
-                </button>
-
-                {/* Native Browser Install Visual Card */}
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    <span className="flex items-center gap-1.5">
-                      <Monitor className="w-4 h-4 text-blue-500" />
-                      <span>{isFrench ? "Installation Native (Edge / Chrome)" : "Native Install (Edge / Chrome)"}</span>
-                    </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                      {isFrench ? "Sans Navigateur" : "Standalone App"}
-                    </span>
-                  </div>
-
-                  {/* Browser URL Bar Mockup */}
-                  <div className="p-2.5 rounded-lg bg-slate-200/90 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 flex items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2 truncate text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                      <span className="text-emerald-500">🔒</span>
-                      <span className="truncate">
-                        {typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 px-2.5 py-1 rounded bg-blue-600 text-white font-sans font-bold text-[11px] shadow-sm animate-pulse shrink-0">
-                      <span>⊕</span>
-                      <span>{isFrench ? "Installer l'app" : "Install app"}</span>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                    {isFrench
-                      ? "Pour une expérience complète sans barre de navigation : cliquez sur l'icône d'installation ⊕ située tout à droite dans la barre d'adresse de votre navigateur."
-                      : "For a standalone window without browser tabs : click the ⊕ or monitor icon on the far right of your address bar."}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* iOS Step-by-Step Experience */}
-            {platform === "ios" && (
-              <div className="space-y-3 my-5 text-xs sm:text-sm">
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                  <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold">
-                    1
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <span>{isFrench ? "Appuyez sur le bouton Partager" : "Tap the Share button"}</span>
-                      <Share2 className="w-3.5 h-3.5 text-blue-500" />
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {isFrench ? "Situé en bas de l'écran dans la barre Safari." : "Located at the bottom of Safari."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold">
-                    2
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <span>{isFrench ? "Sélectionnez 'Sur l'écran d'accueil'" : "Select 'Add to Home Screen'"}</span>
-                      <PlusSquare className="w-3.5 h-3.5 text-emerald-500" />
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {isFrench
-                        ? "Faites défiler le menu vers le bas puis confirmez en appuyant sur Ajouter."
-                        : "Scroll down the menu and tap 'Add' in the top right."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Android Experience */}
-            {platform === "android" && (
-              <div className="space-y-3.5 my-5 text-xs sm:text-sm">
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-emerald-500 shrink-0" />
-                  <p className="text-xs text-slate-600 dark:text-slate-300">
-                    {isFrench
-                      ? "LeaseLink s'installe directement comme une application native avec son icône officielle."
-                      : "LeaseLink installs directly with its official icon onto your Android app drawer."}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            <div className="space-y-3.5 my-4 text-xs sm:text-sm">
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
                   {isFrench
-                    ? "Si le dialogue d'installation ne s'ouvre pas automatiquement, appuyez sur le menu (⋮) en haut à droite de Chrome et choisissez 'Installer l'application'."
-                    : "If the prompt doesn't open automatically, tap the menu (⋮) in Chrome and select 'Install app'."}
-                </div>
+                    ? "L'application LeaseLink est déjà installée sur votre ordinateur ! Vous pouvez la lancer depuis votre menu Démarrer Windows ou votre barre des tâches."
+                    : "LeaseLink is already installed on your PC! You can launch it from your Windows Start Menu or taskbar."}
+                </p>
               </div>
-            )}
 
-            {/* Modal Footer */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 leading-relaxed space-y-2">
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  {isFrench
+                    ? "Vous souhaitez réafficher la fenêtre d'installation native ?"
+                    : "Want to see the native install popup with pinning options again?"}
+                </p>
+                <p>
+                  {isFrench
+                    ? "Dans Microsoft Edge, accédez à edge://apps, supprimez LeaseLink, puis actualisez cette page et cliquez sur Installer l'App pour choisir à nouveau les options (Épingler à la barre des tâches, Démarrer, etc.)."
+                    : "In Edge, go to edge://apps, remove LeaseLink, then refresh this page and click Install App to choose your pinning options again."}
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => setShowGuideModal(false)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition cursor-pointer"
+                onClick={() => setShowAlreadyInstalledModal(false)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-95 transition cursor-pointer"
               >
-                {isFrench ? "Fermer" : "Close"}
+                {isFrench ? "Compris" : "Got it"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clean iOS Safari Sheet (Only for iPhones/iPads) */}
+      {showIosGuideModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+        >
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl text-slate-900 dark:text-slate-100 animate-scaleIn">
+            
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                  <Image
+                    src="/icons/apple-touch-icon.png"
+                    alt="LeaseLink"
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg">
+                    {isFrench ? "Installer sur iPhone / iPad" : "Install on iPhone / iPad"}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {isFrench ? "Via Safari" : "Via Safari"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowIosGuideModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 my-4 text-xs sm:text-sm">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold">
+                  1
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span>{isFrench ? "Appuyez sur Partager" : "Tap Share"}</span>
+                    <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isFrench ? "Dans la barre d'outils Safari." : "In the Safari toolbar."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold">
+                  2
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span>{isFrench ? "Sélectionnez 'Sur l'écran d'accueil'" : "Select 'Add to Home Screen'"}</span>
+                    <PlusSquare className="w-3.5 h-3.5 text-emerald-500" />
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isFrench
+                      ? "Puis appuyez sur 'Ajouter' en haut à droite."
+                      : "Then tap 'Add' in the top right corner."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowIosGuideModal(false)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-95 transition cursor-pointer"
+              >
+                {isFrench ? "Compris" : "Got it"}
               </button>
             </div>
           </div>
