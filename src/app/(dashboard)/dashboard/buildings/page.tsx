@@ -197,11 +197,13 @@ export default function BuildingsManagementPage() {
       }
 
       // Load Buildings & Units
+      const isManager = profileData?.role === "manager";
       const effectiveLandlordId =
-        profileData?.role === "manager" && profileData.landlord_id
+        isManager && profileData?.landlord_id
           ? profileData.landlord_id
           : authUser.id;
-      const fetchedBuildings = await getBuildingsWithUnits(effectiveLandlordId);
+      const assignedBuildingIds = isManager ? profileData?.assigned_building_ids : null;
+      const fetchedBuildings = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
       setBuildings(fetchedBuildings);
 
       // Load Payments to calculate real-time rent due date status

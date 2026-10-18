@@ -103,12 +103,14 @@ export default function UnpaidRentsPage() {
       }
 
       // Determine effective landlord ID: If manager, use their landlord_id
+      const isManager = activeProfile?.role === "manager";
       const effectiveLandlordId =
-        activeProfile?.role === "manager" && activeProfile.landlord_id
+        isManager && activeProfile?.landlord_id
           ? activeProfile.landlord_id
           : authUser.id;
+      const assignedBuildingIds = isManager ? activeProfile?.assigned_building_ids : null;
 
-      const buildingsData = await getBuildingsWithUnits(effectiveLandlordId);
+      const buildingsData = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
       setBuildings(buildingsData);
 
       const statusSummary = await getTenantRentStatusSummary(

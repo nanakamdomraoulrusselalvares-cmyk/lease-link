@@ -114,9 +114,12 @@ export default function LandlordHomePage() {
         }
       }
 
+      const assignedBuildingIds =
+        profileData?.role === "manager" ? profileData.assigned_building_ids : null;
+
       // Fetch landlord buildings and units portfolio
       try {
-        const buildingsData = await getBuildingsWithUnits(effectiveLandlordId);
+        const buildingsData = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
         setBuildings(buildingsData);
       } catch (bErr) {
         console.warn("Could not load portfolio buildings on dashboard:", bErr);
@@ -124,7 +127,7 @@ export default function LandlordHomePage() {
 
       // Fetch landlord maintenance requests
       try {
-        const mRequests = await getMaintenanceRequestsForLandlord(effectiveLandlordId);
+        const mRequests = await getMaintenanceRequestsForLandlord(effectiveLandlordId, assignedBuildingIds);
         setMaintenanceRequests(mRequests);
       } catch (mErr) {
         console.warn("Could not load maintenance requests on dashboard:", mErr);

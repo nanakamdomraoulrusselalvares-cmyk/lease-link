@@ -261,7 +261,7 @@ export interface CreateManagerInput {
   email: string;
   phone: string;
   password?: string;
-  assigned_building_ids?: string[];
+  assigned_building_ids?: string[] | null;
 }
 
 export interface LandlordProfile {

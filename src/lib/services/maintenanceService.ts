@@ -224,8 +224,15 @@ const LOCAL_STORAGE_KEY_UNITS = "leaselink_units";
  * and seamlessly unifies Supabase remote records with local offline storage.
  */
 export async function getMaintenanceRequestsForLandlord(
-  landlordId: string
+  landlordId: string,
+  assignedBuildingIds?: string[] | null
 ): Promise<MaintenanceRequest[]> {
+  if (!landlordId) return [];
+
+  // If restricted to an empty list of buildings, return empty immediately
+  if (Array.isArray(assignedBuildingIds) && assignedBuildingIds.length === 0) {
+    return [];
+  }
   const supabase = createClient();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const isMockConfig = !url || url.includes("your-project-ref");
@@ -312,7 +319,22 @@ export async function getMaintenanceRequestsForLandlord(
     }
   }
 
-  return combined.sort(
+  let filtered = combined;
+  if (Array.isArray(assignedBuildingIds)) {
+    const assignedSet = new Set(assignedBuildingIds);
+    filtered = combined.filter((r) => {
+      if (r.building_id && assignedSet.has(r.building_id)) return true;
+      if (r.unit_id) {
+        const matchingUnit = localUnits.find((u) => u.id === r.unit_id);
+        if (matchingUnit && matchingUnit.building_id && assignedSet.has(matchingUnit.building_id)) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
+  return filtered.sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 }

@@ -98,7 +98,10 @@ export default function LandlordMaintenancePage() {
         }
       }
 
-      const list = await getMaintenanceRequestsForLandlord(effectiveLandlordId);
+      const isManager = profileData?.role === "manager";
+      const assignedBuildingIds = isManager ? profileData?.assigned_building_ids : null;
+
+      const list = await getMaintenanceRequestsForLandlord(effectiveLandlordId, assignedBuildingIds);
       setRequests(list);
 
       // Initialize notes state

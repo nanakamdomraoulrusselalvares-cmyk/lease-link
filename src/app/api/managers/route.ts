@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         email: email.trim().toLowerCase(),
         role: "manager",
         landlord_id: landlordId,
-        assigned_building_ids: assignedBuildingIds || null,
+        assigned_building_ids: Array.isArray(assignedBuildingIds) ? assignedBuildingIds : null,
         created_at: now,
         updated_at: now,
       };
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
       plan: "free",
       plan_name: "Manager Access",
       plan_status: "active",
-      assigned_building_ids: assignedBuildingIds || null,
+      assigned_building_ids: Array.isArray(assignedBuildingIds) ? assignedBuildingIds : null,
       updated_at: now,
       created_at: now,
     };
@@ -148,6 +148,134 @@ export async function POST(req: Request) {
       success: true,
       manager: profileRow || managerRecord,
     });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/managers
+ * Updates a manager's assigned buildings or revokes their assignments
+ * assignedBuildingIds: null => all buildings
+ * assignedBuildingIds: string[] => specific buildings only
+ */
+export async function PATCH(req: Request) {
+  try {
+    const body = await req.json();
+    const { managerId, landlordId, assignedBuildingIds } = body;
+
+    if (!managerId || !landlordId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required fields: managerId and landlordId" },
+        { status: 400 }
+      );
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseServiceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+    const sanitizedBuildingIds = Array.isArray(assignedBuildingIds) ? assignedBuildingIds : null;
+    const now = new Date().toISOString();
+
+    if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
+      return NextResponse.json({
+        success: true,
+        manager: {
+          id: managerId,
+          landlord_id: landlordId,
+          role: "manager",
+          assigned_building_ids: sanitizedBuildingIds,
+          updated_at: now,
+        },
+      });
+    }
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    const { data: updatedProfile, error: updateError } = await adminClient
+      .from("profiles")
+      .update({
+        assigned_building_ids: sanitizedBuildingIds,
+        updated_at: now,
+      })
+      .eq("id", managerId)
+      .eq("landlord_id", landlordId)
+      .eq("role", "manager")
+      .select()
+      .maybeSingle();
+
+    if (updateError) {
+      return NextResponse.json({ success: false, error: updateError.message }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      manager: updatedProfile,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/managers
+ * Deletes a manager profile and account
+ */
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { searchParams } = new URL(req.url);
+    const managerId = body.managerId || searchParams.get("managerId");
+    const landlordId = body.landlordId || searchParams.get("landlordId");
+
+    if (!managerId || !landlordId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required fields: managerId and landlordId" },
+        { status: 400 }
+      );
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseServiceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+    if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
+      return NextResponse.json({ success: true });
+    }
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // 1. Delete profile
+    await adminClient
+      .from("profiles")
+      .delete()
+      .eq("id", managerId)
+      .eq("landlord_id", landlordId)
+      .eq("role", "manager");
+
+    // 2. If service role key is present, delete from auth.users as well
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        await adminClient.auth.admin.deleteUser(managerId);
+      } catch (authErr) {
+        console.warn("Could not delete manager auth user:", authErr);
+      }
+    }
+
+    return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Internal error";
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

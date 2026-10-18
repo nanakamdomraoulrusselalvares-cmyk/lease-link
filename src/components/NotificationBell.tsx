@@ -168,8 +168,9 @@ export default function NotificationBell({
         if (n.recipient_role === "tenant" || n.recipient_role === "building_community") return false;
         if (n.type === "broadcast_reminder" || n.type === "rent_due_reminder" || n.type === "rent_overdue") return false;
         if (n.type === "tenant_arrived" || n.type === "tenant_departed") return false;
-        if (Array.isArray(assignedBuildingIds) && assignedBuildingIds.length > 0 && n.building_id) {
-          return assignedBuildingIds.includes(n.building_id);
+        if (Array.isArray(assignedBuildingIds)) {
+          if (assignedBuildingIds.length === 0) return false;
+          return Boolean(n.building_id && assignedBuildingIds.includes(n.building_id));
         }
         return true;
       }

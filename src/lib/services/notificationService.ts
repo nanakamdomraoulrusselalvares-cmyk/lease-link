@@ -225,7 +225,8 @@ function isNotificationPermittedForUser(
       }
       // If manager has specific building assignments, check building match
       const assigned = params.assignedBuildingIds;
-      if (Array.isArray(assigned) && assigned.length > 0) {
+      if (Array.isArray(assigned)) {
+        if (assigned.length === 0) return false;
         return Boolean(n.building_id && assigned.includes(n.building_id));
       }
       return true;

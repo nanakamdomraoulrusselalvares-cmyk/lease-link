@@ -110,8 +110,11 @@ function CredentialsContent() {
           }
         }
 
+        const isManager = profileData?.role === "manager";
+        const assignedBuildingIds = isManager ? profileData?.assigned_building_ids : null;
+
         try {
-          const buildingsData = await getBuildingsWithUnits(effectiveLandlordId);
+          const buildingsData = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
           setBuildings(buildingsData);
         } catch (err) {
           console.error("Error loading buildings for credentials page:", err);

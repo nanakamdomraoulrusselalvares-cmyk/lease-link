@@ -106,7 +106,7 @@ export async function createManager(
     phone: cleanPhone,
     role: "manager",
     landlord_id: landlordId,
-    assigned_building_ids: input.assigned_building_ids || null,
+    assigned_building_ids: Array.isArray(input.assigned_building_ids) ? input.assigned_building_ids : null,
     created_at: now,
     updated_at: now,
   };
@@ -198,7 +198,7 @@ export async function createManager(
             plan: "free",
             plan_name: "Manager Access",
             plan_status: "active",
-            assigned_building_ids: input.assigned_building_ids || null,
+            assigned_building_ids: Array.isArray(input.assigned_building_ids) ? input.assigned_building_ids : null,
             updated_at: now,
           },
           { onConflict: "id" }
@@ -226,6 +226,103 @@ export async function createManager(
 }
 
 /**
+ * Updates or revokes building assignments for an existing manager
+ * @param assignedBuildingIds null = all portfolio buildings, string[] = specific buildings only
+ */
+export async function updateManagerAssignedBuildings(
+  managerId: string,
+  landlordId: string,
+  assignedBuildingIds: string[] | null
+): Promise<{ success: boolean; manager?: ManagerProfile; error?: string }> {
+  if (!managerId || !landlordId) {
+    return { success: false, error: "Manager ID and Landlord ID are required." };
+  }
+
+  const sanitizedBuildingIds = Array.isArray(assignedBuildingIds) ? assignedBuildingIds : null;
+  const now = new Date().toISOString();
+  let updatedManager: ManagerProfile | undefined;
+
+  // 1. Try backend API PATCH route first
+  try {
+    const res = await fetch("/api/managers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        managerId,
+        landlordId,
+        assignedBuildingIds: sanitizedBuildingIds,
+      }),
+    });
+
+    const json = await res.json();
+    if (json.success && json.manager) {
+      updatedManager = json.manager;
+    }
+  } catch (err) {
+    console.warn("API update manager error, trying direct Supabase client:", err);
+  }
+
+  // 2. Direct Supabase Client fallback
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const isMockConfig = !supabaseUrl || supabaseUrl.includes("your-project-ref");
+
+  if (!updatedManager && !isMockConfig) {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({
+          assigned_building_ids: sanitizedBuildingIds,
+          updated_at: now,
+        })
+        .eq("id", managerId)
+        .eq("landlord_id", landlordId)
+        .select()
+        .maybeSingle();
+
+      if (!error && data) {
+        updatedManager = data as ManagerProfile;
+      }
+    } catch (err) {
+      console.warn("Direct Supabase update manager error:", err);
+    }
+  }
+
+  // 3. Update local storage
+  const localManagers = getLocalManagers();
+  const idx = localManagers.findIndex((m) => m.id === managerId);
+  if (idx !== -1) {
+    localManagers[idx] = {
+      ...localManagers[idx],
+      assigned_building_ids: sanitizedBuildingIds,
+      updated_at: now,
+    };
+    if (!updatedManager) {
+      updatedManager = localManagers[idx];
+    }
+  } else if (!updatedManager) {
+    updatedManager = {
+      id: managerId,
+      full_name: "Manager",
+      email: "",
+      phone: "",
+      role: "manager",
+      landlord_id: landlordId,
+      assigned_building_ids: sanitizedBuildingIds,
+      created_at: now,
+      updated_at: now,
+    };
+    localManagers.push(updatedManager);
+  }
+  setLocalManagers(localManagers);
+
+  return {
+    success: true,
+    manager: updatedManager,
+  };
+}
+
+/**
  * Remove/delete a manager from the landlord's team
  */
 export async function deleteManager(
@@ -234,6 +331,17 @@ export async function deleteManager(
 ): Promise<{ success: boolean; error?: string }> {
   if (!managerId || !landlordId) {
     return { success: false, error: "Manager ID and Landlord ID are required." };
+  }
+
+  // 1. Try API delete
+  try {
+    await fetch("/api/managers", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ managerId, landlordId }),
+    });
+  } catch (apiErr) {
+    console.warn("API delete manager error:", apiErr);
   }
 
   const supabase = createClient();

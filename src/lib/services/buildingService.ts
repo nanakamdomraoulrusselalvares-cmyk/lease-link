@@ -505,9 +505,21 @@ export async function updateUnitConfiguration(
 
 /**
  * Fetch all buildings belonging to the landlord along with their units.
+ * If assignedBuildingIds is provided as an array:
+ *   - Empty array [] => returns [] (strictly 0 buildings)
+ *   - Array with IDs => returns only buildings matching those IDs
+ * If assignedBuildingIds is null or undefined => returns all buildings belonging to landlord
  */
-export async function getBuildingsWithUnits(landlordId: string): Promise<Building[]> {
+export async function getBuildingsWithUnits(
+  landlordId: string,
+  assignedBuildingIds?: string[] | null
+): Promise<Building[]> {
   if (!landlordId) return [];
+
+  // If specifically restricted to an empty list of buildings, return empty immediately
+  if (Array.isArray(assignedBuildingIds) && assignedBuildingIds.length === 0) {
+    return [];
+  }
 
   const supabase = createClient();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -524,7 +536,7 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
         .order("created_at", { ascending: false });
 
       if (!error && data) {
-        return (data as Building[]).map((b) => ({
+        let buildings = (data as Building[]).map((b) => ({
           ...b,
           units: (b.units || [])
             .map((u) => {
@@ -537,6 +549,12 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
               return numA - numB;
             }),
         }));
+
+        if (Array.isArray(assignedBuildingIds)) {
+          buildings = buildings.filter((b) => assignedBuildingIds.includes(b.id));
+        }
+
+        return buildings;
       }
     } catch (err) {
       console.warn("Could not fetch buildings from Supabase, checking local fallback:", err);
@@ -546,16 +564,22 @@ export async function getBuildingsWithUnits(landlordId: string): Promise<Buildin
   // Fallback to local storage
   const localBuildings = getLocalData<Building>(LOCAL_STORAGE_KEY_BUILDINGS);
 
-  return localBuildings
-    .filter((b) => b.landlord_id === landlordId)
-    .map((b) => ({
-      ...b,
-      units: localUnits
-        .filter((u) => u.building_id === b.id)
-        .sort((a, b) => {
-          const numA = parseInt(a.unit_number.replace(/\D/g, "")) || 0;
-          const numB = parseInt(b.unit_number.replace(/\D/g, "")) || 0;
-          return numA - numB;
-        }),
-    }));
+  let filteredLocalBuildings = localBuildings.filter((b) => b.landlord_id === landlordId);
+
+  if (Array.isArray(assignedBuildingIds)) {
+    filteredLocalBuildings = filteredLocalBuildings.filter((b) =>
+      assignedBuildingIds.includes(b.id)
+    );
+  }
+
+  return filteredLocalBuildings.map((b) => ({
+    ...b,
+    units: localUnits
+      .filter((u) => u.building_id === b.id)
+      .sort((a, b) => {
+        const numA = parseInt(a.unit_number.replace(/\D/g, "")) || 0;
+        const numB = parseInt(b.unit_number.replace(/\D/g, "")) || 0;
+        return numA - numB;
+      }),
+  }));
 }
