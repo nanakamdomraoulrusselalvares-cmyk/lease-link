@@ -30,10 +30,8 @@ export default function PwaInstallBanner() {
   const checkIsStandalone = (): boolean => {
     if (typeof window === "undefined") return false;
     
-    // 1. Standard W3C display-mode media queries
+    // 1. Standard W3C display-mode standalone media query
     const isStandaloneMQ = window.matchMedia("(display-mode: standalone)").matches;
-    const isFullscreenMQ = window.matchMedia("(display-mode: fullscreen)").matches;
-    const isMinimalUiMQ = window.matchMedia("(display-mode: minimal-ui)").matches;
 
     // 2. iOS Safari standalone boolean
     const isIosStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
@@ -41,30 +39,31 @@ export default function PwaInstallBanner() {
     // 3. Android Trusted Web Activity (TWA) referrer check
     const isAndroidTWA = document.referrer.includes("android-app://");
 
-    // 4. Local storage flag set upon successful installation
-    const isLocallyMarked = localStorage.getItem("leaselink_pwa_installed") === "true";
-
-    return isStandaloneMQ || isFullscreenMQ || isMinimalUiMQ || isIosStandalone || isAndroidTWA || isLocallyMarked;
+    return isStandaloneMQ || isIosStandalone || isAndroidTWA;
   };
 
   useEffect(() => {
     setMounted(true);
 
-    // 1. Detect if already installed
+    // Clean up any legacy persistent lockouts so banner reappears in browser
+    try {
+      localStorage.removeItem("leaselink_pwa_banner_dismissed");
+      localStorage.removeItem("leaselink_pwa_installed");
+    } catch {
+      // Storage unavailable fallback
+    }
+
+    // 1. Detect if the current window is genuinely running inside the installed standalone PWA
     if (checkIsStandalone()) {
       setIsInstalled(true);
       return;
     }
 
-    // 2. Check if dismissed recently (within the last 7 days)
+    // 2. Check if dismissed during current browser session only
     try {
-      const dismissedTimestamp = localStorage.getItem("leaselink_pwa_banner_dismissed");
-      if (dismissedTimestamp) {
-        const timeElapsed = Date.now() - parseInt(dismissedTimestamp, 10);
-        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-        if (timeElapsed < SEVEN_DAYS_MS) {
-          setIsDismissed(true);
-        }
+      const sessionDismissed = sessionStorage.getItem("leaselink_pwa_banner_dismissed");
+      if (sessionDismissed === "true") {
+        setIsDismissed(true);
       }
     } catch {
       // Storage unavailable fallback
@@ -149,11 +148,6 @@ export default function PwaInstallBanner() {
         const choice = await deferredPrompt.userChoice;
         if (choice.outcome === "accepted") {
           setIsInstalled(true);
-          try {
-            localStorage.setItem("leaselink_pwa_installed", "true");
-          } catch {
-            // Ignore
-          }
         }
       } catch (err) {
         console.error("[PWA] Install error:", err);
@@ -171,7 +165,7 @@ export default function PwaInstallBanner() {
   const handleDismiss = () => {
     setIsDismissed(true);
     try {
-      localStorage.setItem("leaselink_pwa_banner_dismissed", Date.now().toString());
+      sessionStorage.setItem("leaselink_pwa_banner_dismissed", "true");
     } catch {
       // Ignore
     }
