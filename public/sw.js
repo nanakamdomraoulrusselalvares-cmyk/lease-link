@@ -97,3 +97,69 @@ self.addEventListener("fetch", (event) => {
       })
   );
 });
+
+// Push event: Handles Web Push notifications even when the app is closed
+self.addEventListener("push", (event) => {
+  let data = { title: "LeaseLink", body: "Nouvelle notification", url: "/" };
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (e) {
+    if (event.data) data.body = event.data.text();
+  }
+
+  const title = data.title || "LeaseLink";
+  const options = {
+    body: data.body || "Vous avez reçu une nouvelle mise à jour.",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-192x192.png",
+    vibrate: [200, 100, 200],
+    tag: data.tag || "leaselink-notification",
+    data: {
+      url: data.url || "/",
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Message event: Allows in-app and background tabs to request native system notifications
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SHOW_NOTIFICATION") {
+    const title = event.data.title || "LeaseLink";
+    const options = {
+      body: event.data.body || "",
+      icon: event.data.icon || "/icons/icon-192x192.png",
+      badge: event.data.badge || "/icons/icon-192x192.png",
+      tag: event.data.tag || "leaselink-" + Date.now(),
+      vibrate: [200, 100, 200],
+      data: {
+        url: event.data.url || "/",
+      },
+    };
+    event.waitUntil(self.registration.showNotification(title, options));
+  }
+});
+
+// Notification click: Focus existing LeaseLink window or open target URL
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          if ("navigate" in client && targetUrl !== "/") {
+            client.navigate(targetUrl);
+          }
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

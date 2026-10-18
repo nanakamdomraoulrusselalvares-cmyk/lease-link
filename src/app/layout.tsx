@@ -4,6 +4,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { ThemeProvider } from "@/lib/theme/ThemeContext";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
+import NotificationPermissionPrompt from "@/components/NotificationPermissionPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,6 +69,7 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <PwaInstallBanner />
+            <NotificationPermissionPrompt />
             {children}
           </LanguageProvider>
         </ThemeProvider>

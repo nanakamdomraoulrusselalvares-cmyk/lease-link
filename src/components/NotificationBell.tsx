@@ -126,6 +126,7 @@ export default function NotificationBell({
     // Check if incoming notification belongs to current context
     const isNotificationForMe = (n: AppNotification): boolean => {
       if (role === "tenant") {
+        if (n.recipient_role === "landlord" || n.recipient_role === "management") return false;
         if (unitId && n.unit_id) return n.unit_id === unitId;
         if (buildingId && n.building_id === buildingId) {
           return !n.unit_id || n.recipient_role === "building_community";
@@ -134,7 +135,23 @@ export default function NotificationBell({
       }
       if (role === "landlord") {
         const myId = userId || landlordId;
-        return Boolean(myId && n.landlord_id === myId && n.recipient_role !== "admin");
+        if (!myId || n.landlord_id !== myId) return false;
+        if (n.recipient_role === "admin") return false;
+        // The landlord should NOT receive notifications he sends to tenants!
+        if (n.recipient_role === "tenant" || n.recipient_role === "building_community") return false;
+        if (n.type === "broadcast_reminder" || n.type === "rent_due_reminder" || n.type === "rent_overdue") return false;
+        return true;
+      }
+      if (role === "manager") {
+        const parentId = landlordId;
+        if (!parentId || n.landlord_id !== parentId) return false;
+        if (n.recipient_role === "admin") return false;
+        if (n.recipient_role === "tenant" || n.recipient_role === "building_community") return false;
+        if (n.type === "broadcast_reminder" || n.type === "rent_due_reminder" || n.type === "rent_overdue") return false;
+        if (Array.isArray(assignedBuildingIds) && assignedBuildingIds.length > 0 && n.building_id) {
+          return assignedBuildingIds.includes(n.building_id);
+        }
+        return true;
       }
       if (role === "admin") return true;
       return false;
@@ -154,6 +171,55 @@ export default function NotificationBell({
         playPlatformNotificationChime();
         if (typeof window !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate?.([40, 60, 40]);
+        }
+
+        // Native System Notification (shows banner + sound even when user is outside this tab)
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          const notifTitle = isFrench ? (incoming.title_fr || incoming.title) : incoming.title;
+          const notifBody = isFrench ? (incoming.message_fr || incoming.message) : incoming.message;
+          const targetUrl = incoming.metadata?.action_url || (role === "tenant" ? "/tenant/portal" : "/dashboard");
+
+          try {
+            if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({
+                type: "SHOW_NOTIFICATION",
+                title: notifTitle,
+                body: notifBody,
+                icon: "/icons/icon-192x192.png",
+                badge: "/icons/icon-192x192.png",
+                tag: incoming.id,
+                url: targetUrl,
+              });
+            } else if ("serviceWorker" in navigator) {
+              navigator.serviceWorker.ready.then((reg) => {
+                reg.showNotification(notifTitle, {
+                  body: notifBody,
+                  icon: "/icons/icon-192x192.png",
+                  badge: "/icons/icon-192x192.png",
+                  tag: incoming.id,
+                  data: { url: targetUrl },
+                }).catch(() => {
+                  new Notification(notifTitle, {
+                    body: notifBody,
+                    icon: "/icons/icon-192x192.png",
+                    tag: incoming.id,
+                  });
+                });
+              }).catch(() => {
+                new Notification(notifTitle, {
+                  body: notifBody,
+                  icon: "/icons/icon-192x192.png",
+                  tag: incoming.id,
+                });
+              });
+            } else {
+              new Notification(notifTitle, {
+                body: notifBody,
+                icon: "/icons/icon-192x192.png",
+                tag: incoming.id,
+              });
+            }
+          } catch (_) {}
         }
       }
     };

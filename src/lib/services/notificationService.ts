@@ -263,12 +263,28 @@ function isNotificationPermittedForUser(
     return false;
   }
 
-  // Other system/maintenance notifications
+  // LANDLORD & MANAGER EXCLUSION:
+  // Landlords and property managers send rent reminders and notices TO tenants.
+  // The landlord and manager must NEVER receive notifications sent to tenants or building communities!
+  if (role === "landlord" || role === "manager") {
+    if (n.recipient_role === "tenant" || n.recipient_role === "building_community") {
+      return false;
+    }
+    if (
+      n.type === "broadcast_reminder" ||
+      n.type === "rent_due_reminder" ||
+      n.type === "rent_overdue"
+    ) {
+      return false;
+    }
+  }
+
+  // Tenant routing: tenants receive reminders, community alerts, and unit-specific notices
   if (role === "tenant") {
     if (n.recipient_role === "landlord" || n.recipient_role === "management") {
       return false;
     }
-    // If notification is explicitly targeted to a specific unit (like rent due, rent overdue, or broadcast reminder), ONLY that unit may see it!
+    // If notification is explicitly targeted to a specific unit, ONLY that unit may see it!
     if (n.unit_id) {
       return Boolean(params.unitId && n.unit_id === params.unitId);
     }
@@ -281,11 +297,13 @@ function isNotificationPermittedForUser(
     return false;
   }
 
+  // Landlord general notifications (maintenance tickets, tenant payment receipts, tenant requests)
   if (role === "landlord") {
     const currentLandlordId = params.userId || params.landlordId;
     return Boolean(currentLandlordId && n.landlord_id === currentLandlordId);
   }
 
+  // Manager general notifications
   if (role === "manager") {
     const parentLandlordId = params.landlordId;
     if (!parentLandlordId || n.landlord_id !== parentLandlordId) return false;
@@ -339,19 +357,29 @@ export async function getNotificationsForUser(
           query = query
             .eq("landlord_id", parentLandlordId)
             .neq("recipient_role", "admin")
+            .neq("recipient_role", "tenant")
+            .neq("recipient_role", "building_community")
             .neq("type", "landlord_registered")
+            .neq("type", "broadcast_reminder")
+            .neq("type", "rent_due_reminder")
+            .neq("type", "rent_overdue")
             .order("created_at", { ascending: false });
         } else {
           query = query.eq("id", "00000000-0000-0000-0000-000000000000");
         }
       } else {
-        // Landlord
+        // Landlord: exclusively fetch notifications for the landlord, never tenant reminders
         const landlordId = params.userId || params.landlordId;
         if (landlordId) {
           query = query
             .eq("landlord_id", landlordId)
             .neq("recipient_role", "admin")
+            .neq("recipient_role", "tenant")
+            .neq("recipient_role", "building_community")
             .neq("type", "landlord_registered")
+            .neq("type", "broadcast_reminder")
+            .neq("type", "rent_due_reminder")
+            .neq("type", "rent_overdue")
             .order("created_at", { ascending: false });
         } else {
           query = query.eq("id", "00000000-0000-0000-0000-000000000000");
