@@ -32,7 +32,7 @@ export default function PwaInstallBanner() {
   const [isDismissed, setIsDismissed] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | "other">("desktop");
-  const [showAlreadyInstalledModal, setShowAlreadyInstalledModal] = useState(false);
+  const [showInstallGuideModal, setShowInstallGuideModal] = useState(false);
   const [showIosGuideModal, setShowIosGuideModal] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
@@ -211,9 +211,8 @@ export default function PwaInstallBanner() {
       return;
     }
 
-    // 5. CASE C: Desktop Edge / Chrome where the app is ALREADY registered in edge://apps
-    // When an app is already installed in Edge/Chrome, the browser will not re-prompt.
-    setShowAlreadyInstalledModal(true);
+    // 5. CASE C: Desktop Edge / Chrome where activePrompt is not yet dispatched
+    setShowInstallGuideModal(true);
   };
 
   const handleDismiss = () => {
@@ -329,8 +328,8 @@ export default function PwaInstallBanner() {
         </div>
       </aside>
 
-      {/* Clean Modal for When App Is Already Installed in Edge / Chrome */}
-      {showAlreadyInstalledModal && (
+      {/* Native Browser Install Helper Modal */}
+      {showInstallGuideModal && (
         <div
           role="dialog"
           aria-modal="true"
@@ -351,7 +350,7 @@ export default function PwaInstallBanner() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base sm:text-lg">
-                    {isFrench ? "Application Déjà Installée" : "App Already Installed"}
+                    {isFrench ? "Installer LeaseLink sur PC" : "Install LeaseLink on PC"}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {isFrench ? "Microsoft Edge / Google Chrome" : "Microsoft Edge / Google Chrome"}
@@ -361,7 +360,7 @@ export default function PwaInstallBanner() {
 
               <button
                 type="button"
-                onClick={() => setShowAlreadyInstalledModal(false)}
+                onClick={() => setShowInstallGuideModal(false)}
                 className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -369,36 +368,61 @@ export default function PwaInstallBanner() {
             </div>
 
             <div className="space-y-3.5 my-4 text-xs sm:text-sm">
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
-                  {isFrench
-                    ? "L'application LeaseLink est déjà installée sur votre ordinateur ! Vous pouvez la lancer depuis votre menu Démarrer Windows ou votre barre des tâches."
-                    : "LeaseLink is already installed on your PC! You can launch it from your Windows Start Menu or taskbar."}
-                </p>
+              <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center shrink-0 text-xs mt-0.5">
+                  ⊕
+                </div>
+                <div className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                  <p className="font-bold text-slate-900 dark:text-white mb-0.5">
+                    {isFrench
+                      ? "Installation directe depuis la barre d'adresse :"
+                      : "Direct install from the address bar:"}
+                  </p>
+                  <p>
+                    {isFrench
+                      ? "Dans Microsoft Edge, regardez tout à droite de votre barre d'adresse (à côté de l'étoile). Cliquez sur l'icône ⊕ (Installer LeaseLink)."
+                      : "In Microsoft Edge, look at the far right of your address bar. Click the ⊕ (Install LeaseLink) icon."}
+                  </p>
+                </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 leading-relaxed space-y-2">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 leading-relaxed space-y-1.5">
                 <p className="font-semibold text-slate-900 dark:text-white">
                   {isFrench
-                    ? "Vous souhaitez réafficher la fenêtre d'installation native ?"
-                    : "Want to see the native install popup with pinning options again?"}
+                    ? "Ou via le menu (...) d'Edge :"
+                    : "Or via Edge menu (...):"}
                 </p>
                 <p>
                   {isFrench
-                    ? "Dans Microsoft Edge, accédez à edge://apps, supprimez LeaseLink, puis actualisez cette page et cliquez sur Installer l'App pour choisir à nouveau les options (Épingler à la barre des tâches, Démarrer, etc.)."
-                    : "In Edge, go to edge://apps, remove LeaseLink, then refresh this page and click Install App to choose your pinning options again."}
+                    ? "Cliquez sur les 3 points (...) en haut à droite > Applications > Installer LeaseLink."
+                    : "Click the 3 dots (...) top right > Apps > Install LeaseLink."}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {isFrench
+                    ? "Cela ouvre immédiatement la fenêtre native pour choisir d'épingler à la barre des tâches et au menu Démarrer."
+                    : "This will open the native prompt allowing you to pin to taskbar and Start menu."}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => setShowAlreadyInstalledModal(false)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-95 transition cursor-pointer"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.location.reload();
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
               >
-                {isFrench ? "Compris" : "Got it"}
+                {isFrench ? "Actualiser la page" : "Refresh Page"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowInstallGuideModal(false)}
+                className="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-95 transition cursor-pointer"
+              >
+                {isFrench ? "Fermer" : "Close"}
               </button>
             </div>
           </div>

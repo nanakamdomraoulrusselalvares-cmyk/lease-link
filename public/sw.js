@@ -1,7 +1,8 @@
-// LeaseLink PWA Service Worker v1.0
-const CACHE_NAME = "leaselink-cache-v1";
+// LeaseLink PWA Service Worker v2.0
+const CACHE_NAME = "leaselink-cache-v2";
 const PRECACHE_ASSETS = [
   "/",
+  "/?source=pwa",
   "/manifest.json",
   "/brand/leaselink-logo.png",
   "/brand/leaselink-symbol.png",
