@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   Receipt,
@@ -29,19 +30,86 @@ import {
   Download,
   ArrowUp,
   LogIn,
+  Loader2,
 } from "lucide-react";
 import { AVAILABLE_PLANS } from "@/types/database";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { createClient } from "@/lib/supabase/client";
+import { getTenantSession } from "@/lib/services/tenantService";
 
 export default function HomePage() {
+  const router = useRouter();
   const { isFrench } = useLanguage();
   const [activePreviewTab, setActivePreviewTab] = useState<"ledger" | "buildings" | "receipt" | "repairs">("ledger");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [unitCountSlider, setUnitCountSlider] = useState<number>(24);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [resumingSession, setResumingSession] = useState(false);
+
+  // Auto-Recall / Session Persistence: If the user closed the platform and reopens it,
+  // automatically remember their session and redirect them to their workspace without requiring re-entry.
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "landing") {
+        return;
+      }
+    }
+
+    let isMounted = true;
+
+    async function checkAutoResume() {
+      try {
+        const hasSbCookie =
+          typeof document !== "undefined" &&
+          document.cookie.split(";").some((c) => c.trim().startsWith("sb-"));
+        const hasTenantLocal =
+          typeof localStorage !== "undefined" &&
+          !!localStorage.getItem("leaselink_tenant_session");
+
+        if (!hasSbCookie && !hasTenantLocal) {
+          return;
+        }
+
+        if (isMounted) setResumingSession(true);
+
+        // Check Supabase session (Landlord / Manager)
+        if (hasSbCookie) {
+          const supabase = createClient();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (session?.user && isMounted) {
+            router.replace("/dashboard");
+            return;
+          }
+        }
+
+        // Check Tenant session
+        if (hasTenantLocal) {
+          const tenantSession = getTenantSession();
+          if (tenantSession?.portalData?.unit_id && isMounted) {
+            router.replace("/tenant/portal");
+            return;
+          }
+        }
+
+        if (isMounted) setResumingSession(false);
+      } catch (err) {
+        console.warn("Auto-session check exception:", err);
+        if (isMounted) setResumingSession(false);
+      }
+    }
+
+    checkAutoResume();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -128,6 +196,49 @@ export default function HomePage() {
           a: "Absolutely. You can group your portfolio across distinct properties, duplexes, or student residences, each with independent rent schedules, addresses, and ledgers in a single unified dashboard.",
         },
       ];
+
+  if (resumingSession) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden selection:bg-blue-500 selection:text-white">
+        {/* Ambient decorative glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center text-center space-y-6 max-w-sm">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center p-3 shadow-2xl animate-pulse">
+              <Image
+                src="/brand/leaselink-symbol.png"
+                alt="LeaseLink"
+                width={64}
+                height={64}
+                className="w-14 h-14 object-contain"
+                priority
+              />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center shadow-md">
+              <ShieldCheck className="w-3.5 h-3.5 text-white" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              {isFrench ? "Bienvenue à nouveau" : "Welcome back"}
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {isFrench
+                ? "Reprise automatique de votre session sécurisée..."
+                : "Resuming your secure workspace session..."}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-blue-400 font-medium">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+            <span>{isFrench ? "Connexion en cours..." : "Connecting..."}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">

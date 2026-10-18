@@ -10,5 +10,11 @@ export function createClient() {
 
   const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: {
+      maxAge: 60 * 60 * 24 * 365, // 1 year persistent session across browser close/reopen
+      sameSite: "lax",
+      path: "/",
+    },
+  });
 }

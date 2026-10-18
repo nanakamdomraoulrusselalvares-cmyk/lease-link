@@ -104,11 +104,11 @@ export default function DashboardNav({
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-      router.push("/login");
+      router.push("/login?loggedOut=true");
       router.refresh();
     } catch (err) {
       console.error("Error signing out:", err);
-      router.push("/login");
+      router.push("/login?loggedOut=true");
     } finally {
       setLoggingOut(false);
     }

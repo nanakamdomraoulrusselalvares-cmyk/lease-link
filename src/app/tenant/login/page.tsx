@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -17,7 +17,11 @@ import {
   EyeOff,
   UserCheck,
 } from "lucide-react";
-import { authenticateTenant, setTenantSession } from "@/lib/services/tenantService";
+import {
+  authenticateTenant,
+  setTenantSession,
+  getTenantSession,
+} from "@/lib/services/tenantService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
@@ -32,7 +36,31 @@ function TenantLoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Auto-Recall / Session Persistence: If tenant has an active session and was not explicitly logged out,
+  // automatically resume their session without requiring re-entry.
+  useEffect(() => {
+    try {
+      const savedId = localStorage.getItem("leaselink_tenant_remembered_id");
+      if (savedId) {
+        setIdentifier(savedId);
+        setRememberMe(true);
+      }
+    } catch {
+      // ignore
+    }
+
+    if (wasLoggedOut) {
+      return;
+    }
+
+    const session = getTenantSession();
+    if (session?.portalData?.unit_id) {
+      router.replace("/tenant/portal");
+    }
+  }, [wasLoggedOut, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +83,21 @@ function TenantLoginForm() {
 
       // Save tenant session
       setTenantSession(res.data);
+
+      // Save or remove remembered identifier
+      if (rememberMe) {
+        try {
+          localStorage.setItem("leaselink_tenant_remembered_id", identifier.trim());
+        } catch {
+          // ignore
+        }
+      } else {
+        try {
+          localStorage.removeItem("leaselink_tenant_remembered_id");
+        } catch {
+          // ignore
+        }
+      }
 
       // Redirect to tenant portal
       router.push("/tenant/portal");
@@ -186,6 +229,25 @@ function TenantLoginForm() {
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono transition"
                 />
               </div>
+            </div>
+
+            {/* Remember Me & Persistent Session Indicator */}
+            <div className="flex items-center justify-between text-xs pt-0.5">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 transition cursor-pointer"
+                />
+                <span className="font-medium">
+                  {isFrench ? "Se souvenir de moi" : "Remember me"}
+                </span>
+              </label>
+
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isFrench ? "Accès direct mémorisé" : "Saved direct access"}
+              </span>
             </div>
 
             <button

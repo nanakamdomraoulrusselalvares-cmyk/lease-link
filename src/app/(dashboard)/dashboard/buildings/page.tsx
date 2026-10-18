@@ -543,7 +543,7 @@ export default function BuildingsManagementPage() {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-      router.push("/login");
+      router.push("/login?loggedOut=true");
     } finally {
       setLoggingOut(false);
     }

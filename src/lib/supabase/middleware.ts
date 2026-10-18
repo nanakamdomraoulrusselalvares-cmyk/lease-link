@@ -22,6 +22,11 @@ export async function updateSession(request: NextRequest) {
     supabaseUrl,
     supabaseAnonKey,
     {
+      cookieOptions: {
+        maxAge: 60 * 60 * 24 * 365, // 1 year persistence
+        sameSite: "lax",
+        path: "/",
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -32,7 +37,12 @@ export async function updateSession(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              maxAge: 60 * 60 * 24 * 365,
+              sameSite: "lax",
+              path: "/",
+            })
           );
         },
       },

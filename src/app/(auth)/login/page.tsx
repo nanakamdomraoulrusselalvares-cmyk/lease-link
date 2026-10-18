@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   Building2,
@@ -26,18 +26,58 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import EmailOtpModal from "@/components/EmailOtpModal";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const wasLoggedOut = searchParams.get("loggedOut") === "true";
   const { isFrench } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isEmailUnconfirmed, setIsEmailUnconfirmed] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
+
+  // Pre-fill remembered email and auto-resume if active session exists
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem("leaselink_remembered_email");
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }
+    } catch {
+      // ignore
+    }
+
+    if (wasLoggedOut) {
+      return;
+    }
+
+    let isMounted = true;
+    async function checkExistingSession() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user && isMounted) {
+          router.replace("/dashboard");
+        }
+      } catch {
+        // ignore
+      }
+    }
+    checkExistingSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [wasLoggedOut, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +133,21 @@ export default function LoginPage() {
 
         setLoading(false);
         return;
+      }
+
+      // Save or clear remembered email
+      if (rememberMe) {
+        try {
+          localStorage.setItem("leaselink_remembered_email", email.trim());
+        } catch {
+          // ignore
+        }
+      } else {
+        try {
+          localStorage.removeItem("leaselink_remembered_email");
+        } catch {
+          // ignore
+        }
       }
 
       router.push("/dashboard");
@@ -192,6 +247,17 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 py-8 px-6 shadow-xl dark:shadow-2xl rounded-2xl sm:px-10">
+          {wasLoggedOut && (
+            <div className="mb-6 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
+              <span>
+                {isFrench
+                  ? "Vous avez été déconnecté avec succès. Vos identifiants restent mémorisés pour votre prochaine visite."
+                  : "You have been successfully signed out. Your credentials remain remembered for your next visit."}
+              </span>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
@@ -326,6 +392,25 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Remember Me & Persistent Session Indicator */}
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 transition cursor-pointer"
+                />
+                <span className="font-medium">
+                  {isFrench ? "Se souvenir de moi" : "Remember me"}
+                </span>
+              </label>
+
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isFrench ? "Session persistante" : "Persistent session"}
+              </span>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -378,5 +463,19 @@ export default function LoginPage() {
       />
       </main>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-500" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
