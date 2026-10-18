@@ -95,6 +95,7 @@ export default function NotificationBell({
         assignedBuildingIds,
         buildingId,
         unitId,
+        tenantName,
       });
       setNotifications(list);
 
@@ -118,7 +119,7 @@ export default function NotificationBell({
     } catch (err) {
       console.warn("Error loading notifications:", err);
     }
-  }, [role, userId, landlordId, assignedBuildingIds, buildingId, unitId, isNotificationUnread]);
+  }, [role, userId, landlordId, assignedBuildingIds, buildingId, unitId, tenantName, isNotificationUnread]);
 
   useEffect(() => {
     loadNotifications();
@@ -127,6 +128,22 @@ export default function NotificationBell({
     const isNotificationForMe = (n: AppNotification): boolean => {
       if (role === "tenant") {
         if (n.recipient_role === "landlord" || n.recipient_role === "management") return false;
+
+        // Tenant arrival & departure: ONLY other tenants in the same building receive it.
+        // The arriving/departing tenant themselves must NEVER receive it!
+        if (n.type === "tenant_arrived" || n.type === "tenant_departed") {
+          if (!buildingId || !n.building_id || n.building_id !== buildingId) return false;
+          if (unitId && n.unit_id && n.unit_id === unitId) return false;
+          if (
+            tenantName &&
+            n.tenant_name &&
+            tenantName.trim().toLowerCase() === n.tenant_name.trim().toLowerCase()
+          ) {
+            return false;
+          }
+          return true;
+        }
+
         if (unitId && n.unit_id) return n.unit_id === unitId;
         if (buildingId && n.building_id === buildingId) {
           return !n.unit_id || n.recipient_role === "building_community";
@@ -140,6 +157,8 @@ export default function NotificationBell({
         // The landlord should NOT receive notifications he sends to tenants!
         if (n.recipient_role === "tenant" || n.recipient_role === "building_community") return false;
         if (n.type === "broadcast_reminder" || n.type === "rent_due_reminder" || n.type === "rent_overdue") return false;
+        // Landlords must NOT receive tenant arrival or departure notifications
+        if (n.type === "tenant_arrived" || n.type === "tenant_departed") return false;
         return true;
       }
       if (role === "manager") {
@@ -148,6 +167,7 @@ export default function NotificationBell({
         if (n.recipient_role === "admin") return false;
         if (n.recipient_role === "tenant" || n.recipient_role === "building_community") return false;
         if (n.type === "broadcast_reminder" || n.type === "rent_due_reminder" || n.type === "rent_overdue") return false;
+        if (n.type === "tenant_arrived" || n.type === "tenant_departed") return false;
         if (Array.isArray(assignedBuildingIds) && assignedBuildingIds.length > 0 && n.building_id) {
           return assignedBuildingIds.includes(n.building_id);
         }

@@ -178,12 +178,13 @@ export interface GetNotificationsParams {
   assignedBuildingIds?: string[] | null;
   buildingId?: string | null;
   unitId?: string | null;
+  tenantName?: string | null;
 }
 
 /**
  * Filter a notification locally based on strict routing requirements:
  * 1. Rent payment: Only manager, admins, and the landlord managing that specific building/unit can receive it.
- * 2. Tenant arrival/departure: Only admins, landlord, manager, and the different tenants sharing the SAME building.
+ * 2. Tenant arrival/departure: ONLY admins and OTHER tenants in the same building. Landlords/managers and the arriving tenant themselves NEVER receive it.
  * 3. New landlord registers: ONLY the admins are notified.
  */
 function isNotificationPermittedForUser(
@@ -234,30 +235,33 @@ function isNotificationPermittedForUser(
   }
 
   // RULE 2: Tenant arrival or departure
+  // Landlords must NOT be notified of tenant arrival or departure.
+  // ONLY admins and OTHER tenants sharing the same building can receive it.
+  // The tenant who arrived or departed must NEVER receive their own arrival/departure notice!
   if (n.type === "tenant_arrived" || n.type === "tenant_departed") {
-    // Landlord: must own this building
-    if (role === "landlord") {
-      const currentLandlordId = params.userId || params.landlordId;
-      return Boolean(currentLandlordId && n.landlord_id === currentLandlordId);
+    // Landlords and managers are excluded
+    if (role === "landlord" || role === "manager") {
+      return false;
     }
 
-    // Manager: must manage this landlord and this specific building
-    if (role === "manager") {
-      const parentLandlordId = params.landlordId;
-      if (!parentLandlordId || n.landlord_id !== parentLandlordId) {
+    // Tenants in the same building, excluding the arriving/departing tenant themselves
+    if (role === "tenant") {
+      if (!params.buildingId || !n.building_id || n.building_id !== params.buildingId) {
         return false;
       }
-      const assigned = params.assignedBuildingIds;
-      if (Array.isArray(assigned) && assigned.length > 0) {
-        return Boolean(n.building_id && assigned.includes(n.building_id));
+      // Exclude if this tenant is in the same unit as the arrived/departed tenant
+      if (params.unitId && n.unit_id && params.unitId === n.unit_id) {
+        return false;
+      }
+      // Exclude if the tenant's name matches
+      if (
+        params.tenantName &&
+        n.tenant_name &&
+        params.tenantName.trim().toLowerCase() === n.tenant_name.trim().toLowerCase()
+      ) {
+        return false;
       }
       return true;
-    }
-
-    // Tenant: ONLY tenants sharing the SAME building receive this!
-    if (role === "tenant") {
-      if (!params.buildingId || !n.building_id) return false;
-      return n.building_id === params.buildingId;
     }
 
     return false;
@@ -363,12 +367,14 @@ export async function getNotificationsForUser(
             .neq("type", "broadcast_reminder")
             .neq("type", "rent_due_reminder")
             .neq("type", "rent_overdue")
+            .neq("type", "tenant_arrived")
+            .neq("type", "tenant_departed")
             .order("created_at", { ascending: false });
         } else {
           query = query.eq("id", "00000000-0000-0000-0000-000000000000");
         }
       } else {
-        // Landlord: exclusively fetch notifications for the landlord, never tenant reminders
+        // Landlord: exclusively fetch notifications for the landlord, never tenant reminders or arrival/departures
         const landlordId = params.userId || params.landlordId;
         if (landlordId) {
           query = query
@@ -380,6 +386,8 @@ export async function getNotificationsForUser(
             .neq("type", "broadcast_reminder")
             .neq("type", "rent_due_reminder")
             .neq("type", "rent_overdue")
+            .neq("type", "tenant_arrived")
+            .neq("type", "tenant_departed")
             .order("created_at", { ascending: false });
         } else {
           query = query.eq("id", "00000000-0000-0000-0000-000000000000");
