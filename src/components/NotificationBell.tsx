@@ -454,7 +454,7 @@ export default function NotificationBell({
                     onClick={() => handleMarkAsRead(notif.id)}
                     className={`p-4 transition flex items-start gap-3.5 group cursor-pointer relative border-l-4 ${
                       isUnread
-                        ? "bg-blue-50/70 dark:bg-slate-850 hover:bg-blue-100/60 dark:hover:bg-slate-800 border-l-blue-600"
+                        ? "bg-blue-50/70 dark:bg-slate-900 hover:bg-blue-100/60 dark:hover:bg-slate-800 border-l-blue-600"
                         : "hover:bg-slate-50 dark:hover:bg-slate-800/40 opacity-75 hover:opacity-100 border-l-transparent"
                     }`}
                   >

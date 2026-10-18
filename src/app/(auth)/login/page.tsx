@@ -151,7 +151,7 @@ export default function LoginPage() {
       <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-2 flex items-center justify-between gap-3 shrink-0">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold shadow-xs backdrop-blur-md transition group cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold shadow-xs backdrop-blur-md transition group cursor-pointer shrink-0"
           title={isFrench ? "Retourner à la page d'accueil" : "Return to landing page"}
         >
           <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-transform group-hover:-translate-x-1" />
