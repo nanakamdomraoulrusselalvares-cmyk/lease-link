@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
@@ -86,11 +87,18 @@ function TenantLoginForm() {
       {/* Main Tenant Login Content */}
       <main className="flex-1 flex flex-col justify-center py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white group">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <span>Lease<span className="text-blue-600 dark:text-blue-500">Link</span></span>
+          <Link href="/" className="inline-flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white group">
+            <Image
+              src="/brand/leaselink-symbol.png"
+              alt="LeaseLink"
+              width={48}
+              height={48}
+              className="w-12 h-12 object-contain group-hover:scale-105 transition-transform"
+              priority
+            />
+            <span className="font-black text-2xl">
+              Lease<span className="text-emerald-500 dark:text-emerald-400">Link</span>
+            </span>
           </Link>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-semibold mt-4">
             <UserCheck className="w-3.5 h-3.5" />

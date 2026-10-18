@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Building2,
   Receipt,
@@ -134,14 +135,19 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-4 sm:gap-8 shrink-0">
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-400 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform duration-300 shrink-0">
-                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
+              <Image
+                src="/brand/leaselink-symbol.png"
+                alt="LeaseLink"
+                width={36}
+                height={36}
+                className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform shrink-0"
+                priority
+              />
               <div className="shrink-0">
                 <span className="font-extrabold text-base sm:text-xl text-slate-900 dark:text-white tracking-tight">
-                  Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
+                  Lease<span className="text-emerald-500 dark:text-emerald-400">Link</span>
                 </span>
-                <span className="hidden sm:inline-block ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 uppercase tracking-widest">
+                <span className="hidden sm:inline-block ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 uppercase tracking-widest">
                   PropTech 2026
                 </span>
               </div>
@@ -1236,12 +1242,16 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                <Building2 className="w-4 h-4 text-white" />
-              </div>
+              <Image
+                src="/brand/leaselink-symbol.png"
+                alt="LeaseLink"
+                width={32}
+                height={32}
+                className="w-8 h-8 object-contain shrink-0"
+              />
               <div>
                 <span className="font-bold text-base text-slate-900 dark:text-white tracking-tight">
-                  Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
+                  Lease<span className="text-emerald-500 dark:text-emerald-400">Link</span>
                 </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   &copy; 2026 LeaseLink Inc. {isFrench ? "Tous droits réservés." : "All rights reserved."}

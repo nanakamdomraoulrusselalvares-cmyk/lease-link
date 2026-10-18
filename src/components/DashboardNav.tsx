@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -297,12 +298,17 @@ export default function DashboardNav({
           {/* Left: Brand Identity & Plan Badge */}
           <div className="flex items-center gap-3 shrink-0">
             <Link href="/dashboard" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-md shadow-blue-600/20 text-white group-hover:scale-105 transition-transform">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
+              <Image
+                src="/brand/leaselink-symbol.png"
+                alt="LeaseLink"
+                width={36}
+                height={36}
+                className="w-9 h-9 object-contain group-hover:scale-105 transition-transform"
+                priority
+              />
               <div className="flex flex-col">
                 <span className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight leading-none">
-                  Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
+                  Lease<span className="text-emerald-500 dark:text-emerald-400">Link</span>
                 </span>
                 <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase mt-0.5">
                   {isFrench ? "Gestion Immobilière" : "Property Cloud"}

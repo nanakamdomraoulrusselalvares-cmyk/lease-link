@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -287,11 +288,18 @@ export default function RegisterPage() {
       {/* Main Form Content */}
       <main className="flex-1 flex flex-col justify-center py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-2xl text-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white group">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <span>Lease<span className="text-blue-600 dark:text-blue-500">Link</span></span>
+          <Link href="/" className="inline-flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white group">
+            <Image
+              src="/brand/leaselink-symbol.png"
+              alt="LeaseLink"
+              width={44}
+              height={44}
+              className="w-11 h-11 object-contain group-hover:scale-105 transition-transform"
+              priority
+            />
+            <span className="font-black text-2xl">
+              Lease<span className="text-emerald-500 dark:text-emerald-400">Link</span>
+            </span>
           </Link>
           <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
             {isFrench ? "Inscription Compte Bailleur" : "Register Landlord Account"}

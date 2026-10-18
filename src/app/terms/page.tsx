@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ShieldCheck,
   Lock,
@@ -51,11 +52,16 @@ export default function TermsAndPrivacyPage() {
             <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block" />
 
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-xs">
-                <Building2 className="w-4 h-4 text-white" />
-              </div>
+              <Image
+                src="/brand/leaselink-symbol.png"
+                alt="LeaseLink"
+                width={32}
+                height={32}
+                className="w-8 h-8 object-contain group-hover:scale-105 transition-transform shrink-0"
+                priority
+              />
               <span className="font-extrabold text-base tracking-tight hidden md:inline-block">
-                Lease<span className="text-blue-600 dark:text-blue-500">Link</span>
+                Lease<span className="text-emerald-500 dark:text-emerald-400">Link</span>
               </span>
             </Link>
           </div>
