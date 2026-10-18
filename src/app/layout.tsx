@@ -56,10 +56,42 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("leaselink_theme");if(!t){t=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}if(t==="light"){document.documentElement.classList.remove("dark");document.documentElement.classList.add("light");document.documentElement.setAttribute("data-theme","light");document.documentElement.style.colorScheme="light";}else{document.documentElement.classList.remove("light");document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");document.documentElement.style.colorScheme="dark";}}catch(e){}})();`,
+            __html: `(function(){
+              try {
+                var t = localStorage.getItem("leaselink_theme");
+                if (!t) {
+                  t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+                }
+                if (t === "light") {
+                  document.documentElement.classList.remove("dark");
+                  document.documentElement.classList.add("light");
+                  document.documentElement.setAttribute("data-theme", "light");
+                  document.documentElement.style.colorScheme = "light";
+                } else {
+                  document.documentElement.classList.remove("light");
+                  document.documentElement.classList.add("dark");
+                  document.documentElement.setAttribute("data-theme", "dark");
+                  document.documentElement.style.colorScheme = "dark";
+                }
+              } catch(e) {}
+              
+              // Early PWA prompt capture
+              window.__pwaInstallPrompt = null;
+              window.addEventListener("beforeinstallprompt", function(e) {
+                e.preventDefault();
+                window.__pwaInstallPrompt = e;
+                window.dispatchEvent(new CustomEvent("leaselink:pwa_prompt_ready", { detail: e }));
+              });
+
+              // Ensure service worker is registered immediately
+              if ("serviceWorker" in navigator) {
+                navigator.serviceWorker.register("/sw.js").catch(function(err) {
+                  console.warn("[PWA] ServiceWorker registration warning:", err);
+                });
+              }
+            })();`,
           }}
         />
       </head>
