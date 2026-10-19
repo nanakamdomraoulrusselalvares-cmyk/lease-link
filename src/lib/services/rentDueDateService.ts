@@ -28,7 +28,7 @@ export function calculateRentDueStatus(
   const currentMonth = now.getMonth(); // 0-indexed
   const todayDate = now.getDate();
 
-  // 1. Resolve rent due day of the month (defaults to day of lease start, or 5)
+  // 1. Resolve rent due day of the month: strictly what landlord configured (default 5, NEVER the entry date)
   let leaseStart = unit.lease_start_date ? new Date(unit.lease_start_date) : null;
   if (!leaseStart && unit.tenant_assigned_at) {
     leaseStart = new Date(unit.tenant_assigned_at);
@@ -36,10 +36,19 @@ export function calculateRentDueStatus(
 
   const dueDay = Math.min(
     28,
-    Math.max(1, Number(unit.rent_due_day) || (leaseStart ? leaseStart.getDate() : 5))
+    Math.max(1, Number(unit.rent_due_day) || 5)
   );
 
-  const currentDueDate = new Date(currentYear, currentMonth, dueDay);
+  // 2. Resolve first rent due date based on tenant entry date:
+  // Rule: The date of entry is NOT the first day rent is due. The first recurring rent payment
+  // is due in the NEXT month on the landlord's indicated due day (or waits for next month's due day).
+  let firstDueDate: Date | null = null;
+  if (leaseStart && !isNaN(leaseStart.getTime())) {
+    const entryYear = leaseStart.getFullYear();
+    const entryMonth = leaseStart.getMonth();
+    // First rent cycle is due on `dueDay` of the NEXT month following entry
+    firstDueDate = new Date(entryYear, entryMonth + 1, dueDay);
+  }
 
   // Format current month label (e.g., "October 2026")
   const currentMonthName = now.toLocaleDateString("en-US", {
@@ -63,12 +72,6 @@ export function calculateRentDueStatus(
     );
   });
 
-  const formattedDueDate = currentDueDate.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
   const formattedLeaseStart = leaseStart
     ? leaseStart.toLocaleDateString(undefined, {
         day: "numeric",
@@ -76,6 +79,75 @@ export function calculateRentDueStatus(
         year: "numeric",
       })
     : null;
+
+  // Case 1: Tenant has not reached their first due date yet (new tenant entered recently/this month or future)
+  if (firstDueDate && now < firstDueDate) {
+    const formattedDueDate = firstDueDate.toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+    if (isPaidCurrentMonth) {
+      return {
+        dueDay,
+        leaseStartDate: unit.lease_start_date || null,
+        formattedLeaseStart,
+        currentDueDate: firstDueDate,
+        formattedDueDate,
+        isPaidCurrentMonth: true,
+        status: "paid",
+        statusLabelFr: "Loyer à jour (Avance)",
+        statusLabelEn: "Rent up to date (Advance)",
+        badgeClass: "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30",
+        daysDiff: 0,
+      };
+    }
+
+    const msDiff = firstDueDate.getTime() - now.getTime();
+    const daysRemaining = Math.max(0, Math.ceil(msDiff / (1000 * 60 * 60 * 24)));
+
+    if (daysRemaining <= 5) {
+      return {
+        dueDay,
+        leaseStartDate: unit.lease_start_date || null,
+        formattedLeaseStart,
+        currentDueDate: firstDueDate,
+        formattedDueDate,
+        isPaidCurrentMonth: false,
+        status: "due_soon",
+        statusLabelFr: daysRemaining === 0 ? "Échéance aujourd'hui !" : `Échéance dans ${daysRemaining} j`,
+        statusLabelEn: daysRemaining === 0 ? "Due today!" : `Due in ${daysRemaining} d`,
+        badgeClass: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/30",
+        daysDiff: -daysRemaining,
+      };
+    }
+
+    const monthShortFr = firstDueDate.toLocaleDateString("fr-FR", { month: "short" });
+    const monthShortEn = firstDueDate.toLocaleDateString("en-US", { month: "short" });
+
+    return {
+      dueDay,
+      leaseStartDate: unit.lease_start_date || null,
+      formattedLeaseStart,
+      currentDueDate: firstDueDate,
+      formattedDueDate,
+      isPaidCurrentMonth: false,
+      status: "normal",
+      statusLabelFr: `1ère échéance le ${dueDay} ${monthShortFr} (dans ${daysRemaining} j)`,
+      statusLabelEn: `1st due on ${monthShortEn} ${dueDay} (in ${daysRemaining} d)`,
+      badgeClass: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-500/30",
+      daysDiff: -daysRemaining,
+    };
+  }
+
+  // Case 2: Tenant is past their first due date (standard monthly recurring cycle)
+  const currentDueDate = new Date(currentYear, currentMonth, dueDay);
+  const formattedDueDate = currentDueDate.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
   if (isPaidCurrentMonth) {
     return {

@@ -398,19 +398,28 @@ export async function getTenantRentStatusSummary(
         u.status === "occupied" || Boolean(u.tenant_name?.trim());
       if (!isOccupied) return;
 
-      // Resolve unit-specific rent due day: custom rent_due_day, day of lease start, or fallback 5
+      // Resolve unit-specific rent due day: strictly what landlord configured (default 5, NEVER the entry date)
+      const unitDueDay = Math.min(
+        28,
+        Math.max(1, Number(u.rent_due_day) || 5)
+      );
+
+      // Determine entry date & first due date
       let leaseStart = u.lease_start_date ? new Date(u.lease_start_date) : null;
       if (!leaseStart && u.tenant_assigned_at) {
         leaseStart = new Date(u.tenant_assigned_at);
       }
-      const unitDueDay = Math.min(
-        28,
-        Math.max(1, Number(u.rent_due_day) || (leaseStart && !isNaN(leaseStart.getTime()) ? leaseStart.getDate() : 5))
-      );
 
-      const isPastDueDate = todayDay > unitDueDay;
-      const daysLate = isPastDueDate ? todayDay - unitDueDay : 0;
-      const daysUntilDue = !isPastDueDate ? unitDueDay - todayDay : 0;
+      let firstDueDate: Date | null = null;
+      if (leaseStart && !isNaN(leaseStart.getTime())) {
+        const eYear = leaseStart.getFullYear();
+        const eMonth = leaseStart.getMonth();
+        // First recurring rent payment is due on `dueDay` of the NEXT month following entry
+        firstDueDate = new Date(eYear, eMonth + 1, unitDueDay);
+      }
+
+      // Check if current date is before tenant's first rent cycle begins
+      const isBeforeFirstDue = firstDueDate ? today < firstDueDate : false;
 
       const unitPayments = allPayments.filter((p) => p.unit_id === u.id);
       const currentMonthPayments = unitPayments.filter((p) => {
@@ -430,11 +439,6 @@ export async function getTenantRentStatusSummary(
         (sum, p) => sum + Number(p.amount_paid || 0),
         0
       );
-      const balanceOwingCurrentMonth = Math.max(
-        0,
-        monthlyRent - amountPaidCurrentMonth
-      );
-      const isOwing = balanceOwingCurrentMonth > 0;
 
       // Collect any future advance months paid for this unit
       const advanceMonths = new Set<string>();
@@ -448,15 +452,37 @@ export async function getTenantRentStatusSummary(
         }
       });
 
+      let isPastDueDate = false;
+      let daysLate = 0;
+      let daysUntilDue = 0;
+      let balanceOwingCurrentMonth = 0;
+      let isOwing = false;
       let status: "paid" | "partial" | "unpaid" | "overdue" = "unpaid";
-      if (amountPaidCurrentMonth >= monthlyRent) {
-        status = "paid";
-      } else if (amountPaidCurrentMonth > 0) {
-        status = "partial";
-      } else if (isPastDueDate) {
-        status = "overdue";
+
+      if (isBeforeFirstDue && firstDueDate) {
+        // Tenant entered recently and their first recurring due date is in the coming month
+        isPastDueDate = false;
+        daysLate = 0;
+        daysUntilDue = Math.max(0, Math.ceil((firstDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+        isOwing = false;
+        balanceOwingCurrentMonth = 0;
+        status = amountPaidCurrentMonth >= monthlyRent ? "paid" : "unpaid";
       } else {
-        status = "unpaid";
+        isPastDueDate = todayDay > unitDueDay;
+        daysLate = isPastDueDate ? todayDay - unitDueDay : 0;
+        daysUntilDue = !isPastDueDate ? unitDueDay - todayDay : 0;
+        balanceOwingCurrentMonth = Math.max(0, monthlyRent - amountPaidCurrentMonth);
+        isOwing = balanceOwingCurrentMonth > 0;
+
+        if (amountPaidCurrentMonth >= monthlyRent) {
+          status = "paid";
+        } else if (amountPaidCurrentMonth > 0) {
+          status = "partial";
+        } else if (isPastDueDate) {
+          status = "overdue";
+        } else {
+          status = "unpaid";
+        }
       }
 
       const latestPayment = unitPayments[0] || null;

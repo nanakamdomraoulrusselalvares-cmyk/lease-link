@@ -2120,32 +2120,22 @@ export default function BuildingsManagementPage() {
                             value={unitForm.lease_start_date || ""}
                             onChange={(e) => {
                               const newDate = e.target.value;
-                              const updates: Partial<UpdateUnitInput> = { lease_start_date: newDate };
-                              if (newDate) {
-                                const parts = newDate.split("-");
-                                if (parts.length === 3) {
-                                  const dayNum = parseInt(parts[2], 10);
-                                  if (dayNum >= 1 && dayNum <= 28 && (!unitForm.rent_due_day || unitForm.rent_due_day === 5)) {
-                                    updates.rent_due_day = dayNum;
-                                  }
-                                }
-                              }
-                              setUnitForm((prev) => ({ ...prev, ...updates }));
+                              setUnitForm((prev) => ({ ...prev, lease_start_date: newDate }));
                             }}
                             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
                           />
                         </div>
-                        <span className="text-[10px] text-slate-500 mt-1 block">
+                        <span className="text-[10px] text-slate-500 mt-1 block leading-tight">
                           {isFrench
-                            ? "Date d'entrée ou de début effectif du contrat"
-                            : "Contract start or move-in date for this specific tenant"}
+                            ? "Date d'entrée du locataire. La première échéance de loyer débutera le jour d'échéance du mois suivant."
+                            : "Tenant move-in date. The first recurring rent payment will be due on next month's due day."}
                         </span>
                       </div>
 
                       {/* Monthly Due Day of Month */}
                       <div>
                         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                          {isFrench ? "Jour d'Échéance du Loyer (Chaque Mois)" : "Monthly Rent Due Day"}
+                          {isFrench ? "Jour Fixe d'Échéance du Loyer (Chaque Mois)" : "Fixed Monthly Rent Due Day"}
                         </label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
