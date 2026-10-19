@@ -522,6 +522,8 @@ export interface TenantRentStatus {
   is_owing: boolean;
   is_late: boolean;
   days_late: number;
+  rent_due_day?: number;
+  days_until_due?: number;
   status: 'paid' | 'partial' | 'unpaid' | 'overdue';
   advance_months_paid?: string[]; // Any future months already settled in advance
   last_payment_date?: string | null;

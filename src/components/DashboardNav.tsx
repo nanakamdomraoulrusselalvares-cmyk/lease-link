@@ -82,8 +82,21 @@ export default function DashboardNav({
   useEffect(() => {
     if (!initialUser) {
       const supabase = createClient();
-      supabase.auth.getUser().then(({ data }) => {
-        if (data.user) {
+      supabase.auth.getUser().then(({ data, error }) => {
+        if (error) {
+          if (error.status === 403 || error.status === 401 || error.message?.includes("Forbidden")) {
+            supabase.auth.signOut({ scope: "local" }).catch(() => {});
+            if (typeof window !== "undefined") {
+              Object.keys(localStorage).forEach((key) => {
+                if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+                  localStorage.removeItem(key);
+                }
+              });
+            }
+          }
+          return;
+        }
+        if (data?.user) {
           setUser(data.user);
           supabase
             .from("profiles")

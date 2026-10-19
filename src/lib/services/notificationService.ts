@@ -346,53 +346,50 @@ export async function getNotificationsForUser(
         query = query.order("created_at", { ascending: false });
       } else if (role === "tenant") {
         // Tenant only sees their specific building community, never payment_received or landlord_registered
-        if (params.buildingId) {
-          query = query
-            .eq("building_id", params.buildingId)
-            .neq("type", "payment_received")
-            .neq("type", "landlord_registered")
-            .in("recipient_role", ["tenant", "building_community"])
-            .order("created_at", { ascending: false });
-        } else {
-          query = query.eq("id", "00000000-0000-0000-0000-000000000000"); // empty
+        if (!params.buildingId) {
+          return localList;
         }
+        query = query
+          .eq("building_id", params.buildingId)
+          .neq("type", "payment_received")
+          .neq("type", "landlord_registered")
+          .in("recipient_role", ["tenant", "building_community"])
+          .order("created_at", { ascending: false });
       } else if (role === "manager") {
         const parentLandlordId = params.landlordId;
-        if (parentLandlordId) {
-          query = query
-            .eq("landlord_id", parentLandlordId)
-            .neq("recipient_role", "admin")
-            .neq("recipient_role", "tenant")
-            .neq("recipient_role", "building_community")
-            .neq("type", "landlord_registered")
-            .neq("type", "broadcast_reminder")
-            .neq("type", "rent_due_reminder")
-            .neq("type", "rent_overdue")
-            .neq("type", "tenant_arrived")
-            .neq("type", "tenant_departed")
-            .order("created_at", { ascending: false });
-        } else {
-          query = query.eq("id", "00000000-0000-0000-0000-000000000000");
+        if (!parentLandlordId) {
+          return localList;
         }
+        query = query
+          .eq("landlord_id", parentLandlordId)
+          .neq("recipient_role", "admin")
+          .neq("recipient_role", "tenant")
+          .neq("recipient_role", "building_community")
+          .neq("type", "landlord_registered")
+          .neq("type", "broadcast_reminder")
+          .neq("type", "rent_due_reminder")
+          .neq("type", "rent_overdue")
+          .neq("type", "tenant_arrived")
+          .neq("type", "tenant_departed")
+          .order("created_at", { ascending: false });
       } else {
         // Landlord: exclusively fetch notifications for the landlord, never tenant reminders or arrival/departures
         const landlordId = params.userId || params.landlordId;
-        if (landlordId) {
-          query = query
-            .eq("landlord_id", landlordId)
-            .neq("recipient_role", "admin")
-            .neq("recipient_role", "tenant")
-            .neq("recipient_role", "building_community")
-            .neq("type", "landlord_registered")
-            .neq("type", "broadcast_reminder")
-            .neq("type", "rent_due_reminder")
-            .neq("type", "rent_overdue")
-            .neq("type", "tenant_arrived")
-            .neq("type", "tenant_departed")
-            .order("created_at", { ascending: false });
-        } else {
-          query = query.eq("id", "00000000-0000-0000-0000-000000000000");
+        if (!landlordId) {
+          return localList;
         }
+        query = query
+          .eq("landlord_id", landlordId)
+          .neq("recipient_role", "admin")
+          .neq("recipient_role", "tenant")
+          .neq("recipient_role", "building_community")
+          .neq("type", "landlord_registered")
+          .neq("type", "broadcast_reminder")
+          .neq("type", "rent_due_reminder")
+          .neq("type", "rent_overdue")
+          .neq("type", "tenant_arrived")
+          .neq("type", "tenant_departed")
+          .order("created_at", { ascending: false });
       }
 
       const { data, error } = await query;

@@ -36,6 +36,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import PayRentModal from "@/components/PayRentModal";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import TenantNav from "@/components/TenantNav";
+import SmartDataLoader from "@/components/SmartDataLoader";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
   Building2,
@@ -298,13 +299,19 @@ function TenantPortalContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white">
-        <div className="text-center space-y-3">
-          <RefreshCw className="w-9 h-9 animate-spin text-blue-600 dark:text-blue-500 mx-auto" />
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            {isFrench ? "Chargement de votre espace sécurisé locataire..." : "Loading your secure tenant space..."}
-          </p>
-        </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4">
+        <SmartDataLoader
+          label={isFrench ? "Chargement de votre espace sécurisé locataire..." : "Loading your secure tenant space..."}
+          onRetry={() => {
+            setLoading(true);
+            if (tokenFromUrl) {
+              getTenantPortalDataByToken(tokenFromUrl).then((res) => {
+                if (res.data) setData(res.data);
+                setLoading(false);
+              });
+            }
+          }}
+        />
       </div>
     );
   }

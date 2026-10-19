@@ -677,8 +677,17 @@ function PaymentsContent() {
                               </span>
                             </span>
                           ) : (
-                            <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-300 text-xs font-bold">
-                              {isFrench ? "Non Payé • Exigible le 5" : "Unpaid • Due 5th"}
+                            <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/15 border-2 border-blue-300 dark:border-blue-500/30 text-blue-900 dark:text-blue-300 text-xs font-bold flex items-center gap-1 shadow-xs">
+                              <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                              <span>
+                                {isFrench
+                                  ? (tenantStatus.days_until_due === 0
+                                      ? "Échéance aujourd'hui"
+                                      : `Échéance dans ${tenantStatus.days_until_due ?? 0} j (le ${tenantStatus.rent_due_day || 5})`)
+                                  : (tenantStatus.days_until_due === 0
+                                      ? "Due Today"
+                                      : `Due in ${tenantStatus.days_until_due ?? 0} d (${tenantStatus.rent_due_day || 5}th)`)}
+                              </span>
                             </span>
                           )}
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   AVAILABLE_PLANS,
@@ -35,8 +35,11 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import EmailOtpModal from "@/components/EmailOtpModal";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlEmail = searchParams.get("email") || "";
+  const urlError = searchParams.get("error");
   const { isFrench } = useLanguage();
 
   // Form State
@@ -61,6 +64,24 @@ export default function RegisterPage() {
   const [emailWarning, setEmailWarning] = useState<string | null>(null);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [registeredPassword, setRegisteredPassword] = useState("");
+  const [initialOtpToken, setInitialOtpToken] = useState("");
+  const [initialDevCode, setInitialDevCode] = useState("");
+
+  // Handle URL params (pre-fill email or trigger existing account warning)
+  useEffect(() => {
+    if (urlEmail && !email) {
+      setEmail(urlEmail);
+    }
+    if (urlError === "account_exists") {
+      setIsEmailDuplicate(true);
+      setErrorMsg(
+        isFrench
+          ? "Un compte LeaseLink est déjà associé à cette adresse Google. Veuillez vous connecter ci-dessous."
+          : "A LeaseLink account is already associated with this Google address. Please log in below."
+      );
+    }
+  }, [urlEmail, urlError]);
 
   // Real-time check on blur to inform user immediately
   const handleEmailBlur = async () => {
@@ -170,10 +191,16 @@ export default function RegisterPage() {
 
 
       // 2. Sign up with Supabase Auth including metadata for the landlord profile trigger
+      const redirectUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : undefined;
+
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName.trim(),
             phone: phone.trim(),
@@ -233,21 +260,35 @@ export default function RegisterPage() {
         }
       }
 
-      // Check if session was returned directly (e.g. email confirmations disabled)
-      if (data.session) {
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        // Email confirmation is required - trigger the 6-digit OTP modal
-        setRegisteredEmail(cleanEmail);
-        setShowOtpModal(true);
-        setSuccessMsg(
-          isFrench
-            ? `Inscription réussie ! Un code de confirmation à 6 chiffres a été envoyé à ${cleanEmail}.`
-            : `Registration successful! A 6-digit confirmation code was sent to ${cleanEmail}.`
-        );
-        setLoading(false);
+      // Always require 6-digit email confirmation code before granting dashboard access
+      let token = "";
+      let dev = "";
+      try {
+        const otpRes = await fetch("/api/auth/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleanEmail }),
+        });
+        const otpData = await otpRes.json();
+        if (otpData.success) {
+          token = otpData.otpToken || "";
+          dev = otpData.devCode || "";
+        }
+      } catch (otpErr) {
+        console.warn("Could not pre-dispatch OTP:", otpErr);
       }
+
+      setRegisteredEmail(cleanEmail);
+      setRegisteredPassword(password);
+      setInitialOtpToken(token);
+      setInitialDevCode(dev);
+      setShowOtpModal(true);
+      setSuccessMsg(
+        isFrench
+          ? `Inscription enregistrée ! Un code de confirmation à 6 chiffres a été envoyé à ${cleanEmail}.`
+          : `Registration recorded! A 6-digit confirmation code was sent to ${cleanEmail}.`
+      );
+      setLoading(false);
     } catch (err: unknown) {
       let message = err instanceof Error ? err.message : (isFrench ? "Échec de l'inscription." : "Failed to register account.");
       if (
@@ -365,7 +406,8 @@ export default function RegisterPage() {
               {/* Google Sign In Option */}
               <div className="mb-6 space-y-3">
                 <GoogleAuthButton
-                  label={isFrench ? "S'inscrire rapidement avec Google" : "Quick sign up with Google"}
+                  mode="signup"
+                  label={isFrench ? "Créer mon compte avec Google" : "Sign up with Google"}
                   requireTerms={true}
                   acceptedTerms={acceptedTerms}
                   onTermsChange={(val) => {
@@ -375,6 +417,15 @@ export default function RegisterPage() {
                   onTermsRequired={() => setTermsError(true)}
                   onError={(err) => setErrorMsg(err)}
                 />
+
+                <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span>
+                    {isFrench
+                      ? "Pour les nouveaux utilisateurs uniquement (Crée votre compte bailleur avec 30 jours offerts)"
+                      : "For new users only (Creates your landlord account with 30 free days)"}
+                  </span>
+                </div>
 
                 <p className="text-[11px] text-center text-slate-500 dark:text-slate-400">
                   {isFrench ? "En continuant avec Google, vous acceptez nos " : "By continuing with Google, you agree to our "}
@@ -717,9 +768,26 @@ export default function RegisterPage() {
       <EmailOtpModal
         isOpen={showOtpModal}
         email={registeredEmail || email}
+        password={registeredPassword || password}
+        initialOtpToken={initialOtpToken}
+        initialDevCode={initialDevCode}
         onClose={() => setShowOtpModal(false)}
       />
     </main>
   </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

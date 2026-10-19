@@ -390,15 +390,27 @@ export async function getTenantRentStatusSummary(
 
   const statuses: TenantRentStatus[] = [];
   const today = new Date();
-  const dueDayOfMonth = 5; // Standard rent due day (5th of each month)
-  const isPastDueDate = today.getDate() > dueDayOfMonth;
-  const daysLate = isPastDueDate ? today.getDate() - dueDayOfMonth : 0;
+  const todayDay = today.getDate();
 
   buildings.forEach((b) => {
     (b.units || []).forEach((u) => {
       const isOccupied =
         u.status === "occupied" || Boolean(u.tenant_name?.trim());
       if (!isOccupied) return;
+
+      // Resolve unit-specific rent due day: custom rent_due_day, day of lease start, or fallback 5
+      let leaseStart = u.lease_start_date ? new Date(u.lease_start_date) : null;
+      if (!leaseStart && u.tenant_assigned_at) {
+        leaseStart = new Date(u.tenant_assigned_at);
+      }
+      const unitDueDay = Math.min(
+        28,
+        Math.max(1, Number(u.rent_due_day) || (leaseStart && !isNaN(leaseStart.getTime()) ? leaseStart.getDate() : 5))
+      );
+
+      const isPastDueDate = todayDay > unitDueDay;
+      const daysLate = isPastDueDate ? todayDay - unitDueDay : 0;
+      const daysUntilDue = !isPastDueDate ? unitDueDay - todayDay : 0;
 
       const unitPayments = allPayments.filter((p) => p.unit_id === u.id);
       const currentMonthPayments = unitPayments.filter((p) => {
@@ -464,6 +476,8 @@ export async function getTenantRentStatusSummary(
         is_owing: isOwing,
         is_late: isPastDueDate && isOwing,
         days_late: isOwing && isPastDueDate ? daysLate : 0,
+        rent_due_day: unitDueDay,
+        days_until_due: daysUntilDue,
         status,
         advance_months_paid: Array.from(advanceMonths),
         last_payment_date: latestPayment?.created_at || null,

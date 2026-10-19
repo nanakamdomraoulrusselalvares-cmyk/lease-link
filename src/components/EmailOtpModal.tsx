@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Mail,
@@ -11,6 +11,7 @@ import {
   ExternalLink,
   X,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -18,6 +19,9 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 interface EmailOtpModalProps {
   isOpen: boolean;
   email: string;
+  password?: string;
+  initialOtpToken?: string;
+  initialDevCode?: string;
   onClose: () => void;
   onSuccess?: () => void;
   autoRedirect?: boolean;
@@ -26,6 +30,9 @@ interface EmailOtpModalProps {
 export default function EmailOtpModal({
   isOpen,
   email,
+  password,
+  initialOtpToken,
+  initialDevCode,
   onClose,
   onSuccess,
   autoRedirect = true,
@@ -34,7 +41,10 @@ export default function EmailOtpModal({
   const { isFrench } = useLanguage();
 
   const [otpCode, setOtpCode] = useState("");
+  const [otpToken, setOtpToken] = useState<string>(initialOtpToken || "");
+  const [devCode, setDevCode] = useState<string | null>(initialDevCode || null);
   const [loading, setLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [cooldown, setCooldown] = useState(60);
@@ -43,18 +53,61 @@ export default function EmailOtpModal({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when modal opens
+  // Send or request OTP from server
+  const requestOtpCode = useCallback(async () => {
+    if (!email) return;
+    setSendingCode(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.otpToken) {
+        setOtpToken(data.otpToken);
+        if (data.devCode) {
+          setDevCode(data.devCode);
+        }
+      } else if (!data.success && data.error) {
+        // If rate-limited or error, still allow user to enter existing code
+        console.warn("[EmailOtpModal] send-otp returned:", data.error);
+      }
+    } catch (err) {
+      console.warn("[EmailOtpModal] Could not reach send-otp API:", err);
+    } finally {
+      setSendingCode(false);
+    }
+  }, [email]);
+
+  // Reset state and focus input when modal opens
   useEffect(() => {
     if (isOpen) {
       setOtpCode("");
       setErrorMsg(null);
       setIsSuccess(false);
       setCooldown(60);
+
+      if (initialOtpToken) {
+        setOtpToken(initialOtpToken);
+      }
+      if (initialDevCode) {
+        setDevCode(initialDevCode);
+      }
+
+      // If no initial token provided, dispatch send-otp automatically
+      if (!initialOtpToken && email) {
+        requestOtpCode();
+      }
+
       setTimeout(() => {
         inputRef.current?.focus();
       }, 150);
     }
-  }, [isOpen]);
+  }, [isOpen, email, initialOtpToken, initialDevCode, requestOtpCode]);
 
   // Resend countdown timer
   useEffect(() => {
@@ -109,46 +162,84 @@ export default function EmailOtpModal({
     setLoading(true);
     setErrorMsg(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+    let verified = false;
+
     try {
-      const supabase = createClient();
-      const cleanEmail = email.trim().toLowerCase();
-
-      // Attempt verification with signup type
-      let { data, error } = await supabase.auth.verifyOtp({
-        email: cleanEmail,
-        token: code,
-        type: "signup",
-      });
-
-      // If signup type fails, fallback to email token type
-      if (error) {
-        const fallback = await supabase.auth.verifyOtp({
-          email: cleanEmail,
-          token: code,
-          type: "email",
+      // 1. First, attempt verification via our dedicated LeaseLink OTP API
+      if (otpToken) {
+        const res = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: cleanEmail,
+            code,
+            otpToken,
+          }),
         });
-        if (!fallback.error) {
-          data = fallback.data;
-          error = null;
+
+        const result = await res.json();
+        if (result.success) {
+          verified = true;
+        } else if (!result.success && result.error) {
+          // If the token check specifically failed with invalid code, note it
+          console.warn("[EmailOtpModal] API verification failed:", result.error);
         }
       }
 
-      if (error) {
-        const msg = error.message.toLowerCase();
-        if (msg.includes("expired") || msg.includes("invalid") || msg.includes("token")) {
-          setErrorMsg(
-            isFrench
-              ? "Code de vérification incorrect ou expiré. Veuillez vérifier votre boîte mail ou en demander un nouveau."
-              : "Invalid or expired verification code. Please check your inbox or request a new code."
-          );
+      // 2. Fallback / parallel verification via Supabase native verifyOtp
+      const supabase = createClient();
+      let supabaseVerified = false;
+
+      try {
+        const { error: sbSignupErr } = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: code,
+          type: "signup",
+        });
+
+        if (!sbSignupErr) {
+          supabaseVerified = true;
+          verified = true;
         } else {
-          setErrorMsg(error.message);
+          // Try email type
+          const { error: sbEmailErr } = await supabase.auth.verifyOtp({
+            email: cleanEmail,
+            token: code,
+            type: "email",
+          });
+          if (!sbEmailErr) {
+            supabaseVerified = true;
+            verified = true;
+          }
         }
+      } catch (sbErr) {
+        console.warn("[EmailOtpModal] Supabase verifyOtp error:", sbErr);
+      }
+
+      if (!verified) {
+        setErrorMsg(
+          isFrench
+            ? "Code de vérification incorrect ou expiré. Veuillez vérifier votre boîte mail ou demander un nouveau code."
+            : "Invalid or expired verification code. Please check your inbox or request a new code."
+        );
         setLoading(false);
         return;
       }
 
-      // Success
+      // 3. If password was provided and user not yet signed in via Supabase native OTP, sign them in
+      if (!supabaseVerified && password) {
+        try {
+          await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+        } catch (loginErr) {
+          console.warn("[EmailOtpModal] Post-verification signin notice:", loginErr);
+        }
+      }
+
+      // Success!
       setIsSuccess(true);
       setLoading(false);
 
@@ -176,7 +267,7 @@ export default function EmailOtpModal({
     setOtpCode(digitsOnly);
     setErrorMsg(null);
 
-    // Auto-submit when user reaches 6 digits (either by typing or keyboard autofill)
+    // Auto-submit when user reaches 6 digits
     if (digitsOnly.length === 6) {
       handleVerify(digitsOnly);
     }
@@ -190,17 +281,34 @@ export default function EmailOtpModal({
     setResendNotif(false);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: email.trim().toLowerCase(),
+      // 1. Resend via our LeaseLink OTP API
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
 
-      if (error) {
-        setErrorMsg(error.message);
-      } else {
+      const data = await res.json();
+      if (data.success && data.otpToken) {
+        setOtpToken(data.otpToken);
+        if (data.devCode) {
+          setDevCode(data.devCode);
+        }
         setResendNotif(true);
         setCooldown(60);
+      } else {
+        setErrorMsg(data.error || "Failed to resend code.");
+      }
+
+      // 2. Also trigger Supabase native resend in parallel
+      try {
+        const supabase = createClient();
+        await supabase.auth.resend({
+          type: "signup",
+          email: email.trim().toLowerCase(),
+        });
+      } catch {
+        // ignore
       }
     } catch {
       setErrorMsg(
@@ -265,6 +373,40 @@ export default function EmailOtpModal({
               </p>
             </div>
 
+            {/* Test / Dev Mode Notice (when no Resend API key is configured in .env.local) */}
+            {devCode && (
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-left space-y-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span className="font-bold text-amber-900 dark:text-amber-200">
+                      {isFrench ? "Mode Test (Clé Resend non configurée)" : "Dev Mode (No Resend API Key)"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange(devCode)}
+                    className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[11px] transition shadow-xs cursor-pointer shrink-0"
+                  >
+                    {isFrench ? "Insérer le code" : "Fill code"}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-amber-500/20">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {isFrench ? "Code à saisir :" : "Access code:"}
+                  </span>
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm tracking-widest">
+                    {devCode}
+                  </span>
+                </div>
+                <p className="text-[10px] text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
+                  {isFrench
+                    ? "Pour envoyer de vrais e-mails sur votre messagerie, ajoutez votre clé Resend (RESEND_API_KEY=re_...) dans .env.local."
+                    : "To send live emails to your inbox, add your Resend key (RESEND_API_KEY=re_...) in .env.local."}
+                </p>
+              </div>
+            )}
+
             {errorMsg && (
               <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-start gap-2.5 text-left">
                 <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
@@ -314,8 +456,8 @@ export default function EmailOtpModal({
 
               <p className="text-[11px] text-slate-400 dark:text-slate-500">
                 {isFrench
-                  ? "💡 Astuce : Sur mobile, le clavier Android ou iPhone vous suggère automatiquement le code dès réception !"
-                  : "💡 Tip: On mobile, your Android or iPhone keyboard will suggest the code automatically!"}
+                  ? "💡 Astuce : Sur mobile, votre clavier vous suggère automatiquement le code dès réception !"
+                  : "💡 Tip: On mobile, your keyboard will suggest the code automatically!"}
               </p>
             </div>
 
@@ -323,13 +465,18 @@ export default function EmailOtpModal({
             <button
               type="button"
               onClick={() => handleVerify()}
-              disabled={loading || otpCode.length !== 6}
+              disabled={loading || sendingCode || otpCode.length !== 6}
               className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>{isFrench ? "Validation en cours..." : "Verifying code..."}</span>
+                </>
+              ) : sendingCode ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{isFrench ? "Envoi du code..." : "Sending code..."}</span>
                 </>
               ) : (
                 <>

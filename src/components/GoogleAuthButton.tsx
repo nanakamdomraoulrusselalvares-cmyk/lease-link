@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface GoogleAuthButtonProps {
+  mode?: "login" | "signup";
   label?: string;
   nextUrl?: string;
   className?: string;
@@ -25,11 +26,12 @@ interface GoogleAuthButtonProps {
 }
 
 export default function GoogleAuthButton({
+  mode = "login",
   label,
   nextUrl = "/dashboard",
   className = "",
   onError,
-  requireTerms = true,
+  requireTerms,
   acceptedTerms = false,
   onTermsChange,
   onTermsRequired,
@@ -40,6 +42,10 @@ export default function GoogleAuthButton({
   const [modalAccepted, setModalAccepted] = useState(false);
   const [modalError, setModalError] = useState(false);
 
+  // By default, terms are required on signup, but not strictly needed repeatedly on login
+  const shouldRequireTerms =
+    requireTerms !== undefined ? requireTerms : mode === "signup";
+
   const executeGoogleSignIn = async () => {
     try {
       setLoading(true);
@@ -49,7 +55,13 @@ export default function GoogleAuthButton({
         typeof window !== "undefined" && window.location.origin
           ? window.location.origin
           : "";
-      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`;
+
+      // Store flow mode in a short-lived cookie for fallback in callback route
+      if (typeof document !== "undefined") {
+        document.cookie = `sb_oauth_flow=${mode}; path=/; max-age=300; samesite=lax`;
+      }
+
+      const redirectTo = `${origin}/auth/callback?mode=${mode}&next=${encodeURIComponent(nextUrl)}`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -92,7 +104,7 @@ export default function GoogleAuthButton({
 
   const handleButtonClick = () => {
     // If terms acceptance is enforced and not yet agreed to:
-    if (requireTerms && !acceptedTerms) {
+    if (shouldRequireTerms && !acceptedTerms) {
       if (onTermsRequired) onTermsRequired();
       setModalAccepted(false);
       setModalError(false);
@@ -117,7 +129,14 @@ export default function GoogleAuthButton({
     executeGoogleSignIn();
   };
 
-  const defaultLabel = isFrench ? "Continuer avec Google" : "Continue with Google";
+  const defaultLabel =
+    mode === "signup"
+      ? isFrench
+        ? "Créer mon compte avec Google"
+        : "Sign up with Google"
+      : isFrench
+      ? "Se connecter avec Google"
+      : "Sign in with Google";
 
   return (
     <>

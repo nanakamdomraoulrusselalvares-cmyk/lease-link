@@ -80,9 +80,20 @@ export default function HomePage() {
         if (hasSbCookie) {
           const supabase = createClient();
           const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          if (session?.user && isMounted) {
+            data: { user },
+            error: userErr,
+          } = await supabase.auth.getUser();
+
+          if (userErr || !user) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+            if (typeof window !== "undefined") {
+              Object.keys(localStorage).forEach((key) => {
+                if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+                  localStorage.removeItem(key);
+                }
+              });
+            }
+          } else if (user && isMounted) {
             router.replace("/dashboard");
             return;
           }

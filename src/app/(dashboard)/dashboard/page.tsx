@@ -22,6 +22,7 @@ import {
 import AudioPlayer from "@/components/AudioPlayer";
 import DashboardNav from "@/components/DashboardNav";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
+import SmartDataLoader from "@/components/SmartDataLoader";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -91,7 +92,17 @@ export default function LandlordHomePage() {
       } = await supabase.auth.getUser();
 
       if (userError || !authUser) {
-        router.push("/login");
+        if (userError) {
+          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          if (typeof window !== "undefined") {
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+                localStorage.removeItem(key);
+              }
+            });
+          }
+        }
+        router.push("/login?loggedOut=true");
         return;
       }
 
@@ -116,19 +127,38 @@ export default function LandlordHomePage() {
         profileData?.role === "manager" ? profileData.assigned_building_ids : null;
 
       // Fetch landlord buildings and units portfolio
+      let fetchedBuildings: Building[] = [];
       try {
-        const buildingsData = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
-        setBuildings(buildingsData);
+        fetchedBuildings = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
+        setBuildings(fetchedBuildings);
       } catch (bErr) {
         console.warn("Could not load portfolio buildings on dashboard:", bErr);
       }
 
       // Fetch landlord maintenance requests
+      let fetchedMRequests: MaintenanceRequest[] = [];
       try {
-        const mRequests = await getMaintenanceRequestsForLandlord(effectiveLandlordId, assignedBuildingIds);
-        setMaintenanceRequests(mRequests);
+        fetchedMRequests = await getMaintenanceRequestsForLandlord(effectiveLandlordId, assignedBuildingIds);
+        setMaintenanceRequests(fetchedMRequests);
       } catch (mErr) {
         console.warn("Could not load maintenance requests on dashboard:", mErr);
+      }
+
+      // Cache fresh data for instant 0ms offline-first next load
+      try {
+        if (typeof window !== "undefined" && profileData) {
+          localStorage.setItem(
+            "leaselink_cached_dashboard",
+            JSON.stringify({
+              profile: profileData,
+              buildings: fetchedBuildings,
+              maintenanceRequests: fetchedMRequests,
+              cachedAt: Date.now(),
+            })
+          );
+        }
+      } catch {
+        // ignore cache write error
       }
     } catch (err) {
       console.error("Error loading profile:", err);
@@ -139,6 +169,26 @@ export default function LandlordHomePage() {
   };
 
   useEffect(() => {
+    // Fast Stale-While-Revalidate: load immediately from local cache if available
+    try {
+      if (typeof window !== "undefined") {
+        const cached = localStorage.getItem("leaselink_cached_dashboard");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.profile) setProfile(parsed.profile);
+          if (Array.isArray(parsed.buildings) && parsed.buildings.length > 0) {
+            setBuildings(parsed.buildings);
+            setLoading(false); // Instant display!
+          }
+          if (Array.isArray(parsed.maintenanceRequests)) {
+            setMaintenanceRequests(parsed.maintenanceRequests);
+          }
+        }
+      }
+    } catch {
+      // ignore cache read error
+    }
+
     fetchSessionAndProfile();
   }, []);
 
@@ -240,13 +290,26 @@ export default function LandlordHomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
-        <div className="text-center space-y-3">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {isFrench ? "Vérification de la session bailleur..." : "Verifying landlord session..."}
-          </p>
-        </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4">
+        <SmartDataLoader
+          label={isFrench ? "Vérification de la session et synchronisation..." : "Verifying landlord session and syncing..."}
+          onRetry={handleManualRefresh}
+          onUseCache={() => {
+            try {
+              const cached = localStorage.getItem("leaselink_cached_dashboard");
+              if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.profile) setProfile(parsed.profile);
+                if (parsed.buildings) setBuildings(parsed.buildings);
+                if (parsed.maintenanceRequests) setMaintenanceRequests(parsed.maintenanceRequests);
+                setLoading(false);
+              }
+            } catch {
+              // ignore
+            }
+          }}
+          hasCachedData={typeof window !== "undefined" && Boolean(localStorage.getItem("leaselink_cached_dashboard"))}
+        />
       </div>
     );
   }

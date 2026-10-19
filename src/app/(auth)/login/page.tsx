@@ -30,6 +30,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const wasLoggedOut = searchParams.get("loggedOut") === "true";
+  const errorCode = searchParams.get("error");
+  const errorEmail = searchParams.get("email") || "";
   const { isFrench } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +48,9 @@ function LoginForm() {
   useEffect(() => {
     try {
       const savedEmail = localStorage.getItem("leaselink_remembered_email");
-      if (savedEmail) {
+      if (errorEmail) {
+        setEmail(errorEmail);
+      } else if (savedEmail) {
         setEmail(savedEmail);
         setRememberMe(true);
       }
@@ -54,7 +58,16 @@ function LoginForm() {
       // ignore
     }
 
-    if (wasLoggedOut) {
+    if (wasLoggedOut || errorCode === "no_account" || errorCode === "account_exists") {
+      const supabase = createClient();
+      supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      if (typeof window !== "undefined") {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
       return;
     }
 
@@ -63,9 +76,23 @@ function LoginForm() {
       try {
         const supabase = createClient();
         const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user && isMounted) {
+          data: { user },
+          error: userErr,
+        } = await supabase.auth.getUser();
+
+        if (userErr || !user) {
+          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          if (typeof window !== "undefined") {
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+                localStorage.removeItem(key);
+              }
+            });
+          }
+          return;
+        }
+
+        if (user && isMounted) {
           router.replace("/dashboard");
         }
       } catch {
@@ -174,30 +201,7 @@ function LoginForm() {
       return;
     }
 
-    setResending(true);
-    setResendSuccess(false);
-
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: email.trim(),
-      });
-
-      if (error) {
-        setErrorMsg(error.message);
-      } else {
-        setResendSuccess(true);
-      }
-    } catch {
-      setErrorMsg(
-        isFrench
-          ? "Échec de l'envoi de l'e-mail de confirmation."
-          : "Failed to resend confirmation email."
-      );
-    } finally {
-      setResending(false);
-    }
+    setShowOtpModal(true);
   };
 
   return (
@@ -319,13 +323,86 @@ function LoginForm() {
             </div>
           )}
 
+          {/* OAuth Warning: No Account Found */}
+          {errorCode === "no_account" && (
+            <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-300 dark:border-amber-500/30 text-amber-900 dark:text-amber-200 shadow-sm animate-in fade-in duration-300">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm text-amber-900 dark:text-amber-100">
+                    {isFrench ? "Aucun compte associé à cette adresse Google" : "No LeaseLink account found"}
+                  </h3>
+                  <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mt-1 leading-relaxed">
+                    {isFrench ? (
+                      <>
+                        L&apos;adresse Google {errorEmail ? <strong>{errorEmail}</strong> : "utilisée"} n&apos;est pas encore enregistrée sur LeaseLink. La connexion Google sur cette page est exclusivement réservée aux comptes existants.
+                      </>
+                    ) : (
+                      <>
+                        The Google address {errorEmail ? <strong>{errorEmail}</strong> : "used"} is not yet registered on LeaseLink. Google Sign-In on this page is strictly for existing accounts.
+                      </>
+                    )}
+                  </p>
+                  <div className="mt-3">
+                    <Link
+                      href={`/register${errorEmail ? `?email=${encodeURIComponent(errorEmail)}` : ""}`}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition shadow-xs"
+                    >
+                      <span>{isFrench ? "Créer mon compte bailleur (Essai 30j)" : "Create landlord account (30-day trial)"}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OAuth Notice: Account Already Exists */}
+          {errorCode === "account_exists" && (
+            <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border-2 border-blue-300 dark:border-blue-500/30 text-blue-900 dark:text-blue-200 shadow-sm animate-in fade-in duration-300">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm text-blue-900 dark:text-blue-100">
+                    {isFrench ? "Compte LeaseLink déjà existant" : "Existing LeaseLink Account"}
+                  </h3>
+                  <p className="text-xs text-blue-800/90 dark:text-blue-300/90 mt-1 leading-relaxed">
+                    {isFrench ? (
+                      <>
+                        Un compte est déjà associé à l&apos;adresse Google {errorEmail ? <strong>{errorEmail}</strong> : ""}. Veuillez vous connecter ci-dessous avec votre mot de passe ou en cliquant sur <strong>Se connecter avec Google</strong>.
+                      </>
+                    ) : (
+                      <>
+                        An account is already linked to {errorEmail ? <strong>{errorEmail}</strong> : "this email"}. Please sign in below using your password or by clicking <strong>Sign in with Google</strong>.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Google Sign In Option */}
           <div className="mb-6 space-y-3">
             <GoogleAuthButton
-              label={isFrench ? "Se connecter avec Google" : "Continue with Google"}
+              mode="login"
+              label={isFrench ? "Se connecter avec Google" : "Sign in with Google"}
               requireTerms={false}
               onError={(err) => setErrorMsg(err)}
             />
+
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+              <span>
+                {isFrench
+                  ? "Réservé aux comptes déjà enregistrés sur LeaseLink"
+                  : "For accounts already registered on LeaseLink"}
+              </span>
+            </div>
 
             <p className="text-[11px] text-center text-slate-500 dark:text-slate-400">
               {isFrench ? "En vous connectant avec Google, vous acceptez nos " : "By signing in with Google, you agree to our "}
@@ -459,6 +536,7 @@ function LoginForm() {
       <EmailOtpModal
         isOpen={showOtpModal}
         email={email}
+        password={password}
         onClose={() => setShowOtpModal(false)}
       />
       </main>

@@ -367,7 +367,7 @@ export default function UnpaidRentsPage() {
           {/* Card 3: Overdue Critical */}
           <div className="bg-gradient-to-br from-red-50 via-orange-50 to-amber-50/30 dark:bg-none dark:bg-slate-900 border-2 border-red-200 dark:border-slate-800 rounded-2xl p-4.5 space-y-2 shadow-sm">
             <div className="flex items-center justify-between text-red-900 dark:text-slate-400 text-[11px] font-bold uppercase">
-              <span>{isFrench ? "Délai Dépassé (Critique)" : "Overdue (Past 5th)"}</span>
+              <span>{isFrench ? "Délai Dépassé (Critique)" : "Overdue (Past Due Date)"}</span>
               <div className="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center text-red-600 dark:text-red-400">
                 <ShieldAlert className="w-4 h-4" />
               </div>
@@ -511,13 +511,15 @@ export default function UnpaidRentsPage() {
                         </span>
                         {isOverdue ? (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30">
-                            {isFrench ? "En retard (Délai Dépassé)" : "Overdue"}
+                            {isFrench ? `En retard (${t.days_late}j)` : `Overdue (${t.days_late}d)`}
                           </span>
                         ) : (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
                             {t.amount_paid_current_month > 0
                               ? isFrench ? "Acompte Partiel" : "Partial Payment"
-                              : isFrench ? "Aucun Versement" : "Unpaid"}
+                              : isFrench
+                              ? (t.days_until_due === 0 ? "Échéance aujourd'hui" : `Échéance le ${t.rent_due_day || 5} (dans ${t.days_until_due ?? 0}j)`)
+                              : (t.days_until_due === 0 ? "Due Today" : `Due on ${t.rent_due_day || 5}th (in ${t.days_until_due ?? 0}d)`)}
                           </span>
                         )}
                       </div>

@@ -5,6 +5,9 @@ import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { ThemeProvider } from "@/lib/theme/ThemeContext";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import NotificationPermissionPrompt from "@/components/NotificationPermissionPrompt";
+import TopProgressBar from "@/components/TopProgressBar";
+import NetworkStatusAlert from "@/components/NetworkStatusAlert";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -100,6 +103,10 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <LanguageProvider>
+            <Suspense fallback={null}>
+              <TopProgressBar />
+            </Suspense>
+            <NetworkStatusAlert />
             <PwaInstallBanner />
             <NotificationPermissionPrompt />
             {children}

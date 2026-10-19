@@ -27,6 +27,7 @@ import {
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
+import SmartDataLoader from "@/components/SmartDataLoader";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Building2,
@@ -577,13 +578,14 @@ export default function BuildingsManagementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white">
-        <div className="text-center space-y-3">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {isFrench ? "Chargement du portefeuille immobilier..." : "Loading building portfolio..."}
-          </p>
-        </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4">
+        <SmartDataLoader
+          label={isFrench ? "Chargement du portefeuille immobilier..." : "Loading building portfolio..."}
+          onRetry={() => {
+            setRefreshing(true);
+            loadData();
+          }}
+        />
       </div>
     );
   }
