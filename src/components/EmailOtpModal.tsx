@@ -148,11 +148,11 @@ export default function EmailOtpModal({
 
   const handleVerify = async (codeToVerify?: string) => {
     const code = (codeToVerify || otpCode).trim();
-    if (code.length < 6) {
+    if (code.length < 6 || code.length > 8) {
       setErrorMsg(
         isFrench
-          ? "Veuillez saisir le code complet à 6 chiffres."
-          : "Please enter the full 6-digit code."
+          ? "Veuillez saisir un code valide (6 à 8 chiffres)."
+          : "Please enter a valid code (6 to 8 digits)."
       );
       return;
     }
@@ -261,12 +261,12 @@ export default function EmailOtpModal({
   };
 
   const handleInputChange = (val: string) => {
-    const digitsOnly = val.replace(/\D/g, "").slice(0, 6);
+    const digitsOnly = val.replace(/\D/g, "").slice(0, 8);
     setOtpCode(digitsOnly);
     setErrorMsg(null);
 
-    // Auto-submit when user reaches 6 digits
-    if (digitsOnly.length === 6) {
+    // Auto-submit when user reaches 8 digits
+    if (digitsOnly.length === 8) {
       handleVerify(digitsOnly);
     }
   };
@@ -360,8 +360,8 @@ export default function EmailOtpModal({
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
                 {isFrench
-                  ? "Un code de confirmation à 6 chiffres a été envoyé à :"
-                  : "A 6-digit confirmation code was sent to:"}
+                  ? "Un code de confirmation a été envoyé à :"
+                  : "A confirmation code was sent to:"}
                 <br />
                 <span className="font-semibold text-slate-900 dark:text-white break-all">
                   {email}
@@ -423,10 +423,10 @@ export default function EmailOtpModal({
               </div>
             )}
 
-            {/* 6 Digit Input with Keyboard One-Time-Code AutoFill */}
+            {/* 6 to 8 Digit Input with Keyboard One-Time-Code AutoFill */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {isFrench ? "Code à 6 chiffres" : "6-digit code"}
+                {isFrench ? "Code de vérification (6 ou 8 chiffres)" : "Verification code (6 or 8 digits)"}
               </label>
 
               <div className="relative">
@@ -436,17 +436,17 @@ export default function EmailOtpModal({
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   pattern="[0-9]*"
-                  maxLength={6}
+                  maxLength={8}
                   value={otpCode}
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && otpCode.length === 6) {
+                    if (e.key === "Enter" && otpCode.length >= 6) {
                       e.preventDefault();
                       handleVerify();
                     }
                   }}
-                  placeholder="• • • • • •"
-                  className="w-full text-center text-3xl sm:text-4xl font-mono font-bold tracking-[0.4em] py-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 focus:border-blue-600 dark:focus:border-blue-500 rounded-2xl text-slate-900 dark:text-white outline-none transition shadow-inner selection:bg-blue-500 selection:text-white"
+                  placeholder="• • • • • • • •"
+                  className="w-full text-center text-2xl sm:text-3xl font-mono font-bold tracking-[0.25em] sm:tracking-[0.35em] py-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 focus:border-blue-600 dark:focus:border-blue-500 rounded-2xl text-slate-900 dark:text-white outline-none transition shadow-inner selection:bg-blue-500 selection:text-white"
                 />
               </div>
 
@@ -461,7 +461,7 @@ export default function EmailOtpModal({
             <button
               type="button"
               onClick={() => handleVerify()}
-              disabled={loading || sendingCode || otpCode.length !== 6}
+              disabled={loading || sendingCode || otpCode.length < 6 || otpCode.length > 8}
               className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (

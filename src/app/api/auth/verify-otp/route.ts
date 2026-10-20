@@ -21,9 +21,9 @@ export async function POST(req: Request) {
       );
     }
 
-    if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+    if (code.length < 6 || code.length > 8 || !/^\d{6,8}$/.test(code)) {
       return NextResponse.json(
-        { success: false, error: "The code must be exactly 6 digits." },
+        { success: false, error: "The code must be 6 to 8 digits." },
         { status: 400 }
       );
     }
