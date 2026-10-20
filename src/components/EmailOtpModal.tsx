@@ -69,9 +69,7 @@ export default function EmailOtpModal({
       const data = await res.json();
       if (data.success && data.otpToken) {
         setOtpToken(data.otpToken);
-        if (data.devCode) {
-          setDevCode(data.devCode);
-        }
+        setDevCode(data.devCode || null);
       } else if (!data.success && data.error) {
         // If rate-limited or error, still allow user to enter existing code
         console.warn("[EmailOtpModal] send-otp returned:", data.error);
@@ -291,9 +289,7 @@ export default function EmailOtpModal({
       const data = await res.json();
       if (data.success && data.otpToken) {
         setOtpToken(data.otpToken);
-        if (data.devCode) {
-          setDevCode(data.devCode);
-        }
+        setDevCode(data.devCode || null);
         setResendNotif(true);
         setCooldown(60);
       } else {
