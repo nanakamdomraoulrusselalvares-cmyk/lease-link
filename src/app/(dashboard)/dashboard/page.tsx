@@ -480,13 +480,6 @@ export default function LandlordHomePage() {
                 </div>
               </div>
             </div>
-
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
-              <span className="block mb-1">{isFrench ? "Identifiant Utilisateur (UID Supabase) :" : "User ID (Supabase Auth UID):"}</span>
-              <span className="font-mono text-slate-600 dark:text-slate-400 block truncate bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
-                {user?.id || "N/A"}
-              </span>
-            </div>
           </div>
 
           {/* Card 2: Subscription & Unit Capacity */}
