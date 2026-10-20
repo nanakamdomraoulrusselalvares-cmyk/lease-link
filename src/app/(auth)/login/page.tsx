@@ -178,7 +178,6 @@ function LoginForm() {
       }
 
       router.push("/dashboard");
-      router.refresh();
     } catch (err: unknown) {
       let message = err instanceof Error ? err.message : (isFrench ? "Une erreur inattendue est survenue." : "An unexpected error occurred.");
       if (message.includes("Failed to fetch") || message.includes("NetworkError")) {

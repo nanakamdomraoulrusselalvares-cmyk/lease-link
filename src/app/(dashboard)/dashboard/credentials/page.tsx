@@ -86,12 +86,33 @@ function CredentialsContent() {
 
   // Fetch session, profile, buildings and occupied units
   useEffect(() => {
+    // Fast Stale-While-Revalidate: load immediately from local cache if available
+    try {
+      if (typeof window !== "undefined") {
+        const cached = localStorage.getItem("leaselink_cached_credentials");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed.buildings) && parsed.buildings.length > 0) {
+            setBuildings(parsed.buildings);
+            setLoading(false); // Instant 0ms visual display!
+          }
+          if (parsed.profile) setProfile(parsed.profile);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     async function loadData() {
-      setLoading(true);
       const supabase = createClient();
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
+      
+      // Fast 0ms local session retrieval first, fallback to remote if needed
+      const { data: sessionData } = await supabase.auth.getSession();
+      let authUser = sessionData?.session?.user || null;
+      if (!authUser) {
+        const userRes = await supabase.auth.getUser();
+        authUser = userRes.data?.user || null;
+      }
 
       if (authUser) {
         setUser(authUser);
@@ -116,6 +137,22 @@ function CredentialsContent() {
         try {
           const buildingsData = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
           setBuildings(buildingsData);
+
+          // Cache fresh data for instant 0ms next load
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(
+                "leaselink_cached_credentials",
+                JSON.stringify({
+                  buildings: buildingsData,
+                  profile: profileData,
+                  cachedAt: Date.now(),
+                })
+              );
+            } catch {
+              // ignore cache write error
+            }
+          }
         } catch (err) {
           console.error("Error loading buildings for credentials page:", err);
         } finally {

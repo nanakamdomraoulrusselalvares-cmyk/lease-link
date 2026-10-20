@@ -139,3 +139,19 @@ input[type="number"] {
 .proptech-card:hover {
   transform: translateY(-2px);
 }
+
+/* Instant Interactive Responsiveness (Eliminates mobile click latency & provides instant visual feedback) */
+button,
+a,
+input[type="submit"],
+input[type="button"],
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled),
+a[role="button"]:active {
+  transform: scale(0.98);
+  transition: transform 0.05s ease;
+}

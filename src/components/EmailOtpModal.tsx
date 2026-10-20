@@ -164,56 +164,56 @@ export default function EmailOtpModal({
     let verified = false;
 
     try {
-      // 1. First, attempt verification via our dedicated LeaseLink OTP API
-      if (otpToken) {
-        const res = await fetch("/api/auth/verify-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: cleanEmail,
-            code,
-            otpToken,
-          }),
-        });
-
-        const result = await res.json();
-        if (result.success) {
-          verified = true;
-        } else if (!result.success && result.error) {
-          // If the token check specifically failed with invalid code, note it
-          console.warn("[EmailOtpModal] API verification failed:", result.error);
-        }
-      }
-
-      // 2. Fallback / parallel verification via Supabase native verifyOtp
+      // Execute both verification routes in parallel for lightning-fast sub-second response!
       const supabase = createClient();
       let supabaseVerified = false;
 
-      try {
-        const { error: sbSignupErr } = await supabase.auth.verifyOtp({
-          email: cleanEmail,
-          token: code,
-          type: "signup",
-        });
+      const verifySupabase = async (): Promise<boolean> => {
+        try {
+          const { error: sbSignupErr } = await supabase.auth.verifyOtp({
+            email: cleanEmail,
+            token: code,
+            type: "signup",
+          });
+          if (!sbSignupErr) return true;
 
-        if (!sbSignupErr) {
-          supabaseVerified = true;
-          verified = true;
-        } else {
-          // Try email type
           const { error: sbEmailErr } = await supabase.auth.verifyOtp({
             email: cleanEmail,
             token: code,
             type: "email",
           });
-          if (!sbEmailErr) {
-            supabaseVerified = true;
-            verified = true;
-          }
+          return !sbEmailErr;
+        } catch {
+          return false;
         }
-      } catch (sbErr) {
-        console.warn("[EmailOtpModal] Supabase verifyOtp error:", sbErr);
-      }
+      };
+
+      const verifyCustomApi = async (): Promise<boolean> => {
+        if (!otpToken) return false;
+        try {
+          const res = await fetch("/api/auth/verify-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: cleanEmail,
+              code,
+              otpToken,
+            }),
+          });
+          const result = await res.json();
+          return Boolean(result.success);
+        } catch {
+          return false;
+        }
+      };
+
+      const [sbResult, apiResult] = await Promise.all([
+        verifySupabase(),
+        verifyCustomApi(),
+      ]);
+
+      supabaseVerified = sbResult;
+      verified = sbResult || apiResult;
 
       if (!verified) {
         setErrorMsg(
@@ -237,7 +237,7 @@ export default function EmailOtpModal({
         }
       }
 
-      // Success!
+      // Success! Instant snappy feedback
       setIsSuccess(true);
       setLoading(false);
 
@@ -245,9 +245,8 @@ export default function EmailOtpModal({
         if (onSuccess) onSuccess();
         if (autoRedirect) {
           router.push("/dashboard");
-          router.refresh();
         }
-      }, 1000);
+      }, 250);
     } catch (err: unknown) {
       const message =
         err instanceof Error

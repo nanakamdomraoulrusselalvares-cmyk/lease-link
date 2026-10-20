@@ -82,31 +82,48 @@ export default function DashboardNav({
   useEffect(() => {
     if (!initialUser) {
       const supabase = createClient();
-      supabase.auth.getUser().then(({ data, error }) => {
-        if (error) {
-          if (error.status === 403 || error.status === 401 || error.message?.includes("Forbidden")) {
-            supabase.auth.signOut({ scope: "local" }).catch(() => {});
-            if (typeof window !== "undefined") {
-              Object.keys(localStorage).forEach((key) => {
-                if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
-                  localStorage.removeItem(key);
-                }
-              });
-            }
-          }
-          return;
-        }
-        if (data?.user) {
-          setUser(data.user);
+      supabase.auth.getSession().then(({ data: sData }) => {
+        const currentUser = sData?.session?.user;
+        if (currentUser) {
+          setUser(currentUser);
           supabase
             .from("profiles")
             .select("*")
-            .eq("id", data.user.id)
+            .eq("id", currentUser.id)
             .maybeSingle()
             .then(({ data: pData }) => {
               if (pData) setProfile(pData as LandlordProfile);
             });
+          return;
         }
+
+        // Fallback to remote getUser only if session wasn't cached locally
+        supabase.auth.getUser().then(({ data, error }) => {
+          if (error) {
+            if (error.status === 403 || error.status === 401 || error.message?.includes("Forbidden")) {
+              supabase.auth.signOut({ scope: "local" }).catch(() => {});
+              if (typeof window !== "undefined") {
+                Object.keys(localStorage).forEach((key) => {
+                  if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+                    localStorage.removeItem(key);
+                  }
+                });
+              }
+            }
+            return;
+          }
+          if (data?.user) {
+            setUser(data.user);
+            supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", data.user.id)
+              .maybeSingle()
+              .then(({ data: pData }) => {
+                if (pData) setProfile(pData as LandlordProfile);
+              });
+          }
+        });
       });
     }
   }, [initialUser]);

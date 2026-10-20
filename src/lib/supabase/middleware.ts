@@ -18,6 +18,17 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Performance Optimization: Check if any Supabase session cookie exists
+  // If user has no auth cookie (e.g. unauthenticated or public routes), return immediately with 0ms latency
+  const allCookies = request.cookies.getAll();
+  const hasAuthToken = allCookies.some(
+    (c) => c.name.startsWith("sb-") && c.name.includes("-auth-token")
+  );
+
+  if (!hasAuthToken) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
     supabaseUrl,
     supabaseAnonKey,

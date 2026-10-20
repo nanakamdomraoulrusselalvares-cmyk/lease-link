@@ -112,20 +112,30 @@ function PaymentsContent() {
   };
 
   // Load session, buildings, and payment status summary
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isInitial = false) => {
+    // Only show full blocking loader if we don't have data already
+    if (!statuses.length) {
+      setLoading(true);
+    }
     const supabase = createClient();
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
+    
+    // Fast 0ms local session retrieval first, fallback to remote if needed
+    const { data: sessionData } = await supabase.auth.getSession();
+    let authUser = sessionData?.session?.user || null;
+    if (!authUser) {
+      const userRes = await supabase.auth.getUser();
+      authUser = userRes.data?.user || null;
+    }
 
+    let profileData: any = null;
     if (authUser) {
       setUser(authUser);
-      const { data: profileData } = await supabase
+      const res = await supabase
         .from("profiles")
         .select("*")
         .eq("id", authUser.id)
         .maybeSingle();
+      profileData = res.data;
       if (profileData) {
         if (profileData.role === "manager") {
           router.replace("/dashboard/unpaid-rents");
@@ -146,6 +156,23 @@ function PaymentsContent() {
         buildingsData
       );
       setStatuses(statusSummary);
+
+      // Cache fresh data for instant 0ms next load
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            "leaselink_cached_payments",
+            JSON.stringify({
+              buildings: buildingsData,
+              statuses: statusSummary,
+              profile: profileData,
+              cachedAt: Date.now(),
+            })
+          );
+        } catch {
+          // ignore cache write error
+        }
+      }
     } catch (err) {
       console.error("Error loading payment data:", err);
     } finally {
@@ -154,7 +181,27 @@ function PaymentsContent() {
   };
 
   useEffect(() => {
-    loadData();
+    // Fast Stale-While-Revalidate: load immediately from local cache if available
+    try {
+      if (typeof window !== "undefined") {
+        const cached = localStorage.getItem("leaselink_cached_payments");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed.buildings) && parsed.buildings.length > 0) {
+            setBuildings(parsed.buildings);
+          }
+          if (Array.isArray(parsed.statuses) && parsed.statuses.length > 0) {
+            setStatuses(parsed.statuses);
+            setLoading(false); // Instant 0ms visual display!
+          }
+          if (parsed.profile) setProfile(parsed.profile);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    loadData(true);
   }, []);
 
   // Filtered statuses
