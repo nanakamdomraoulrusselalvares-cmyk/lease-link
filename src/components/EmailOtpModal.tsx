@@ -50,6 +50,7 @@ export default function EmailOtpModal({
   const [cooldown, setCooldown] = useState(60);
   const [resending, setResending] = useState(false);
   const [resendNotif, setResendNotif] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -103,6 +104,7 @@ export default function EmailOtpModal({
 
       setTimeout(() => {
         inputRef.current?.focus();
+        setIsInputFocused(true);
       }, 150);
     }
   }, [isOpen, email, initialOtpToken, initialDevCode, requestOtpCode]);
@@ -148,11 +150,11 @@ export default function EmailOtpModal({
 
   const handleVerify = async (codeToVerify?: string) => {
     const code = (codeToVerify || otpCode).trim();
-    if (code.length < 6 || code.length > 8) {
+    if (code.length !== 6) {
       setErrorMsg(
         isFrench
-          ? "Veuillez saisir un code valide (6 à 8 chiffres)."
-          : "Please enter a valid code (6 to 8 digits)."
+          ? "Veuillez saisir le code complet à 6 chiffres."
+          : "Please enter the full 6-digit code."
       );
       return;
     }
@@ -260,12 +262,12 @@ export default function EmailOtpModal({
   };
 
   const handleInputChange = (val: string) => {
-    const digitsOnly = val.replace(/\D/g, "").slice(0, 8);
+    const digitsOnly = val.replace(/\D/g, "").slice(0, 6);
     setOtpCode(digitsOnly);
     setErrorMsg(null);
 
-    // Auto-submit when user reaches 8 digits
-    if (digitsOnly.length === 8) {
+    // Auto-submit when user reaches exactly 6 digits
+    if (digitsOnly.length === 6) {
       handleVerify(digitsOnly);
     }
   };
@@ -359,8 +361,8 @@ export default function EmailOtpModal({
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
                 {isFrench
-                  ? "Un code de confirmation a été envoyé à :"
-                  : "A confirmation code was sent to:"}
+                  ? "Un code de confirmation à 6 chiffres a été envoyé à :"
+                  : "A 6-digit confirmation code was sent to:"}
                 <br />
                 <span className="font-semibold text-slate-900 dark:text-white break-all">
                   {email}
@@ -422,37 +424,112 @@ export default function EmailOtpModal({
               </div>
             )}
 
-            {/* 6 to 8 Digit Input with Keyboard One-Time-Code AutoFill */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {isFrench ? "Code de vérification (6 ou 8 chiffres)" : "Verification code (6 or 8 digits)"}
-              </label>
+            {/* 6-Digit Segmented PIN Input with Keyboard One-Time-Code AutoFill */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs px-1">
+                <label className="font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {isFrench ? "Code à 6 chiffres" : "6-digit code"}
+                </label>
+                <span className="text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">
+                  {otpCode.length} / 6
+                </span>
+              </div>
 
-              <div className="relative">
+              {/* Segmented 6-Box Pin Input */}
+              <div
+                onClick={() => inputRef.current?.focus()}
+                className="relative flex items-center justify-center gap-1.5 sm:gap-2.5 py-1.5 cursor-text select-none group"
+              >
+                {/* Accessible hidden input across all slots for 100% reliable typing & autofill */}
                 <input
                   ref={inputRef}
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   pattern="[0-9]*"
-                  maxLength={8}
+                  maxLength={6}
                   value={otpCode}
                   onChange={(e) => handleInputChange(e.target.value)}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={() => setIsInputFocused(false)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && otpCode.length >= 6) {
+                    if (e.key === "Enter" && otpCode.length === 6) {
                       e.preventDefault();
                       handleVerify();
                     }
                   }}
-                  placeholder="• • • • • • • •"
-                  className="w-full text-center text-2xl sm:text-3xl font-mono font-bold tracking-[0.25em] sm:tracking-[0.35em] py-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-700 focus:border-blue-600 dark:focus:border-blue-500 rounded-2xl text-slate-900 dark:text-white outline-none transition shadow-inner selection:bg-blue-500 selection:text-white"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-text z-10"
+                  aria-label={isFrench ? "Code de vérification à 6 chiffres" : "6-digit verification code"}
                 />
+
+                {/* Left 3 slots */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {[0, 1, 2].map((idx) => {
+                    const digit = otpCode[idx];
+                    const isFocused = isInputFocused && otpCode.length === idx;
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-11 h-14 sm:w-12 sm:h-16 rounded-2xl flex items-center justify-center font-mono text-2xl sm:text-3xl font-bold transition-all duration-150 ${
+                          isFocused
+                            ? "border-2 border-blue-600 dark:border-blue-500 bg-white dark:bg-slate-900 shadow-md shadow-blue-500/15 ring-4 ring-blue-500/10 scale-105"
+                            : digit
+                            ? "border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                            : "border-2 border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-300 dark:text-slate-700"
+                        }`}
+                      >
+                        {digit ? (
+                          <span className="animate-in zoom-in-50 duration-150 text-slate-900 dark:text-white">
+                            {digit}
+                          </span>
+                        ) : isFocused ? (
+                          <span className="w-0.5 h-6 sm:h-7 bg-blue-600 dark:bg-blue-400 animate-pulse rounded-full" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Middle Hyphen Separator */}
+                <span className="w-2 sm:w-3 h-0.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-0.5 sm:mx-1 shrink-0" />
+
+                {/* Right 3 slots */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {[3, 4, 5].map((idx) => {
+                    const digit = otpCode[idx];
+                    const isFocused = isInputFocused && (otpCode.length === idx || (otpCode.length === 6 && idx === 5));
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-11 h-14 sm:w-12 sm:h-16 rounded-2xl flex items-center justify-center font-mono text-2xl sm:text-3xl font-bold transition-all duration-150 ${
+                          isFocused
+                            ? "border-2 border-blue-600 dark:border-blue-500 bg-white dark:bg-slate-900 shadow-md shadow-blue-500/15 ring-4 ring-blue-500/10 scale-105"
+                            : digit
+                            ? "border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                            : "border-2 border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-300 dark:text-slate-700"
+                        }`}
+                      >
+                        {digit ? (
+                          <span className="animate-in zoom-in-50 duration-150 text-slate-900 dark:text-white">
+                            {digit}
+                          </span>
+                        ) : isFocused && otpCode.length < 6 ? (
+                          <span className="w-0.5 h-6 sm:h-7 bg-blue-600 dark:bg-blue-400 animate-pulse rounded-full" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
                 {isFrench
-                  ? "💡 Astuce : Sur mobile, votre clavier vous suggère automatiquement le code dès réception !"
-                  : "💡 Tip: On mobile, your keyboard will suggest the code automatically!"}
+                  ? "💡 Collez directement votre code ou saisissez-le chiffre par chiffre."
+                  : "💡 Paste your code directly or type it digit by digit."}
               </p>
             </div>
 
@@ -460,7 +537,7 @@ export default function EmailOtpModal({
             <button
               type="button"
               onClick={() => handleVerify()}
-              disabled={loading || sendingCode || otpCode.length < 6 || otpCode.length > 8}
+              disabled={loading || sendingCode || otpCode.length !== 6}
               className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
