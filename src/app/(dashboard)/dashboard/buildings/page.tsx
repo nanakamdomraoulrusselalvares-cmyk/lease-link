@@ -172,7 +172,7 @@ export default function BuildingsManagementPage() {
   };
 
   // Load Session and Buildings
-  const loadData = async () => {
+  const loadData = async (preserveOpenState = false) => {
     const supabase = createClient();
     try {
       const {
@@ -220,12 +220,10 @@ export default function BuildingsManagementPage() {
         console.warn("Could not load rent payments:", payErr);
       }
 
-      // Expand all buildings by default for direct inspection
-      const initialExpanded: Record<string, boolean> = {};
-      fetchedBuildings.forEach((b) => {
-        initialExpanded[b.id] = true;
-      });
-      setExpandedBuildingIds(initialExpanded);
+      // Collapse all buildings by default when opening the page
+      if (!preserveOpenState) {
+        setExpandedBuildingIds({});
+      }
     } catch (err) {
       console.error("Error loading buildings data:", err);
     } finally {
@@ -280,12 +278,18 @@ export default function BuildingsManagementPage() {
   const remainingQuota = Math.max(0, planUnitLimit - totalUnitsInPortfolio);
   const quotaPercentage = Math.min(100, Math.round((totalUnitsInPortfolio / planUnitLimit) * 100));
 
-  // Toggle building card expansion
+  // Toggle building card expansion with accordion behavior:
+  // Only one building open at a time; opening one automatically closes any other open building.
   const toggleExpand = (buildingId: string) => {
-    setExpandedBuildingIds((prev) => ({
-      ...prev,
-      [buildingId]: !prev[buildingId],
-    }));
+    setExpandedBuildingIds((prev) => {
+      const isCurrentlyOpen = !!prev[buildingId];
+      if (isCurrentlyOpen) {
+        // If clicking the one currently open, close it
+        return {};
+      }
+      // Open only this building, automatically closing any other open building
+      return { [buildingId]: true };
+    });
   };
 
   // Live Unit Generator Preview (simple unit naming preview, no floors)
@@ -518,7 +522,7 @@ export default function BuildingsManagementPage() {
       }
 
       // If standard specs update or unassignment
-      await loadData();
+      await loadData(true);
       setFormSuccess(
         isFrench
           ? `Logement "${unitForm.unit_number || editingUnit.unit_number}" mis à jour avec succès !`
