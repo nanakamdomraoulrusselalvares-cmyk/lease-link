@@ -1104,7 +1104,16 @@ function PaymentsContent() {
                     step="any"
                     min="1"
                     value={recordAmount}
-                    onChange={(e) => setRecordAmount(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.startsWith("-")) return;
+                      setRecordAmount(val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
+                    }}
                     placeholder={
                       isFrench
                         ? "ex. 40000, 20000, 13000..."

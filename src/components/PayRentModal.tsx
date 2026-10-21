@@ -418,8 +418,15 @@ export default function PayRentModal({
                   min="1"
                   value={amountInput}
                   onChange={(e) => {
-                    setAmountInput(e.target.value);
+                    const val = e.target.value;
+                    if (val.startsWith("-")) return;
+                    setAmountInput(val);
                     setErrorMsg(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "e" || e.key === "E") {
+                      e.preventDefault();
+                    }
                   }}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-13 pr-4 py-2.5 text-slate-900 dark:text-white font-mono font-bold text-base focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition shadow-sm"
                   placeholder={

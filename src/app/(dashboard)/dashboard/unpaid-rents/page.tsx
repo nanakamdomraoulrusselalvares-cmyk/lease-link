@@ -645,18 +645,67 @@ export default function UnpaidRentsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  {isFrench ? "Montant Perçu en Espèces (XAF) *" : "Cash Amount Received (XAF) *"}
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+                    {isFrench ? "Montant Perçu en Espèces (XAF) *" : "Cash Amount Received (XAF) *"}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setRecordAmount(recordTarget.balance_owing_current_month.toString())}
+                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                  >
+                    {isFrench ? "Solde total" : "Full balance"}
+                  </button>
+                </div>
                 <input
                   type="number"
                   required
                   min={1}
-                  step={500}
+                  step="any"
                   value={recordAmount}
-                  onChange={(e) => setRecordAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.startsWith("-")) return;
+                    setRecordAmount(val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "e" || e.key === "E") {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder={isFrench ? "ex. 20000, 35000, 50000..." : "e.g. 20000, 35000, 50000..."}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-base font-bold font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                 />
+
+                {/* Real-time partial vs full payment feedback */}
+                {(() => {
+                  const numAmt = parseFloat(recordAmount) || 0;
+                  if (numAmt <= 0) return null;
+                  const remaining = recordTarget.balance_owing_current_month - numAmt;
+                  if (remaining > 0) {
+                    return (
+                      <p className="mt-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <span>⚠️</span>
+                        <span>
+                          {isFrench
+                            ? `Paiement partiel : Il restera ${remaining.toLocaleString()} XAF à régler.`
+                            : `Partial payment: Remaining balance will be ${remaining.toLocaleString()} XAF.`}
+                        </span>
+                      </p>
+                    );
+                  } else {
+                    return (
+                      <p className="mt-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <span>✓</span>
+                        <span>
+                          {isFrench
+                            ? "Paiement intégral : Le solde du locataire sera 100% soldé."
+                            : "Full payment: Tenant's balance will be 100% settled."}
+                        </span>
+                      </p>
+                    );
+                  }
+                })()}
               </div>
 
               <div>
