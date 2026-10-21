@@ -101,7 +101,7 @@ export default function BuildingsManagementPage() {
     address: "",
     city: "",
     state_region: "",
-    property_type: "apartment",
+    property_type: "commercial",
     total_units: "",
     unit_prefix: "Unit",
     description: "",
@@ -400,7 +400,7 @@ export default function BuildingsManagementPage() {
         address: "",
         city: "",
         state_region: "",
-        property_type: "apartment",
+        property_type: "commercial",
         total_units: "",
         unit_prefix: "Unit",
         description: "",
@@ -535,6 +535,23 @@ export default function BuildingsManagementPage() {
       setUnitEditError(msg);
     } finally {
       setSavingUnit(false);
+    }
+  };
+
+  // Format property type for display
+  const formatPropertyType = (type?: string | null) => {
+    switch (type) {
+      case "commercial":
+        return isFrench ? "Bâtiment Commercial" : "Commercial Building";
+      case "residential":
+      case "apartment":
+      case "duplex":
+        return isFrench ? "Bâtiment Résidentiel" : "Residential Building";
+      case "mixed_use":
+        return isFrench ? "Les Deux Bâtiments" : "Both Buildings";
+      case "other":
+      default:
+        return isFrench ? "Autre Propriété" : "Other Property";
     }
   };
 
@@ -942,20 +959,14 @@ export default function BuildingsManagementPage() {
                     }
                     className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition cursor-pointer"
                   >
-                    <option value="apartment">
-                      {isFrench ? "🏢 Immeuble d'Appartements" : "🏢 Apartment Complex"}
-                    </option>
-                    <option value="residential">
-                      {isFrench ? "🏘️ Résidentiel Multifamilial" : "🏘️ Multi-Family Residential"}
-                    </option>
-                    <option value="duplex">
-                      {isFrench ? "🏠 Duplex / Triplex" : "🏠 Duplex / Triplex"}
-                    </option>
                     <option value="commercial">
                       {isFrench ? "🏬 Bâtiment Commercial" : "🏬 Commercial Building"}
                     </option>
+                    <option value="residential">
+                      {isFrench ? "🏘️ Bâtiment Résidentiel" : "🏘️ Residential Building"}
+                    </option>
                     <option value="mixed_use">
-                      {isFrench ? "🏗️ Complexe Mixte" : "🏗️ Mixed-Use Complex"}
+                      {isFrench ? "🏗️ Les Deux Bâtiments" : "🏗️ Both Buildings"}
                     </option>
                     <option value="other">
                       {isFrench ? "📌 Autre Propriété" : "📌 Other Property"}
@@ -1340,8 +1351,8 @@ export default function BuildingsManagementPage() {
                           <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                             {building.name}
                           </h3>
-                          <span className="text-[11px] uppercase tracking-wider font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
-                            {building.property_type}
+                          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
+                            {formatPropertyType(building.property_type)}
                           </span>
                         </div>
 

@@ -288,12 +288,12 @@ export interface LandlordProfile {
 export type UnitStatus = 'vacant' | 'occupied' | 'maintenance';
 
 export type PropertyType =
-  | 'apartment'
-  | 'residential'
   | 'commercial'
+  | 'residential'
   | 'mixed_use'
-  | 'duplex'
-  | 'other';
+  | 'other'
+  | 'apartment'
+  | 'duplex';
 
 export interface Building {
   id: string;
