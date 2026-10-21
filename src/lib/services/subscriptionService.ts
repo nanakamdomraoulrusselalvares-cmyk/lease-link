@@ -146,6 +146,21 @@ export async function processSubscriptionPayment(
       notes,
     } = input;
 
+    // Security check: verify that managers cannot upgrade subscription plans
+    const supabase = createClient();
+    const { data: profileCheck } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", landlordId)
+      .maybeSingle();
+
+    if (profileCheck?.role === "manager") {
+      return {
+        success: false,
+        error: "Managers are not authorized to upgrade subscription plans. Only the landlord can manage subscriptions.",
+      };
+    }
+
     const pricing = getSubscriptionPlanPricing(planId, billingCycle);
     const now = new Date();
     const expiresAt = new Date(
@@ -187,7 +202,6 @@ export async function processSubscriptionPayment(
     };
 
     // 1. Update Supabase Profile
-    const supabase = createClient();
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const isMock = !url || url.includes("your-project-ref");
 

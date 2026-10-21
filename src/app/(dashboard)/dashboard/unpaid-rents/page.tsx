@@ -41,6 +41,8 @@ import {
   User,
   ExternalLink,
   ShieldCheck,
+  Plus,
+  Minus,
 } from "lucide-react";
 
 export default function UnpaidRentsPage() {
@@ -176,9 +178,25 @@ export default function UnpaidRentsPage() {
   // Open modal to record cash payment
   const openRecordModal = (tenant: TenantRentStatus) => {
     setRecordTarget(tenant);
-    setRecordAmount(tenant.balance_owing_current_month.toString());
     setRecordMonthsCount(1);
+    const owingThisMonth = Math.max(0, Number(tenant.balance_owing_current_month || 0));
+    setRecordAmount(owingThisMonth > 0 ? owingThisMonth.toString() : Number(tenant.monthly_rent || 0).toString());
     setRecordNotes("");
+  };
+
+  // Automatically increment amount when months count changes
+  const handleMonthsChange = (newCount: number) => {
+    const safeCount = Math.max(1, Math.min(12, newCount));
+    setRecordMonthsCount(safeCount);
+    if (recordTarget) {
+      const monthlyRent = Number(recordTarget.monthly_rent || 0);
+      const owingThisMonth = Math.max(0, Number(recordTarget.balance_owing_current_month || 0));
+      const calculatedTotal =
+        safeCount === 1
+          ? owingThisMonth
+          : owingThisMonth + monthlyRent * (safeCount - 1);
+      setRecordAmount(calculatedTotal.toString());
+    }
   };
 
   // Submit cash collection
@@ -608,157 +626,278 @@ export default function UnpaidRentsPage() {
       {/* ========================================================================= */}
       {/* RECORD CASH PAYMENT MODAL                                                 */}
       {/* ========================================================================= */}
-      {recordTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/20">
-                  <DollarSign className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    {isFrench ? "Enregistrer Paiement en Espèces" : "Record Physical Cash Payment"}
+      {/* CASH PAYMENT RECORDING MODAL (MANAGER CASH COLLECTION)                    */}
+      {/* ========================================================================= */}
+      {recordTarget && (() => {
+        const targetMonths = getUpcomingRentMonths(recordMonthsCount);
+        const periodLabel =
+          recordMonthsCount > 1
+            ? `${targetMonths[0]} – ${targetMonths[recordMonthsCount - 1]} (${recordMonthsCount} ${
+                isFrench ? "Mois" : "Months"
+              })`
+            : targetMonths[0] || currentMonth;
+
+        const monthlyRent = Number(recordTarget.monthly_rent || 0);
+        const owingThisMonth = Math.max(0, Number(recordTarget.balance_owing_current_month || 0));
+        const totalPeriodExpected =
+          recordMonthsCount === 1
+            ? owingThisMonth
+            : owingThisMonth + monthlyRent * (recordMonthsCount - 1);
+
+        const numericAmount = parseFloat(recordAmount) || 0;
+        const willBeFullyPaid =
+          totalPeriodExpected > 0
+            ? numericAmount >= totalPeriodExpected
+            : numericAmount > 0;
+        const balanceAfterPayment = Math.max(0, totalPeriodExpected - numericAmount);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in">
+            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 animate-in zoom-in-95">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    {isFrench
+                      ? "Enregistrer un Paiement en Espèces"
+                      : "Record Physical Cash Payment"}
                   </h3>
-                  <span className="text-[11px] text-slate-500 block">
-                    {recordTarget.tenant_name} • {recordTarget.unit_number} ({recordTarget.building_name})
-                  </span>
                 </div>
+                <button
+                  onClick={() => setRecordTarget(null)}
+                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              <button
-                onClick={() => setRecordTarget(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+              <form onSubmit={handleRecordPayment} className="p-6 space-y-4 text-xs">
+                {/* Tenant & Property Overview Strip */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">
+                      {isFrench ? "Locataire & Logement" : "Tenant & Apartment"}
+                    </span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                      {monthlyRent.toLocaleString()} XAF / {isFrench ? "mois" : "month"}
+                    </span>
+                  </div>
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">{recordTarget.tenant_name}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs">
+                    {recordTarget.building_name} • {isFrench ? "Logement" : "Unit"}{" "}
+                    {recordTarget.unit_number}
+                    {recordTarget.tenant_phone && ` • ${recordTarget.tenant_phone}`}
+                  </p>
+                  {owingThisMonth > 0 && (
+                    <p className="text-amber-600 dark:text-amber-400 font-medium text-[11px] pt-0.5">
+                      {isFrench
+                        ? `Solde dû pour le mois en cours : ${owingThisMonth.toLocaleString()} XAF`
+                        : `Current Month Balance Due: ${owingThisMonth.toLocaleString()} XAF`}
+                    </p>
+                  )}
+                </div>
 
-            <form onSubmit={handleRecordPayment} className="space-y-4 text-xs">
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex justify-between items-center">
-                <span className="text-amber-900 dark:text-amber-300 font-medium">
-                  {isFrench ? "Solde actuel restant à régler :" : "Current balance owed:"}
-                </span>
-                <span className="font-mono font-black text-amber-900 dark:text-amber-300 text-sm">
-                  {recordTarget.balance_owing_current_month.toLocaleString()} XAF
-                </span>
-              </div>
+                {/* MULTI-MONTH RENT SELECTOR */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>
+                          {isFrench
+                            ? "Nombre de mois réglés par le locataire :"
+                            : "Number of Months Tenant is Paying:"}
+                        </span>
+                      </label>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {isFrench
+                          ? "Par défaut 1 mois. Vous pouvez ajouter des mois futurs si le locataire avance son loyer."
+                          : "Default is 1 month. You can add future months if tenant is advancing."}
+                      </p>
+                    </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block">
-                    {isFrench ? "Montant Perçu en Espèces (XAF) *" : "Cash Amount Received (XAF) *"}
+                    {/* Stepper */}
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl p-1">
+                      <button
+                        type="button"
+                        disabled={recordMonthsCount <= 1}
+                        onClick={() => handleMonthsChange(recordMonthsCount - 1)}
+                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
+                        title={isFrench ? "Diminuer d'un mois" : "Decrease month"}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="px-2 font-mono font-bold text-xs text-blue-600 dark:text-blue-400 min-w-[55px] text-center">
+                        {recordMonthsCount}{" "}
+                        {recordMonthsCount === 1
+                          ? isFrench
+                            ? "Mois"
+                            : "Month"
+                          : isFrench
+                          ? "Mois"
+                          : "Months"}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={recordMonthsCount >= 12}
+                        onClick={() => handleMonthsChange(recordMonthsCount + 1)}
+                        className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
+                        title={isFrench ? "Ajouter un mois" : "Add another month"}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Preset Month Chips */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    {[1, 2, 3, 6, 12].map((cnt) => (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => handleMonthsChange(cnt)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border ${
+                          recordMonthsCount === cnt
+                            ? "bg-blue-600 text-white border-blue-500 shadow-sm"
+                            : "bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800"
+                        }`}
+                      >
+                        {cnt === 1
+                          ? isFrench
+                            ? "1 Mois (Actuel)"
+                            : "1 Month (Current)"
+                          : `${cnt} ${isFrench ? "Mois" : "Months"}`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Period & Total Expected Indicator */}
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {isFrench ? "Période couverte :" : "Period Covered:"}{" "}
+                      <strong className="text-slate-900 dark:text-white">{periodLabel}</strong>
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">
+                      {isFrench ? "Attendu :" : "Expected:"}{" "}
+                      <strong className="text-slate-900 dark:text-white font-bold">
+                        {totalPeriodExpected.toLocaleString()} XAF
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Amount Received Input */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                      {isFrench
+                        ? "Montant remis en mains propres / Reçu (XAF) :"
+                        : "Amount Handed Over / Received (XAF):"}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setRecordAmount(String(totalPeriodExpected))}
+                      className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 font-semibold cursor-pointer"
+                    >
+                      {isFrench
+                        ? `Remplir montant attendu (${totalPeriodExpected.toLocaleString()} XAF)`
+                        : `Fill Standard Total (${totalPeriodExpected.toLocaleString()} XAF)`}
+                    </button>
+                  </div>
+
+                  <input
+                    type="number"
+                    step="any"
+                    min="1"
+                    value={recordAmount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.startsWith("-")) return;
+                      setRecordAmount(val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
+                    }}
+                    placeholder={
+                      isFrench
+                        ? "ex. 40000, 20000, 13000..."
+                        : "e.g. 40000, 20000, 13000..."
+                    }
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition"
+                    autoFocus
+                    required
+                  />
+
+                  {/* Real-Time Status Change Preview */}
+                  {numericAmount > 0 && (
+                    <div
+                      className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                        willBeFullyPaid
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                          : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300"
+                      }`}
+                    >
+                      {willBeFullyPaid ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>
+                            {isFrench
+                              ? "✓ Ce paiement soldera intégralement le loyer pour cette période."
+                              : "✓ This payment will settle the rent 100% in full for this period."}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>
+                            {isFrench
+                              ? `Paiement partiel : Il restera ${balanceAfterPayment.toLocaleString()} XAF à régler.`
+                              : `Partial payment: Remaining balance will be ${balanceAfterPayment.toLocaleString()} XAF.`}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    {isFrench ? "Notes ou Remarques du Gestionnaire (Facultatif)" : "Manager Notes (Optional)"}
                   </label>
+                  <input
+                    type="text"
+                    placeholder={isFrench ? "ex. Remis en mains propres à la conciergerie" : "e.g. Handed over at manager desk"}
+                    value={recordNotes}
+                    onChange={(e) => setRecordNotes(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setRecordAmount(recordTarget.balance_owing_current_month.toString())}
-                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                    onClick={() => setRecordTarget(null)}
+                    className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                   >
-                    {isFrench ? "Solde total" : "Full balance"}
+                    {isFrench ? "Annuler" : "Cancel"}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingRecord}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition shadow-md shadow-blue-600/25 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingRecord
+                      ? isFrench ? "Enregistrement..." : "Recording..."
+                      : isFrench ? "Valider & Générer Quittance" : "Confirm & Issue Receipt"}
                   </button>
                 </div>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  step="any"
-                  value={recordAmount}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.startsWith("-")) return;
-                    setRecordAmount(val);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "-" || e.key === "e" || e.key === "E") {
-                      e.preventDefault();
-                    }
-                  }}
-                  placeholder={isFrench ? "ex. 20000, 35000, 50000..." : "e.g. 20000, 35000, 50000..."}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-base font-bold font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
-                />
-
-                {/* Real-time partial vs full payment feedback */}
-                {(() => {
-                  const numAmt = parseFloat(recordAmount) || 0;
-                  if (numAmt <= 0) return null;
-                  const remaining = recordTarget.balance_owing_current_month - numAmt;
-                  if (remaining > 0) {
-                    return (
-                      <p className="mt-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                        <span>⚠️</span>
-                        <span>
-                          {isFrench
-                            ? `Paiement partiel : Il restera ${remaining.toLocaleString()} XAF à régler.`
-                            : `Partial payment: Remaining balance will be ${remaining.toLocaleString()} XAF.`}
-                        </span>
-                      </p>
-                    );
-                  } else {
-                    return (
-                      <p className="mt-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <span>✓</span>
-                        <span>
-                          {isFrench
-                            ? "Paiement intégral : Le solde du locataire sera 100% soldé."
-                            : "Full payment: Tenant's balance will be 100% settled."}
-                        </span>
-                      </p>
-                    );
-                  }
-                })()}
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  {isFrench ? "Nombre de Mois Couverts" : "Number of Months Covered"}
-                </label>
-                <select
-                  value={recordMonthsCount}
-                  onChange={(e) => setRecordMonthsCount(parseInt(e.target.value) || 1)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value={1}>{isFrench ? "1 Mois (Mois en cours)" : "1 Month (Current Month)"}</option>
-                  <option value={2}>2 Mois</option>
-                  <option value={3}>3 Mois (Trimestre)</option>
-                  <option value={6}>6 Mois (Semestre)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  {isFrench ? "Notes ou Remarques du Gestionnaire (Facultatif)" : "Manager Notes (Optional)"}
-                </label>
-                <input
-                  type="text"
-                  placeholder={isFrench ? "ex. Remis en mains propres à la conciergerie" : "e.g. Handed over at manager desk"}
-                  value={recordNotes}
-                  onChange={(e) => setRecordNotes(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setRecordTarget(null)}
-                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                >
-                  {isFrench ? "Annuler" : "Cancel"}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingRecord}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition shadow-md shadow-blue-600/25 disabled:opacity-50 cursor-pointer"
-                >
-                  {isSubmittingRecord
-                    ? isFrench ? "Enregistrement..." : "Recording..."
-                    : isFrench ? "Valider & Générer Quittance" : "Confirm & Issue Receipt"}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* CASH PAYMENT CONFIRMATION TOAST / NOTIFICATION                            */}

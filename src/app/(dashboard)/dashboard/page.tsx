@@ -584,14 +584,20 @@ export default function LandlordHomePage() {
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowSubscriptionModal(true)}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm shadow-blue-500/25 transition cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-blue-200" />
-                <span>{isFrench ? "Changer / Payer l'Abonnement" : "Upgrade / Pay Subscription"}</span>
-              </button>
+              {profile?.role !== "manager" ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSubscriptionModal(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm shadow-blue-500/25 transition cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-blue-200" />
+                  <span>{isFrench ? "Changer / Payer l'Abonnement" : "Upgrade / Pay Subscription"}</span>
+                </button>
+              ) : (
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                  {isFrench ? "Abonnement géré par le Bailleur" : "Subscription managed by Landlord"}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1140,15 +1146,17 @@ export default function LandlordHomePage() {
         </div>
       )}
 
-      {/* Subscription Payment & Upgrade Modal */}
-      <SubscriptionPaymentModal
-        isOpen={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-        profile={profile}
-        onSubscriptionUpdated={() => {
-          fetchSessionAndProfile();
-        }}
-      />
+      {/* Subscription Payment & Upgrade Modal (Landlord only) */}
+      {profile?.role !== "manager" && (
+        <SubscriptionPaymentModal
+          isOpen={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+          profile={profile}
+          onSubscriptionUpdated={() => {
+            fetchSessionAndProfile();
+          }}
+        />
+      )}
     </div>
   );
 }

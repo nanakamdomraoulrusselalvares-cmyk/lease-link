@@ -106,9 +106,25 @@ function PaymentsContent() {
   const openRecordModal = (tenant: TenantRentStatus) => {
     setRecordTarget(tenant);
     setRecordMonthsCount(1);
-    setRecordAmount(""); // Comes empty with no default numbers
+    const owingThisMonth = Math.max(0, Number(tenant.balance_owing_current_month || 0));
+    setRecordAmount(owingThisMonth > 0 ? owingThisMonth.toString() : Number(tenant.monthly_rent || 0).toString());
     setRecordMethod("cash");
     setRecordNotes("");
+  };
+
+  // Automatically increment amount when months count changes based on rent amount
+  const handleMonthsChange = (newCount: number, target = recordTarget) => {
+    const safeCount = Math.max(1, Math.min(12, newCount));
+    setRecordMonthsCount(safeCount);
+    if (target) {
+      const monthlyRent = Number(target.monthly_rent || 0);
+      const owingThisMonth = Math.max(0, Number(target.balance_owing_current_month || 0));
+      const calculatedTotal =
+        safeCount === 1
+          ? owingThisMonth
+          : owingThisMonth + monthlyRent * (safeCount - 1);
+      setRecordAmount(calculatedTotal.toString());
+    }
   };
 
   // Load session, buildings, and payment status summary
@@ -1010,9 +1026,7 @@ function PaymentsContent() {
                       <button
                         type="button"
                         disabled={recordMonthsCount <= 1}
-                        onClick={() =>
-                          setRecordMonthsCount((prev) => Math.max(1, prev - 1))
-                        }
+                        onClick={() => handleMonthsChange(recordMonthsCount - 1)}
                         className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
                         title={isFrench ? "Diminuer d'un mois" : "Decrease month"}
                       >
@@ -1031,9 +1045,7 @@ function PaymentsContent() {
                       <button
                         type="button"
                         disabled={recordMonthsCount >= 12}
-                        onClick={() =>
-                          setRecordMonthsCount((prev) => Math.min(12, prev + 1))
-                        }
+                        onClick={() => handleMonthsChange(recordMonthsCount + 1)}
                         className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 dark:text-white flex items-center justify-center transition cursor-pointer text-xs"
                         title={isFrench ? "Ajouter un mois" : "Add another month"}
                       >
@@ -1048,7 +1060,7 @@ function PaymentsContent() {
                       <button
                         key={cnt}
                         type="button"
-                        onClick={() => setRecordMonthsCount(cnt)}
+                        onClick={() => handleMonthsChange(cnt)}
                         className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border ${
                           recordMonthsCount === cnt
                             ? "bg-blue-600 text-white border-blue-500 shadow-sm"

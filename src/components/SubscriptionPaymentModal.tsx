@@ -55,7 +55,8 @@ export default function SubscriptionPaymentModal({
   const [successRecord, setSuccessRecord] = useState<SubscriptionPaymentRecord | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  // Guard: If modal is not open or if user is a manager, do not render modal
+  if (!isOpen || profile?.role === "manager") return null;
 
   const currentPricing = getSubscriptionPlanPricing(selectedPlanId, billingCycle);
 

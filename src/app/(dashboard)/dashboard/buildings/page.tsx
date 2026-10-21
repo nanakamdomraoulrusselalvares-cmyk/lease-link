@@ -824,15 +824,21 @@ export default function BuildingsManagementPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              id="upgrade-subscription-card-btn"
-              onClick={() => setShowSubscriptionModal(true)}
-              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>{isFrench ? "Augmenter mon forfait" : "Upgrade Plan"}</span>
-            </button>
+            {profile?.role !== "manager" ? (
+              <button
+                type="button"
+                id="upgrade-subscription-card-btn"
+                onClick={() => setShowSubscriptionModal(true)}
+                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>{isFrench ? "Augmenter mon forfait" : "Upgrade Plan"}</span>
+              </button>
+            ) : (
+              <div className="mt-3 text-[11px] text-center text-slate-500 dark:text-slate-400 font-semibold py-1">
+                {isFrench ? "Abonnement géré par le Bailleur" : "Subscription managed by Landlord"}
+              </div>
+            )}
           </div>
         </div>
 
@@ -884,18 +890,24 @@ export default function BuildingsManagementPage() {
                 {(formError.includes("Capacité") || formError.includes("capacity") || formError.includes("limit") || formError.includes("Limite") || formError.includes("forfait")) && (
                   <div className="pt-2 border-t border-rose-200 dark:border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <span className="text-xs text-rose-700 dark:text-rose-300 font-medium">
-                      {isFrench
+                      {profile?.role === "manager"
+                        ? isFrench
+                          ? "Veuillez contacter le bailleur pour augmenter la capacité du forfait."
+                          : "Please contact the landlord to upgrade the subscription capacity."
+                        : isFrench
                         ? "Passez à la formule supérieure sans interruption ni perte de données."
                         : "Upgrade to a higher tier with instant access and zero data loss."}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowSubscriptionModal(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition cursor-pointer self-start sm:self-auto"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                      <span>{isFrench ? "Augmenter mon forfait maintenant" : "Upgrade Plan Now"}</span>
-                    </button>
+                    {profile?.role !== "manager" && (
+                      <button
+                        type="button"
+                        onClick={() => setShowSubscriptionModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition cursor-pointer self-start sm:self-auto"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{isFrench ? "Augmenter mon forfait maintenant" : "Upgrade Plan Now"}</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -910,20 +922,26 @@ export default function BuildingsManagementPage() {
                       {isFrench ? `Capacité maximale atteinte (${planUnitLimit} logements max)` : `Maximum capacity reached (${planUnitLimit} max units)`}
                     </span>
                     <span>
-                      {isFrench
+                      {profile?.role === "manager"
+                        ? isFrench
+                          ? "La capacité maximale du forfait du bailleur a été atteinte. Veuillez contacter le propriétaire bailleur pour ajouter plus de logements."
+                          : "The landlord's maximum plan capacity has been reached. Please contact the landlord to unlock more units."
+                        : isFrench
                         ? "Augmentez votre forfait pour débloquer la création de nouveaux logements. Vos bâtiments, logements, locataires et paiements actuels restent 100% conservés et intacts."
                         : "Upgrade your plan to unlock more units. All your current buildings, units, tenants, and payment records remain 100% preserved and intact."}
                     </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSubscriptionModal(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0 self-start sm:self-auto"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>{isFrench ? "Débloquer plus de logements" : "Unlock More Units"}</span>
-                </button>
+                {profile?.role !== "manager" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0 self-start sm:self-auto"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span>{isFrench ? "Débloquer plus de logements" : "Unlock More Units"}</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -2274,16 +2292,18 @@ export default function BuildingsManagementPage() {
         </div>
       )}
 
-      {/* Subscription Upgrade Modal */}
-      <SubscriptionPaymentModal
-        isOpen={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-        profile={profile}
-        onSubscriptionUpdated={async () => {
-          await loadData();
-          setShowSubscriptionModal(false);
-        }}
-      />
+      {/* Subscription Upgrade Modal - Landlords only */}
+      {profile?.role !== "manager" && (
+        <SubscriptionPaymentModal
+          isOpen={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+          profile={profile}
+          onSubscriptionUpdated={async () => {
+            await loadData();
+            setShowSubscriptionModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
