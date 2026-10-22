@@ -13,6 +13,7 @@ import {
   MaintenanceRequest,
   SubscriptionPlanId,
   AVAILABLE_PLANS,
+  resolvePlanConfig,
 } from "@/types/database";
 
 const LOCAL_STORAGE_PROFILES_KEY = "leaselink_mock_profiles";
@@ -143,11 +144,12 @@ export async function getAdminPlatformStats(): Promise<AdminStats> {
       tier_1_30: 0,
       tier_31_60: 0,
       tier_61_100: 0,
+      tier_100_plus: 0,
     };
 
     landlords.forEach((l) => {
-      const plan = l.plan || "free";
-      planDistribution[plan] = (planDistribution[plan] || 0) + 1;
+      const cfg = resolvePlanConfig(l.plan);
+      planDistribution[cfg.id] = (planDistribution[cfg.id] || 0) + 1;
     });
 
     return {
@@ -184,7 +186,7 @@ export async function getAdminPlatformStats(): Promise<AdminStats> {
       total_maintenance_requests: 0,
       pending_maintenance_requests: 0,
       emergency_maintenance_requests: 0,
-      plan_distribution: { free: 0, tier_1_30: 0, tier_31_60: 0, tier_61_100: 0 },
+      plan_distribution: { free: 0, tier_1_30: 0, tier_31_60: 0, tier_61_100: 0, tier_100_plus: 0 },
       cash_volume_xaf: 0,
       digital_volume_xaf: 0,
     };
@@ -466,8 +468,8 @@ export async function updateLandlordPlanAdmin(
   durationDays: number = 30
 ): Promise<boolean> {
   const supabase = createClient();
-  const planConfig =
-    AVAILABLE_PLANS.find((p) => p.id === planId) || AVAILABLE_PLANS[0];
+  const planConfig = resolvePlanConfig(planId);
+  const resolvedPlanId = planConfig.id;
 
   const now = new Date();
   const expiresAt = new Date(
@@ -480,14 +482,19 @@ export async function updateLandlordPlanAdmin(
     const { error } = await supabase
       .from("profiles")
       .update({
-        plan: planId,
+        plan: resolvedPlanId,
         plan_name: planConfig.name,
         billing_cycle: billingCycle,
         plan_unit_limit: planConfig.maxUnits,
+        unit_limit: planConfig.maxUnits,
         plan_duration_days: durationDays,
         plan_status: "active",
+        subscription_status: "active",
+        has_used_free_trial: true,
+        has_used_trial: true,
         plan_starts_at: now.toISOString(),
         plan_expires_at: expiresAt.toISOString(),
+        subscription_expires_at: expiresAt.toISOString(),
         updated_at: now.toISOString(),
       })
       .eq("id", landlordId);
@@ -495,6 +502,34 @@ export async function updateLandlordPlanAdmin(
     if (error) {
       console.warn("Supabase updateLandlordPlanAdmin error:", error);
     }
+
+    // Insert audit record into subscriptions table
+    try {
+      const receiptNumber = `ADM-SUB-${now.getFullYear()}-${Math.floor(
+        100000 + Math.random() * 900000
+      )}`;
+      await supabase.from("subscriptions").insert([
+        {
+          receipt_number: receiptNumber,
+          landlord_id: landlordId,
+          plan_id: resolvedPlanId,
+          plan_name: planConfig.name,
+          billing_cycle: billingCycle,
+          amount_paid:
+            billingCycle === "annual"
+              ? planConfig.annualPrice || planConfig.monthlyPrice * 12
+              : planConfig.monthlyPrice,
+          payment_method: "cash",
+          transaction_ref: `ADM-ALLOC-${Date.now()}`,
+          duration_days: durationDays,
+          starts_at: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
+          status: "completed",
+          notes: "Admin plan assignment",
+          created_at: now.toISOString(),
+        },
+      ]);
+    } catch (_) {}
 
     // Also update local storage if available
     if (typeof window !== "undefined") {
@@ -506,13 +541,16 @@ export async function updateLandlordPlanAdmin(
           if (idx !== -1) {
             list[idx] = {
               ...list[idx],
-              plan: planId,
+              plan: resolvedPlanId,
               plan_name: planConfig.name,
               plan_unit_limit: planConfig.maxUnits,
+              unit_limit: planConfig.maxUnits,
               plan_duration_days: durationDays,
               plan_status: "active",
+              subscription_status: "active",
               plan_starts_at: now.toISOString(),
               plan_expires_at: expiresAt.toISOString(),
+              subscription_expires_at: expiresAt.toISOString(),
             };
             localStorage.setItem(
               LOCAL_STORAGE_PROFILES_KEY,
@@ -520,6 +558,41 @@ export async function updateLandlordPlanAdmin(
             );
           }
         }
+
+        // Sync cached dashboard state
+        const rawDashboard = localStorage.getItem("leaselink_cached_dashboard");
+        if (rawDashboard) {
+          try {
+            const parsedDash = JSON.parse(rawDashboard);
+            if (parsedDash.profile && parsedDash.profile.id === landlordId) {
+              parsedDash.profile = {
+                ...parsedDash.profile,
+                plan: resolvedPlanId,
+                plan_name: planConfig.name,
+                plan_unit_limit: planConfig.maxUnits,
+                unit_limit: planConfig.maxUnits,
+                plan_status: "active",
+                subscription_status: "active",
+                plan_starts_at: now.toISOString(),
+                plan_expires_at: expiresAt.toISOString(),
+                subscription_expires_at: expiresAt.toISOString(),
+              };
+              localStorage.setItem("leaselink_cached_dashboard", JSON.stringify(parsedDash));
+            }
+          } catch (_) {}
+        }
+
+        // Broadcast subscription update event
+        window.dispatchEvent(
+          new CustomEvent("leaselink:subscription_updated", {
+            detail: {
+              landlordId,
+              planId: resolvedPlanId,
+              planConfig,
+              unitLimit: planConfig.maxUnits,
+            },
+          })
+        );
       } catch (_) {}
     }
 

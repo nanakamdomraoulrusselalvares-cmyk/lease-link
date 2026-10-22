@@ -9,6 +9,7 @@ import {
   AVAILABLE_PLANS,
   SubscriptionPlanId,
   BillingCycle,
+  resolvePlanConfig,
 } from "@/types/database";
 import { notifyNewLandlordRegistered } from "@/lib/services/notificationService";
 import {
@@ -50,9 +51,12 @@ function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  // Default to Free Trial Plan (up to 5 units, 30 days)
-  const selectedPlan: SubscriptionPlanId = "free";
-  const billingCycle: BillingCycle = "monthly";
+  // Plan & Billing cycle state (handles ?plan=starter, ?plan=tier_1_30, etc.)
+  const urlPlan = searchParams.get("plan");
+  const urlCycle = searchParams.get("cycle");
+  const initialPlanConfig = resolvePlanConfig(urlPlan || "free");
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>(initialPlanConfig.id);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(urlCycle === "annual" ? "annual" : "monthly");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
 
@@ -68,10 +72,17 @@ function RegisterForm() {
   const [initialOtpToken, setInitialOtpToken] = useState("");
   const [initialDevCode, setInitialDevCode] = useState("");
 
-  // Handle URL params (pre-fill email or trigger existing account warning)
+  // Handle URL params (pre-fill email, plan selection or trigger existing account warning)
   useEffect(() => {
     if (urlEmail && !email) {
       setEmail(urlEmail);
+    }
+    if (urlPlan) {
+      const cfg = resolvePlanConfig(urlPlan);
+      setSelectedPlan(cfg.id);
+    }
+    if (urlCycle === "annual" || urlCycle === "monthly") {
+      setBillingCycle(urlCycle);
     }
     if (urlError === "account_exists") {
       setIsEmailDuplicate(true);
@@ -81,7 +92,7 @@ function RegisterForm() {
           : "A LeaseLink account is already associated with this Google address. Please log in below."
       );
     }
-  }, [urlEmail, urlError]);
+  }, [urlEmail, urlError, urlPlan, urlCycle]);
 
   // Real-time check on blur to inform user immediately
   const handleEmailBlur = async () => {
@@ -354,6 +365,23 @@ function RegisterForm() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 py-8 px-6 shadow-xl dark:shadow-2xl rounded-2xl sm:px-10">
+          {selectedPlan && selectedPlan !== "free" && (
+            <div className="mb-6 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="text-slate-700 dark:text-slate-300">
+                  {isFrench ? "Formule sélectionnée :" : "Selected Plan:"}{" "}
+                  <strong className="text-blue-700 dark:text-blue-300 font-bold">
+                    {resolvePlanConfig(selectedPlan).name} ({resolvePlanConfig(selectedPlan).unitRange})
+                  </strong>
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shrink-0">
+                {billingCycle === "annual" ? (isFrench ? "Annuel" : "Annual") : (isFrench ? "Mensuel" : "Monthly")}
+              </span>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />

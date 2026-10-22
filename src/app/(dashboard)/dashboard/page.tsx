@@ -10,6 +10,7 @@ import {
   SubscriptionPlanId,
   Building,
   MaintenanceRequest,
+  resolvePlanConfig,
 } from "@/types/database";
 import { getBuildingsWithUnits } from "@/lib/services/buildingService";
 import {
@@ -117,9 +118,33 @@ export default function LandlordHomePage() {
 
       let effectiveLandlordId = authUser.id;
       if (!profileError && profileData) {
-        setProfile(profileData as LandlordProfile);
         if (profileData.role === "manager" && profileData.landlord_id) {
           effectiveLandlordId = profileData.landlord_id;
+          try {
+            const { data: landlordData } = await supabase
+              .from("profiles")
+              .select("plan, plan_name, plan_unit_limit, unit_limit, plan_status, subscription_status, billing_cycle, plan_expires_at")
+              .eq("id", profileData.landlord_id)
+              .maybeSingle();
+
+            if (landlordData) {
+              setProfile({
+                ...profileData,
+                plan: landlordData.plan || profileData.plan,
+                plan_name: landlordData.plan_name || profileData.plan_name,
+                plan_unit_limit: landlordData.plan_unit_limit || landlordData.unit_limit || profileData.plan_unit_limit,
+                plan_status: landlordData.plan_status || profileData.plan_status,
+                billing_cycle: landlordData.billing_cycle || profileData.billing_cycle,
+                plan_expires_at: landlordData.plan_expires_at || profileData.plan_expires_at,
+              } as LandlordProfile);
+            } else {
+              setProfile(profileData as LandlordProfile);
+            }
+          } catch (_) {
+            setProfile(profileData as LandlordProfile);
+          }
+        } else {
+          setProfile(profileData as LandlordProfile);
         }
       }
 
@@ -190,6 +215,19 @@ export default function LandlordHomePage() {
     }
 
     fetchSessionAndProfile();
+
+    // Listen to subscription upgrade event to refresh portfolio and plan capacity immediately
+    const handleSubUpdated = () => {
+      fetchSessionAndProfile();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("leaselink:subscription_updated", handleSubUpdated);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("leaselink:subscription_updated", handleSubUpdated);
+      }
+    };
   }, []);
 
   // Handle Logout
@@ -225,15 +263,11 @@ export default function LandlordHomePage() {
     (user?.user_metadata?.phone as string) ||
     "Not provided";
 
-  const rawPlan = (profile?.plan ||
-    user?.user_metadata?.plan ||
-    "free") as SubscriptionPlanId;
-
-  const planConfig =
-    AVAILABLE_PLANS.find((p) => p.id === rawPlan) || AVAILABLE_PLANS[0];
-
-  const planName = profile?.plan_name || planConfig.name;
-  const unitLimit = profile?.plan_unit_limit || planConfig.maxUnits;
+  const planConfig = resolvePlanConfig(profile?.plan || (user?.user_metadata?.plan as string));
+  const planName = isFrench
+    ? planConfig.nameFr || profile?.plan_name || planConfig.name
+    : profile?.plan_name || planConfig.name;
+  const unitLimit = profile?.plan_unit_limit || (profile as any)?.unit_limit || planConfig.maxUnits;
   const joinedDate = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(undefined, {
         year: "numeric",

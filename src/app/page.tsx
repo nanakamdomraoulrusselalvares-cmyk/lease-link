@@ -1173,7 +1173,7 @@ export default function HomePage() {
 
                   <div className="mt-6 pt-3">
                     <Link
-                      href="/register"
+                      href={`/register?plan=${plan.id}&cycle=${billingCycle}`}
                       className={`w-full block text-center py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
                         isSelected
                           ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25"

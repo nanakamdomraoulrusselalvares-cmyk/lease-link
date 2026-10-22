@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { resolvePlanConfig } from "@/types/database";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -182,13 +183,14 @@ export async function GET(request: Request) {
           return redirectRes;
         }
 
-        // New landlord signup: initialize trial plan profile
+        // New landlord signup: initialize plan profile
         try {
           const userMeta = data.user.user_metadata || {};
           const fullName =
             userMeta.full_name || userMeta.name || userEmail.split("@")[0] || "Bailleur";
+          const planConfig = resolvePlanConfig(userMeta.plan);
           const trialExpires = new Date();
-          trialExpires.setDate(trialExpires.getDate() + 30);
+          trialExpires.setDate(trialExpires.getDate() + (planConfig.durationDays || 30));
 
           await db.from("profiles").upsert({
             id: userId,
@@ -196,11 +198,11 @@ export async function GET(request: Request) {
             full_name: fullName,
             phone: userMeta.phone || "",
             role: "landlord",
-            plan: "free",
-            plan_name: "Essai Gratuit 30 Jours",
-            plan_unit_limit: 5,
-            unit_limit: 5,
-            plan_duration_days: 30,
+            plan: planConfig.id,
+            plan_name: planConfig.name,
+            plan_unit_limit: planConfig.maxUnits,
+            unit_limit: planConfig.maxUnits,
+            plan_duration_days: planConfig.durationDays || 30,
             plan_status: "active",
             subscription_status: "active",
             has_used_free_trial: true,
@@ -209,7 +211,7 @@ export async function GET(request: Request) {
             plan_expires_at: trialExpires.toISOString(),
             trial_expires_at: trialExpires.toISOString(),
             subscription_expires_at: trialExpires.toISOString(),
-            billing_cycle: "monthly",
+            billing_cycle: userMeta.billing_cycle || "monthly",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
@@ -230,8 +232,9 @@ export async function GET(request: Request) {
           const userMeta = data.user.user_metadata || {};
           const fullName =
             userMeta.full_name || userMeta.name || userEmail.split("@")[0] || "Bailleur";
+          const planConfig = resolvePlanConfig(userMeta.plan);
           const trialExpires = new Date();
-          trialExpires.setDate(trialExpires.getDate() + 30);
+          trialExpires.setDate(trialExpires.getDate() + (planConfig.durationDays || 30));
 
           await db.from("profiles").upsert({
             id: userId,
@@ -239,11 +242,11 @@ export async function GET(request: Request) {
             full_name: fullName,
             phone: userMeta.phone || "",
             role: "landlord",
-            plan: "free",
-            plan_name: "Essai Gratuit 30 Jours",
-            plan_unit_limit: 5,
-            unit_limit: 5,
-            plan_duration_days: 30,
+            plan: planConfig.id,
+            plan_name: planConfig.name,
+            plan_unit_limit: planConfig.maxUnits,
+            unit_limit: planConfig.maxUnits,
+            plan_duration_days: planConfig.durationDays || 30,
             plan_status: "active",
             subscription_status: "active",
             has_used_free_trial: true,
@@ -252,7 +255,7 @@ export async function GET(request: Request) {
             plan_expires_at: trialExpires.toISOString(),
             trial_expires_at: trialExpires.toISOString(),
             subscription_expires_at: trialExpires.toISOString(),
-            billing_cycle: "monthly",
+            billing_cycle: userMeta.billing_cycle || "monthly",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });

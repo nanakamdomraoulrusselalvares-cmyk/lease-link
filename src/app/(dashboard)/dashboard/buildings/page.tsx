@@ -9,6 +9,7 @@ import {
   Unit,
   LandlordProfile,
   AVAILABLE_PLANS,
+  resolvePlanConfig,
   PropertyType,
   CreateBuildingFormInput,
   UpdateUnitInput,
@@ -193,16 +194,43 @@ export default function BuildingsManagementPage() {
         .eq("id", authUser.id)
         .maybeSingle();
 
-      if (profileData) {
-        setProfile(profileData as LandlordProfile);
-      }
-
-      // Load Buildings & Units
       const isManager = profileData?.role === "manager";
       const effectiveLandlordId =
         isManager && profileData?.landlord_id
           ? profileData.landlord_id
           : authUser.id;
+
+      if (profileData) {
+        if (isManager && profileData.landlord_id) {
+          try {
+            const { data: landlordData } = await supabase
+              .from("profiles")
+              .select("plan, plan_name, plan_unit_limit, unit_limit, plan_status, billing_cycle, plan_expires_at")
+              .eq("id", profileData.landlord_id)
+              .maybeSingle();
+
+            if (landlordData) {
+              setProfile({
+                ...profileData,
+                plan: landlordData.plan || profileData.plan,
+                plan_name: landlordData.plan_name || profileData.plan_name,
+                plan_unit_limit: landlordData.plan_unit_limit || landlordData.unit_limit || profileData.plan_unit_limit,
+                plan_status: landlordData.plan_status || profileData.plan_status,
+                billing_cycle: landlordData.billing_cycle || profileData.billing_cycle,
+                plan_expires_at: landlordData.plan_expires_at || profileData.plan_expires_at,
+              } as LandlordProfile);
+            } else {
+              setProfile(profileData as LandlordProfile);
+            }
+          } catch (_) {
+            setProfile(profileData as LandlordProfile);
+          }
+        } else {
+          setProfile(profileData as LandlordProfile);
+        }
+      }
+
+      // Load Buildings & Units
       const assignedBuildingIds = isManager ? profileData?.assigned_building_ids : null;
       const fetchedBuildings = await getBuildingsWithUnits(effectiveLandlordId, assignedBuildingIds);
       setBuildings(fetchedBuildings);
@@ -234,14 +262,27 @@ export default function BuildingsManagementPage() {
 
   useEffect(() => {
     loadData();
+
+    // Listen for subscription upgrades across the platform to refresh capacity limits
+    const handleSubUpdated = () => {
+      loadData(true);
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("leaselink:subscription_updated", handleSubUpdated);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("leaselink:subscription_updated", handleSubUpdated);
+      }
+    };
   }, []);
 
   // Compute landlord capacity stats
   const planUnitLimit = useMemo(() => {
     if (profile?.plan_unit_limit) return profile.plan_unit_limit;
-    const rawPlan = (user?.user_metadata?.plan || "free") as string;
-    const matched = AVAILABLE_PLANS.find((p) => p.id === rawPlan);
-    return matched ? matched.maxUnits : 5;
+    if ((profile as any)?.unit_limit) return (profile as any).unit_limit;
+    const cfg = resolvePlanConfig(profile?.plan || (user?.user_metadata?.plan as string));
+    return cfg.maxUnits;
   }, [profile, user]);
 
   const totalUnitsInPortfolio = useMemo(() => {
@@ -2296,11 +2337,28 @@ export default function BuildingsManagementPage() {
       {profile?.role !== "manager" && (
         <SubscriptionPaymentModal
           isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-          profile={profile}
-          onSubscriptionUpdated={async () => {
-            await loadData();
+          onClose={() => {
             setShowSubscriptionModal(false);
+            loadData(true);
+          }}
+          profile={profile}
+          onSubscriptionUpdated={async (newRecord) => {
+            if (newRecord) {
+              const cfg = resolvePlanConfig(newRecord.plan_id);
+              setProfile((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  plan: newRecord.plan_id,
+                  plan_name: newRecord.plan_name,
+                  billing_cycle: newRecord.billing_cycle,
+                  plan_unit_limit: cfg.maxUnits,
+                  plan_status: "active",
+                  plan_expires_at: newRecord.expires_at,
+                };
+              });
+            }
+            await loadData(true);
           }}
         />
       )}

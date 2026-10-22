@@ -9,7 +9,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import NotificationBell from "@/components/NotificationBell";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-import { LandlordProfile, AVAILABLE_PLANS } from "@/types/database";
+import { LandlordProfile, AVAILABLE_PLANS, resolvePlanConfig } from "@/types/database";
 import {
   Building2,
   LayoutDashboard,
@@ -311,7 +311,7 @@ export default function DashboardNav({
     user?.email?.split("@")[0] ||
     (isAdmin ? "Super Administrateur" : isManager ? (isFrench ? "Gestionnaire" : "Manager") : (isFrench ? "Bailleur" : "Landlord"));
 
-  const planConfig = AVAILABLE_PLANS.find((p) => p.id === profile?.plan) || AVAILABLE_PLANS[0];
+  const planConfig = resolvePlanConfig(profile?.plan);
   const planLabel = isAdmin
     ? isFrench ? "Super Administrateur" : "Platform Admin"
     : isManager

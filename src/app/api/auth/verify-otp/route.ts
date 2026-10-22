@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyOtpToken } from "@/lib/services/otpService";
 import { createClient } from "@supabase/supabase-js";
+import { resolvePlanConfig } from "@/types/database";
 
 // Rate limit attempts per email: max 5 failed attempts per window
 const failedAttemptsMap = new Map<string, { count: number; lockedUntil: number }>();
@@ -112,8 +113,9 @@ export async function POST(req: Request) {
 
           if (!profile) {
             const meta = user.user_metadata || {};
+            const planConfig = resolvePlanConfig(meta.plan);
             const trialExpires = new Date();
-            trialExpires.setDate(trialExpires.getDate() + 30);
+            trialExpires.setDate(trialExpires.getDate() + (planConfig.durationDays || 30));
 
             await adminClient.from("profiles").upsert({
               id: user.id,
@@ -121,10 +123,10 @@ export async function POST(req: Request) {
               full_name: meta.full_name || meta.name || email.split("@")[0],
               phone: meta.phone || "",
               role: "landlord",
-              plan: meta.plan || "free",
-              plan_name: "Essai Gratuit 30 Jours",
-              plan_unit_limit: 5,
-              unit_limit: 5,
+              plan: planConfig.id,
+              plan_name: planConfig.name,
+              plan_unit_limit: planConfig.maxUnits,
+              unit_limit: planConfig.maxUnits,
               plan_status: "active",
               subscription_status: "active",
               has_used_free_trial: true,
@@ -133,7 +135,7 @@ export async function POST(req: Request) {
               plan_expires_at: trialExpires.toISOString(),
               trial_expires_at: trialExpires.toISOString(),
               subscription_expires_at: trialExpires.toISOString(),
-              billing_cycle: "monthly",
+              billing_cycle: meta.billing_cycle || "monthly",
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             });

@@ -5,6 +5,7 @@ import {
   PlanConfig,
   AVAILABLE_PLANS,
   PaymentMethod,
+  resolvePlanConfig,
 } from "@/types/database";
 
 const LOCAL_STORAGE_PROFILES_KEY = "leaselink_local_profiles";
@@ -59,8 +60,7 @@ export function getSubscriptionPlanPricing(
   savingsDisplay: string | null;
   savingsDisplayFr: string | null;
 } {
-  const plan =
-    AVAILABLE_PLANS.find((p) => p.id === planId) || AVAILABLE_PLANS[1]; // default to starter
+  const plan = resolvePlanConfig(planId);
 
   if (plan.id === "free") {
     return {
@@ -124,7 +124,7 @@ function saveLocalSubscriptionRecord(record: SubscriptionPaymentRecord) {
 
 /**
  * Process a subscription payment (Monthly or Annual)
- * Upgrades landlord profile, updates plan expiration, records receipt & sends notifications
+ * Upgrades landlord profile, updates plan expiration, records receipt in DB & sends notifications
  */
 export async function processSubscriptionPayment(
   input: ProcessSubscriptionInput
@@ -162,6 +162,7 @@ export async function processSubscriptionPayment(
     }
 
     const pricing = getSubscriptionPlanPricing(planId, billingCycle);
+    const resolvedPlanId = pricing.plan.id;
     const now = new Date();
     const expiresAt = new Date(
       now.getTime() + pricing.durationDays * 24 * 60 * 60 * 1000
@@ -186,7 +187,7 @@ export async function processSubscriptionPayment(
       landlord_name: landlordName,
       landlord_email: landlordEmail,
       landlord_phone: landlordPhone,
-      plan_id: planId,
+      plan_id: resolvedPlanId,
       plan_name: formattedPlanName,
       billing_cycle: billingCycle,
       amount_paid: pricing.price,
@@ -201,22 +202,28 @@ export async function processSubscriptionPayment(
       created_at: now.toISOString(),
     };
 
-    // 1. Update Supabase Profile
+    // 1. Update Supabase Profile & Subscriptions Database
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const isMock = !url || url.includes("your-project-ref");
 
     if (!isMock && landlordId) {
       try {
+        // A. Update public.profiles with new plan, capacity, status, and expiration
         const { error: profileErr } = await supabase
           .from("profiles")
           .update({
-            plan: planId,
+            plan: resolvedPlanId,
             plan_name: formattedPlanName,
             plan_unit_limit: pricing.plan.maxUnits,
+            unit_limit: pricing.plan.maxUnits,
             plan_duration_days: pricing.durationDays,
             plan_status: "active",
+            subscription_status: "active",
+            has_used_free_trial: true,
+            has_used_trial: true,
             plan_starts_at: now.toISOString(),
             plan_expires_at: expiresAt.toISOString(),
+            subscription_expires_at: expiresAt.toISOString(),
             billing_cycle: billingCycle,
             updated_at: now.toISOString(),
           })
@@ -226,7 +233,54 @@ export async function processSubscriptionPayment(
           console.warn("Supabase profile plan update error:", profileErr);
         }
 
-        // Also record a notification for the landlord
+        // B. Insert into public.subscriptions table for complete audit trail
+        try {
+          const { error: subErr } = await supabase.from("subscriptions").insert([
+            {
+              receipt_number: receiptNumber,
+              landlord_id: landlordId,
+              landlord_name: landlordName,
+              landlord_email: landlordEmail,
+              landlord_phone: landlordPhone,
+              plan_id: resolvedPlanId,
+              plan_name: formattedPlanName,
+              billing_cycle: billingCycle,
+              amount_paid: pricing.price,
+              payment_method: paymentMethod,
+              transaction_ref: transactionRef,
+              duration_days: pricing.durationDays,
+              starts_at: now.toISOString(),
+              expires_at: expiresAt.toISOString(),
+              status: "completed",
+              payer_phone: payerPhone || landlordPhone,
+              notes: notes || null,
+              created_at: now.toISOString(),
+            },
+          ]);
+
+          if (subErr) {
+            console.warn("Supabase subscriptions table insert warning:", subErr);
+          }
+        } catch (subInsertErr) {
+          console.warn("Could not insert subscription record:", subInsertErr);
+        }
+
+        // C. Update Supabase Auth user_metadata so auth session immediately reflects new plan
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              plan: resolvedPlanId,
+              plan_name: pricing.plan.name,
+              plan_unit_limit: pricing.plan.maxUnits,
+              unit_limit: pricing.plan.maxUnits,
+              billing_cycle: billingCycle,
+            },
+          });
+        } catch (authMetaErr) {
+          console.warn("Supabase auth user metadata sync warning:", authMetaErr);
+        }
+
+        // D. Record notification for the landlord
         await supabase.from("notifications").insert([
           {
             type: "system",
@@ -238,7 +292,7 @@ export async function processSubscriptionPayment(
             landlord_id: landlordId,
             receipt_number: receiptNumber,
             metadata: {
-              plan_id: planId,
+              plan_id: resolvedPlanId,
               billing_cycle: billingCycle,
               amount: pricing.price,
               receipt_number: receiptNumber,
@@ -250,11 +304,12 @@ export async function processSubscriptionPayment(
       }
     }
 
-    // 2. Cache in localStorage for instant responsiveness
+    // 2. Cache in localStorage for instant responsiveness across all platform views
     saveLocalSubscriptionRecord(record);
 
     if (typeof window !== "undefined") {
       try {
+        // Sync local profiles array
         const rawProfiles = localStorage.getItem(LOCAL_STORAGE_PROFILES_KEY);
         if (rawProfiles) {
           const profiles = JSON.parse(rawProfiles);
@@ -262,14 +317,19 @@ export async function processSubscriptionPayment(
           if (index >= 0) {
             profiles[index] = {
               ...profiles[index],
-              plan: planId,
+              plan: resolvedPlanId,
               plan_name: formattedPlanName,
               billing_cycle: billingCycle,
               plan_unit_limit: pricing.plan.maxUnits,
+              unit_limit: pricing.plan.maxUnits,
               plan_duration_days: pricing.durationDays,
               plan_status: "active",
+              subscription_status: "active",
+              has_used_free_trial: true,
+              has_used_trial: true,
               plan_starts_at: now.toISOString(),
               plan_expires_at: expiresAt.toISOString(),
+              subscription_expires_at: expiresAt.toISOString(),
               updated_at: now.toISOString(),
             };
             localStorage.setItem(
@@ -278,6 +338,70 @@ export async function processSubscriptionPayment(
             );
           }
         }
+
+        // Sync mock profiles store
+        const rawMockProfiles = localStorage.getItem("leaselink_mock_profiles");
+        if (rawMockProfiles) {
+          const mockProfiles = JSON.parse(rawMockProfiles);
+          const mIndex = mockProfiles.findIndex((p: any) => p.id === landlordId);
+          if (mIndex >= 0) {
+            mockProfiles[mIndex] = {
+              ...mockProfiles[mIndex],
+              plan: resolvedPlanId,
+              plan_name: formattedPlanName,
+              billing_cycle: billingCycle,
+              plan_unit_limit: pricing.plan.maxUnits,
+              unit_limit: pricing.plan.maxUnits,
+              plan_status: "active",
+              subscription_status: "active",
+              plan_expires_at: expiresAt.toISOString(),
+              subscription_expires_at: expiresAt.toISOString(),
+            };
+            localStorage.setItem(
+              "leaselink_mock_profiles",
+              JSON.stringify(mockProfiles)
+            );
+          }
+        }
+
+        // Sync cached dashboard state so dashboard reflects instantly on back-navigation
+        const rawDashboard = localStorage.getItem("leaselink_cached_dashboard");
+        if (rawDashboard) {
+          try {
+            const parsedDash = JSON.parse(rawDashboard);
+            if (parsedDash.profile && parsedDash.profile.id === landlordId) {
+              parsedDash.profile = {
+                ...parsedDash.profile,
+                plan: resolvedPlanId,
+                plan_name: formattedPlanName,
+                billing_cycle: billingCycle,
+                plan_unit_limit: pricing.plan.maxUnits,
+                unit_limit: pricing.plan.maxUnits,
+                plan_status: "active",
+                subscription_status: "active",
+                plan_starts_at: now.toISOString(),
+                plan_expires_at: expiresAt.toISOString(),
+                subscription_expires_at: expiresAt.toISOString(),
+                updated_at: now.toISOString(),
+              };
+              localStorage.setItem("leaselink_cached_dashboard", JSON.stringify(parsedDash));
+            }
+          } catch (_) {}
+        }
+
+        // Broadcast subscription upgrade across all open tabs/views
+        window.dispatchEvent(
+          new CustomEvent("leaselink:subscription_updated", {
+            detail: {
+              record,
+              planId: resolvedPlanId,
+              planConfig: pricing.plan,
+              unitLimit: pricing.plan.maxUnits,
+              billingCycle,
+              expiresAt: expiresAt.toISOString(),
+            },
+          })
+        );
       } catch (lsErr) {
         console.warn("Could not update local storage profile:", lsErr);
       }

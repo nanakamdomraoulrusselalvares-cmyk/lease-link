@@ -15,6 +15,7 @@ import {
   MaintenanceRequest,
   SubscriptionPlanId,
   AVAILABLE_PLANS,
+  resolvePlanConfig,
   RentPayment,
 } from "@/types/database";
 import {
@@ -960,7 +961,9 @@ export default function AdminDashboardPage() {
                                 ? "bg-blue-500"
                                 : plan.id === "tier_31_60"
                                 ? "bg-purple-500"
-                                : "bg-emerald-500"
+                                : plan.id === "tier_61_100"
+                                ? "bg-emerald-500"
+                                : "bg-amber-500"
                             }`}
                           />
                         </div>
@@ -1149,6 +1152,7 @@ export default function AdminDashboardPage() {
                   <option value="tier_1_30">Starter (1-30)</option>
                   <option value="tier_31_60">Growth (31-60)</option>
                   <option value="tier_61_100">Pro (61-100)</option>
+                  <option value="tier_100_plus">Ultimate (101-300)</option>
                 </select>
 
                 {/* Sort Landlords */}
@@ -1172,7 +1176,7 @@ export default function AdminDashboardPage() {
             {/* Landlords Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredLandlords.map((landlord) => {
-                const planInfo = AVAILABLE_PLANS.find((p) => p.id === landlord.plan);
+                const planInfo = resolvePlanConfig(landlord.plan);
                 return (
                   <div
                     key={landlord.id}

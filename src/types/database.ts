@@ -1,10 +1,13 @@
 export type SubscriptionPlanId =
   | 'free'
+  | 'starter'
+  | 'growth'
+  | 'pro'
+  | 'ultimate'
   | 'tier_1_30'
   | 'tier_31_60'
   | 'tier_61_100'
-  | 'tier_100_plus'
-  | 'ultimate';
+  | 'tier_100_plus';
 
 export type BillingCycle = 'monthly' | 'annual';
 
@@ -147,6 +150,65 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     badgeFr: 'Entreprise',
   },
 ];
+
+/**
+ * Universal resolver to match any plan string (id, key, name, alias) to its PlanConfig.
+ * Handles: 'starter' | 'tier_1_30', 'growth' | 'tier_31_60', 'pro' | 'tier_61_100', 'ultimate' | 'tier_100_plus', 'free' | 'trial'
+ */
+export function resolvePlanConfig(rawPlanId?: string | null): PlanConfig {
+  if (!rawPlanId) return AVAILABLE_PLANS[0];
+  const cleaned = String(rawPlanId).trim().toLowerCase();
+
+  // Direct match by ID
+  const direct = AVAILABLE_PLANS.find((p) => p.id.toLowerCase() === cleaned);
+  if (direct) return direct;
+
+  // Semantic alias mappings
+  if (
+    cleaned === 'starter' ||
+    cleaned === 'tier_1_30' ||
+    cleaned === 'tier1' ||
+    cleaned === 'tier_1'
+  ) {
+    return AVAILABLE_PLANS.find((p) => p.id === 'tier_1_30') || AVAILABLE_PLANS[1];
+  }
+  if (
+    cleaned === 'growth' ||
+    cleaned === 'tier_31_60' ||
+    cleaned === 'tier2' ||
+    cleaned === 'tier_2'
+  ) {
+    return AVAILABLE_PLANS.find((p) => p.id === 'tier_31_60') || AVAILABLE_PLANS[2];
+  }
+  if (
+    cleaned === 'pro' ||
+    cleaned === 'tier_61_100' ||
+    cleaned === 'tier3' ||
+    cleaned === 'tier_3'
+  ) {
+    return AVAILABLE_PLANS.find((p) => p.id === 'tier_61_100') || AVAILABLE_PLANS[3];
+  }
+  if (
+    cleaned === 'ultimate' ||
+    cleaned === 'tier_100_plus' ||
+    cleaned === 'enterprise' ||
+    cleaned === 'tier4' ||
+    cleaned === 'tier_4'
+  ) {
+    return AVAILABLE_PLANS.find((p) => p.id === 'tier_100_plus') || AVAILABLE_PLANS[4];
+  }
+  if (cleaned === 'free' || cleaned === 'trial' || cleaned === 'essai' || cleaned === 'gratuit') {
+    return AVAILABLE_PLANS[0];
+  }
+
+  // Name match fallback
+  const byName = AVAILABLE_PLANS.find(
+    (p) => p.name.toLowerCase() === cleaned || p.nameFr.toLowerCase() === cleaned
+  );
+  if (byName) return byName;
+
+  return AVAILABLE_PLANS[0];
+}
 
 export type UserRole = 'landlord' | 'manager' | 'admin';
 

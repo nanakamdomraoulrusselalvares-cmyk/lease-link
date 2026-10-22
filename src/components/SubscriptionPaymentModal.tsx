@@ -7,6 +7,7 @@ import {
   AVAILABLE_PLANS,
   PaymentMethod,
   LandlordProfile,
+  resolvePlanConfig,
 } from "@/types/database";
 import {
   processSubscriptionPayment,
@@ -154,7 +155,7 @@ export default function SubscriptionPaymentModal({
                 <div>
                   <span className="text-slate-500 block text-[11px]">{isFrench ? "Formule choisie" : "Selected Plan"}</span>
                   <span className="font-semibold text-slate-900 dark:text-white capitalize">
-                    {successRecord.plan_id.replace("tier_", "").replace("_", " to ")}
+                    {resolvePlanConfig(successRecord.plan_id).name}
                   </span>
                 </div>
                 <div>
