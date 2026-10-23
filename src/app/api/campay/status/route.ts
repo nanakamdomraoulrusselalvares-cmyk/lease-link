@@ -3,6 +3,9 @@ import { checkCampayTransactionStatus } from "@/lib/services/campayService";
 import { processSubscriptionPayment } from "@/lib/services/subscriptionService";
 import { SubscriptionPlanId, BillingCycle } from "@/types/database";
 
+// In-memory idempotency cache to prevent duplicate subscription activations during rapid polling
+const completedActivations = new Map<string, any>();
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -20,10 +23,32 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Fast idempotency check
+    if (completedActivations.has(reference)) {
+      return NextResponse.json({
+        success: true,
+        status: "SUCCESSFUL",
+        reference,
+        record: completedActivations.get(reference),
+        isCached: true,
+      });
+    }
+
     const statusResult = await checkCampayTransactionStatus(reference);
 
     // If transaction successfully confirmed by Campay and landlordId is provided, activate subscription
     if (statusResult.status === "SUCCESSFUL" && landlordId && planId) {
+      // Check again to avoid race conditions
+      if (completedActivations.has(reference)) {
+        return NextResponse.json({
+          success: true,
+          status: "SUCCESSFUL",
+          reference,
+          record: completedActivations.get(reference),
+          isCached: true,
+        });
+      }
+
       const activation = await processSubscriptionPayment({
         landlordId,
         landlordName: payerName || "Landlord",
@@ -34,6 +59,10 @@ export async function GET(req: NextRequest) {
         payerName,
         notes: `Campay Transaction Ref: ${reference}`,
       });
+
+      if (activation.record) {
+        completedActivations.set(reference, activation.record);
+      }
 
       return NextResponse.json({
         success: true,

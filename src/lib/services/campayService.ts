@@ -40,7 +40,10 @@ let cachedToken: { token: string; expiresAt: number } | null = null;
  * Normalizes any phone number into Campay's expected Cameroon format (237XXXXXXXXX)
  */
 export function formatCampayPhone(phone: string): string {
-  const digits = phone.replace(/[^0-9]/g, "");
+  let digits = phone.replace(/[^0-9]/g, "");
+  if (digits.startsWith("00")) {
+    digits = digits.substring(2);
+  }
   if (digits.startsWith("237") && digits.length === 12) {
     return digits;
   }
@@ -68,18 +71,24 @@ export async function getCampayAuthToken(): Promise<{
   isSimulated: boolean;
   error?: string;
 }> {
+  // 1. Direct App Token support (Permanent token copied from Campay App Keys)
+  const permanentToken = (process.env.CAMPAY_TOKEN || process.env.CAMPAY_API_KEY)?.trim();
+  if (permanentToken && !permanentToken.startsWith("your_")) {
+    return { token: permanentToken, isSimulated: false };
+  }
+
   const username = process.env.CAMPAY_USERNAME?.trim();
   const password = process.env.CAMPAY_PASSWORD?.trim();
 
-  // If credentials are not set, allow graceful simulated demo mode
-  if (!username || !password) {
+  // 2. If credentials are not set or left as defaults, allow graceful simulated demo mode
+  if (!username || !password || username.startsWith("your_") || password.startsWith("your_")) {
     return {
       token: "simulated_campay_dev_token",
       isSimulated: true,
     };
   }
 
-  // Check valid cached token
+  // 3. Check valid cached token
   const now = Date.now();
   if (cachedToken && cachedToken.expiresAt > now + 60000) {
     return { token: cachedToken.token, isSimulated: false };
@@ -97,6 +106,7 @@ export async function getCampayAuthToken(): Promise<{
     if (!res.ok) {
       const errText = await res.text();
       console.warn("Campay auth failed, falling back to simulation:", errText);
+      cachedToken = null;
       return {
         token: "simulated_campay_fallback_token",
         isSimulated: true,
