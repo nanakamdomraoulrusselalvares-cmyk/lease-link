@@ -264,7 +264,26 @@ export default function BuildingsManagementPage() {
     loadData();
 
     // Listen for subscription upgrades across the platform to refresh capacity limits
-    const handleSubUpdated = () => {
+    const handleSubUpdated = (e: any) => {
+      const detail = e?.detail;
+      if (detail && detail.plan_id) {
+        const cfg = resolvePlanConfig(detail.plan_id);
+        setProfile((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            plan: detail.plan_id,
+            plan_name: detail.plan_name || prev.plan_name,
+            billing_cycle: detail.billing_cycle || prev.billing_cycle,
+            plan_unit_limit: cfg.maxUnits,
+            unit_limit: cfg.maxUnits,
+            plan_status: "active",
+            subscription_status: "active",
+            plan_expires_at: detail.expires_at || prev.plan_expires_at,
+            subscription_expires_at: detail.expires_at || prev.subscription_expires_at,
+          };
+        });
+      }
       loadData(true);
     };
     if (typeof window !== "undefined") {
@@ -2353,8 +2372,11 @@ export default function BuildingsManagementPage() {
                   plan_name: newRecord.plan_name,
                   billing_cycle: newRecord.billing_cycle,
                   plan_unit_limit: cfg.maxUnits,
+                  unit_limit: cfg.maxUnits,
                   plan_status: "active",
+                  subscription_status: "active",
                   plan_expires_at: newRecord.expires_at,
+                  subscription_expires_at: newRecord.expires_at,
                 };
               });
             }

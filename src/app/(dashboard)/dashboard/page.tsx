@@ -219,7 +219,26 @@ export default function LandlordHomePage() {
     fetchSessionAndProfile();
 
     // Listen to subscription upgrade event to refresh portfolio and plan capacity immediately
-    const handleSubUpdated = () => {
+    const handleSubUpdated = (e: any) => {
+      const detail = e?.detail;
+      if (detail && detail.plan_id) {
+        const cfg = resolvePlanConfig(detail.plan_id);
+        setProfile((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            plan: detail.plan_id,
+            plan_name: detail.plan_name || prev.plan_name,
+            billing_cycle: detail.billing_cycle || prev.billing_cycle,
+            plan_unit_limit: cfg.maxUnits,
+            unit_limit: cfg.maxUnits,
+            plan_status: "active",
+            subscription_status: "active",
+            plan_expires_at: detail.expires_at || prev.plan_expires_at,
+            subscription_expires_at: detail.expires_at || prev.subscription_expires_at,
+          };
+        });
+      }
       fetchSessionAndProfile();
     };
 
@@ -1232,7 +1251,25 @@ export default function LandlordHomePage() {
           isOpen={showSubscriptionModal}
           onClose={() => setShowSubscriptionModal(false)}
           profile={profile}
-          onSubscriptionUpdated={() => {
+          onSubscriptionUpdated={(newRecord) => {
+            if (newRecord) {
+              const cfg = resolvePlanConfig(newRecord.plan_id);
+              setProfile((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  plan: newRecord.plan_id,
+                  plan_name: newRecord.plan_name,
+                  billing_cycle: newRecord.billing_cycle,
+                  plan_unit_limit: cfg.maxUnits,
+                  unit_limit: cfg.maxUnits,
+                  plan_status: "active",
+                  subscription_status: "active",
+                  plan_expires_at: newRecord.expires_at,
+                  subscription_expires_at: newRecord.expires_at,
+                };
+              });
+            }
             fetchSessionAndProfile();
           }}
         />

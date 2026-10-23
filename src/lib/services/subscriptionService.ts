@@ -20,6 +20,8 @@ export interface SubscriptionPaymentRecord {
   landlord_phone: string;
   plan_id: SubscriptionPlanId;
   plan_name: string;
+  plan_unit_limit?: number;
+  unit_limit?: number;
   billing_cycle: BillingCycle;
   amount_paid: number;
   payment_method: PaymentMethod;
@@ -93,6 +95,58 @@ export function getSubscriptionPlanPricing(
     savingsDisplay: null,
     savingsDisplayFr: null,
   };
+}
+
+/**
+ * Check if the landlord already has an active, unexpired subscription for the target plan this month
+ */
+export function isPlanAlreadyActiveThisMonth(
+  profile: {
+    plan?: string | null;
+    plan_status?: string | null;
+    subscription_status?: string | null;
+    plan_expires_at?: string | null;
+    subscription_expires_at?: string | null;
+  } | null | undefined,
+  targetPlanId: SubscriptionPlanId
+): { isActiveThisMonth: boolean; expiresAt: string | null; formattedExpiry: string } {
+  if (!profile) return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
+
+  // Free trial never blocks paying/upgrading to paid plans
+  if (targetPlanId === "free") return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
+  if (profile.plan === "free" || profile.plan === "free_trial") {
+    return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
+  }
+
+  // Check if profile's current plan matches the target plan
+  const matchesPlan = profile.plan === targetPlanId;
+  if (!matchesPlan) {
+    return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
+  }
+
+  // Check if status is active
+  const isActive =
+    profile.plan_status === "active" ||
+    profile.subscription_status === "active";
+
+  const expDateStr = profile.plan_expires_at || profile.subscription_expires_at;
+  if (!expDateStr) {
+    return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
+  }
+
+  const expTime = new Date(expDateStr).getTime();
+  const isNotExpired = !isNaN(expTime) && expTime > Date.now();
+
+  if (isActive && isNotExpired) {
+    const formattedExpiry = new Date(expDateStr).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    return { isActiveThisMonth: true, expiresAt: expDateStr, formattedExpiry };
+  }
+
+  return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
 }
 
 /**
@@ -189,6 +243,8 @@ export async function processSubscriptionPayment(
       landlord_phone: landlordPhone || payerPhone || "",
       plan_id: resolvedPlanId,
       plan_name: formattedPlanName,
+      plan_unit_limit: pricing.plan.maxUnits,
+      unit_limit: pricing.plan.maxUnits,
       billing_cycle: billingCycle,
       amount_paid: pricing.price,
       payment_method: paymentMethod,
@@ -208,7 +264,37 @@ export async function processSubscriptionPayment(
 
     if (!isMock && landlordId) {
       try {
-        // A. Update public.profiles with new plan, capacity, status, and expiration
+        // A. Primary: Execute atomic RPC function with elevated privileges (security definer)
+        let rpcSucceeded = false;
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+            "activate_landlord_subscription",
+            {
+              p_landlord_id: landlordId,
+              p_plan_id: resolvedPlanId,
+              p_plan_name: formattedPlanName,
+              p_billing_cycle: billingCycle,
+              p_max_units: pricing.plan.maxUnits,
+              p_duration_days: pricing.durationDays,
+              p_amount_paid: pricing.price,
+              p_receipt_number: receiptNumber,
+              p_transaction_ref: transactionRef,
+              p_payment_method: paymentMethod,
+              p_payer_phone: payerPhone || landlordPhone || null,
+              p_notes: notes || null,
+            }
+          );
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            rpcSucceeded = true;
+          } else if (rpcErr) {
+            console.warn("RPC activate_landlord_subscription notice:", rpcErr);
+          }
+        } catch (rpcCallErr) {
+          console.warn("RPC execution notice, continuing with fallback:", rpcCallErr);
+        }
+
+        // B. Fallback: Update public.profiles with new plan, capacity, status, and expiration
         const { error: profileErr } = await supabase
           .from("profiles")
           .update({
@@ -233,36 +319,38 @@ export async function processSubscriptionPayment(
           console.warn("Supabase profile plan update error:", profileErr);
         }
 
-        // B. Insert into public.subscriptions table for complete audit trail
-        try {
-          const { error: subErr } = await supabase.from("subscriptions").insert([
-            {
-              receipt_number: receiptNumber,
-              landlord_id: landlordId,
-              landlord_name: landlordName,
-              landlord_email: landlordEmail,
-              landlord_phone: landlordPhone,
-              plan_id: resolvedPlanId,
-              plan_name: formattedPlanName,
-              billing_cycle: billingCycle,
-              amount_paid: pricing.price,
-              payment_method: paymentMethod,
-              transaction_ref: transactionRef,
-              duration_days: pricing.durationDays,
-              starts_at: now.toISOString(),
-              expires_at: expiresAt.toISOString(),
-              status: "completed",
-              payer_phone: payerPhone || landlordPhone,
-              notes: notes || null,
-              created_at: now.toISOString(),
-            },
-          ]);
+        // C. Fallback: Insert into public.subscriptions table if RPC didn't already insert
+        if (!rpcSucceeded) {
+          try {
+            const { error: subErr } = await supabase.from("subscriptions").insert([
+              {
+                receipt_number: receiptNumber,
+                landlord_id: landlordId,
+                landlord_name: landlordName,
+                landlord_email: landlordEmail,
+                landlord_phone: landlordPhone,
+                plan_id: resolvedPlanId,
+                plan_name: formattedPlanName,
+                billing_cycle: billingCycle,
+                amount_paid: pricing.price,
+                payment_method: paymentMethod,
+                transaction_ref: transactionRef,
+                duration_days: pricing.durationDays,
+                starts_at: now.toISOString(),
+                expires_at: expiresAt.toISOString(),
+                status: "completed",
+                payer_phone: payerPhone || landlordPhone,
+                notes: notes || null,
+                created_at: now.toISOString(),
+              },
+            ]);
 
-          if (subErr) {
-            console.warn("Supabase subscriptions table insert warning:", subErr);
+            if (subErr) {
+              console.warn("Supabase subscriptions table insert warning:", subErr);
+            }
+          } catch (subInsertErr) {
+            console.warn("Could not insert subscription record:", subInsertErr);
           }
-        } catch (subInsertErr) {
-          console.warn("Could not insert subscription record:", subInsertErr);
         }
 
         // C. Update Supabase Auth user_metadata so auth session immediately reflects new plan

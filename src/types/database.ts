@@ -338,11 +338,15 @@ export interface LandlordProfile {
   plan_name: string;
   billing_cycle?: BillingCycle;
   plan_unit_limit: number;
+  unit_limit?: number;
   plan_duration_days: number;
   plan_starts_at: string;
   plan_expires_at: string;
+  subscription_expires_at?: string;
   plan_status: 'active' | 'expired' | 'renewed';
+  subscription_status?: 'active' | 'expired' | 'renewed';
   has_used_free_trial: boolean;
+  has_used_trial?: boolean;
   created_at: string;
   updated_at: string;
 }

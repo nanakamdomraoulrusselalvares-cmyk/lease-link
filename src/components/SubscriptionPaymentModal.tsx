@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   SubscriptionPlanId,
   BillingCycle,
@@ -12,8 +12,10 @@ import {
 import {
   processSubscriptionPayment,
   getSubscriptionPlanPricing,
+  isPlanAlreadyActiveThisMonth,
   SubscriptionPaymentRecord,
 } from "@/lib/services/subscriptionService";
+import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
   Sparkles,
@@ -51,7 +53,16 @@ export default function SubscriptionPaymentModal({
   const { isFrench } = useLanguage();
 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlanId>("tier_1_30");
+  const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlanId>(() => {
+    // If the landlord is already on active Starter, default to Growth so they can upgrade
+    if (profile?.plan === "tier_1_30") {
+      const activeCheck = isPlanAlreadyActiveThisMonth(profile, "tier_1_30");
+      if (activeCheck.isActiveThisMonth) {
+        return "tier_31_60";
+      }
+    }
+    return "tier_1_30";
+  });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("momo");
   const [payerPhone, setPayerPhone] = useState(profile?.phone || "");
   const [payerName, setPayerName] = useState(profile?.full_name || "");
@@ -73,6 +84,11 @@ export default function SubscriptionPaymentModal({
     };
   }, []);
 
+  // Check if the currently selected plan is already paid and active for the current month/period
+  const currentPlanActiveInfo = useMemo(() => {
+    return isPlanAlreadyActiveThisMonth(profile, selectedPlanId);
+  }, [profile, selectedPlanId]);
+
   // Guard: If modal is not open or if user is a manager, do not render modal
   if (!isOpen || profile?.role === "manager") return null;
 
@@ -81,6 +97,15 @@ export default function SubscriptionPaymentModal({
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
+
+    if (currentPlanActiveInfo.isActiveThisMonth) {
+      setErrorMsg(
+        isFrench
+          ? `Vous avez déjà souscrit à la formule ${currentPricing.plan.name} pour le mois en cours (actif jusqu'au ${currentPlanActiveInfo.formattedExpiry}). Vous devez attendre le prochain mois pour le renouveler.`
+          : `You have already paid for the ${currentPricing.plan.name} plan for the current month (active until ${currentPlanActiveInfo.formattedExpiry}). You must wait until next month to renew it.`
+      );
+      return;
+    }
 
     setIsProcessing(true);
     setErrorMsg(null);
@@ -142,10 +167,79 @@ export default function SubscriptionPaymentModal({
             if (pollingRef.current) clearInterval(pollingRef.current);
             setIsAwaitingUssd(false);
             setIsProcessing(false);
+
             if (statusData.record) {
-              setSuccessRecord(statusData.record);
+              const record = statusData.record as SubscriptionPaymentRecord;
+              const cfg = resolvePlanConfig(record.plan_id);
+              const enrichedRecord = {
+                ...record,
+                plan_unit_limit: cfg.maxUnits,
+                unit_limit: cfg.maxUnits,
+              };
+
+              setSuccessRecord(enrichedRecord);
+
+              // 3. Client-side authenticated synchronization directly to Supabase
+              try {
+                const supabase = createClient();
+                const updatePayload = {
+                  plan: record.plan_id,
+                  plan_name: record.plan_name,
+                  plan_unit_limit: cfg.maxUnits,
+                  unit_limit: cfg.maxUnits,
+                  plan_duration_days: record.duration_days,
+                  plan_status: "active",
+                  subscription_status: "active",
+                  has_used_free_trial: true,
+                  has_used_trial: true,
+                  plan_starts_at: record.starts_at,
+                  plan_expires_at: record.expires_at,
+                  subscription_expires_at: record.expires_at,
+                  billing_cycle: record.billing_cycle,
+                  updated_at: new Date().toISOString(),
+                };
+
+                // A. Direct update on public.profiles
+                await supabase
+                  .from("profiles")
+                  .update(updatePayload)
+                  .eq("id", profile.id);
+
+                // B. Update Auth metadata
+                await supabase.auth.updateUser({
+                  data: {
+                    plan: record.plan_id,
+                    plan_unit_limit: cfg.maxUnits,
+                    unit_limit: cfg.maxUnits,
+                    billing_cycle: record.billing_cycle,
+                  },
+                });
+
+                // C. Update LocalStorage cached dashboard
+                const cachedStr = localStorage.getItem("leaselink_cached_dashboard");
+                if (cachedStr) {
+                  const cached = JSON.parse(cachedStr);
+                  if (cached.profile) {
+                    cached.profile = { ...cached.profile, ...updatePayload };
+                    localStorage.setItem("leaselink_cached_dashboard", JSON.stringify(cached));
+                  }
+                }
+              } catch (clientSyncErr) {
+                console.warn("Client subscription sync notice:", clientSyncErr);
+              }
+
+              // 4. Broadcast upgrade event across all open tabs/views
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("leaselink:subscription_updated", {
+                    detail: enrichedRecord,
+                  })
+                );
+              }
+
+              // 5. Notify parent component to update state immediately
               if (onSubscriptionUpdated) {
-                onSubscriptionUpdated(statusData.record);
+                onSubscriptionUpdated(enrichedRecord);
               }
             }
           } else if (statusData.status === "FAILED") {
@@ -448,6 +542,8 @@ export default function SubscriptionPaymentModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
               {AVAILABLE_PLANS.filter((p) => !p.isFreeTrial).map((plan) => {
                 const isSelected = selectedPlanId === plan.id;
+                const planActiveCheck = isPlanAlreadyActiveThisMonth(profile, plan.id);
+                const isPlanActiveThisMonth = planActiveCheck.isActiveThisMonth;
                 const priceLabel =
                   billingCycle === "annual" ? plan.annualPriceDisplay : plan.monthlyPriceDisplay;
                 const savingsLabel =
@@ -464,19 +560,26 @@ export default function SubscriptionPaymentModal({
                     className={`p-4 rounded-2xl border-2 transition cursor-pointer text-left relative flex flex-col justify-between ${
                       isSelected
                         ? "bg-blue-50/70 dark:bg-blue-600/10 border-blue-600 dark:border-blue-500 shadow-md ring-2 ring-blue-500/20"
+                        : isPlanActiveThisMonth
+                        ? "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800"
                         : "bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-1 gap-1">
                         <span className="font-bold text-slate-900 dark:text-white text-sm">
                           {isFrench && plan.nameFr ? plan.nameFr : plan.name}
                         </span>
-                        {plan.badge && (
+                        {isPlanActiveThisMonth ? (
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            {isFrench ? "Actif ce Mois" : "Active"}
+                          </span>
+                        ) : plan.badge ? (
                           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30">
                             {isFrench && plan.badgeFr ? plan.badgeFr : plan.badge}
                           </span>
-                        )}
+                        ) : null}
                       </div>
 
                       <div className="mt-1 flex items-baseline gap-1">
@@ -519,6 +622,25 @@ export default function SubscriptionPaymentModal({
                 );
               })}
             </div>
+
+            {/* Active Plan Duplicate Warning Banner */}
+            {currentPlanActiveInfo.isActiveThisMonth && (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200 animate-in fade-in">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-slate-900 dark:text-white">
+                    {isFrench
+                      ? `Formule ${currentPricing.plan.name} déjà active pour ce mois`
+                      : `Plan ${currentPricing.plan.name} is already active for this month`}
+                  </p>
+                  <p className="leading-relaxed text-slate-700 dark:text-slate-300">
+                    {isFrench
+                      ? `Vous avez déjà souscrit et réglé la formule ${currentPricing.plan.name} pour le mois en cours. Votre forfait est valide jusqu'au ${currentPlanActiveInfo.formattedExpiry}. Vous ne pouvez pas repayer pour le même forfait ce mois-ci. Pour débloquer plus de logements immédiatement, sélectionnez une formule supérieure ci-dessus (ex : Growth ou Pro).`
+                      : `You have already paid for the ${currentPricing.plan.name} plan for the current month. Your subscription is valid until ${currentPlanActiveInfo.formattedExpiry}. You cannot repay for the same plan this month. To unlock more units immediately, please select a higher tier above (e.g., Growth or Pro).`}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* 3. Payment Method - Strictly MTN MoMo and Orange Money */}
             <div className="space-y-2 pt-1">
@@ -621,13 +743,18 @@ export default function SubscriptionPaymentModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={isProcessing}
-                  className="w-1/2 sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={isProcessing || currentPlanActiveInfo.isActiveThisMonth}
+                  className="w-1/2 sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isProcessing ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       <span>{isFrench ? "Connexion Campay..." : "Connecting Campay..."}</span>
+                    </span>
+                  ) : currentPlanActiveInfo.isActiveThisMonth ? (
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                      <span>{isFrench ? "Forfait Déjà Actif ce Mois" : "Plan Already Active"}</span>
                     </span>
                   ) : (
                     <>
