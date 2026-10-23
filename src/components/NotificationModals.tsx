@@ -26,9 +26,11 @@ import {
   Eye,
   CreditCard,
   MessageCircle,
+  Download,
 } from "lucide-react";
 import { AppNotification } from "@/types/database";
 import { getLocalizedNotificationText } from "@/lib/services/notificationService";
+import { downloadSubscriptionReceiptPng } from "@/lib/services/receiptDownloadService";
 
 // Synthesized acoustic chime tuned to LeaseLink's clean platform frequency (C5 ~523.25Hz -> G5 ~783.99Hz)
 export function playPlatformNotificationChime() {
@@ -373,6 +375,37 @@ export function FullNotificationModal({
                 <MessageCircle className="w-4 h-4" />
                 <span>{isFrench ? "Écrire au bailleur" : "Message Landlord"}</span>
               </a>
+            )}
+
+            {notification.receipt_number && (notification.receipt_number.startsWith("SUB-") || Boolean(notification.metadata?.plan_id)) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const planId = (notification.metadata?.plan_id as string) || "starter";
+                  const planName = planId === "starter" ? "Starter" : planId === "pro" ? "Pro" : "Enterprise";
+                  const maxUnits = (notification.metadata?.max_units as number) || (planId === "starter" ? 30 : 100);
+                  await downloadSubscriptionReceiptPng(
+                    {
+                      receipt_number: notification.receipt_number!,
+                      landlord_name: (notification.metadata?.sender_name as string) || "Bailleur LeaseLink",
+                      plan_id: planId,
+                      plan_name: planName,
+                      plan_unit_limit: maxUnits,
+                      billing_cycle: (notification.metadata?.billing_cycle as string) || "monthly",
+                      amount_paid: Number(notification.amount || notification.metadata?.amount || 0),
+                      payment_method: notification.payment_method || "momo",
+                      starts_at: notification.created_at,
+                      expires_at: (notification.metadata?.expires_at as string) || new Date(Date.now() + 30 * 86400000).toISOString(),
+                      created_at: notification.created_at,
+                    },
+                    isFrench
+                  );
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/25 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Télécharger la quittance" : "Download Receipt"}</span>
+              </button>
             )}
 
             <button

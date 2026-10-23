@@ -18,6 +18,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
+  downloadSubscriptionReceiptPng,
+  downloadSubscriptionReceiptPdf,
+} from "@/lib/services/receiptDownloadService";
+import {
   Sparkles,
   CheckCircle2,
   X,
@@ -79,6 +83,8 @@ export default function SubscriptionPaymentModal({
   const [campayOperator, setCampayOperator] = useState<string | null>(null);
   const [campaySecondsLeft, setCampaySecondsLeft] = useState(90);
   const [isAwaitingUssd, setIsAwaitingUssd] = useState(false);
+  const [isDownloadingPng, setIsDownloadingPng] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -288,6 +294,68 @@ export default function SubscriptionPaymentModal({
     onClose();
   };
 
+  const handleDownloadPng = async () => {
+    if (!successRecord || !profile) return;
+    setIsDownloadingPng(true);
+    try {
+      await downloadSubscriptionReceiptPng(
+        {
+          receipt_number: successRecord.receipt_number,
+          landlord_name: successRecord.landlord_name || profile.full_name,
+          landlord_phone: successRecord.landlord_phone || profile.phone,
+          landlord_email: successRecord.landlord_email || profile.email,
+          payer_phone: payerPhone.trim() || successRecord.payer_phone,
+          plan_id: successRecord.plan_id,
+          plan_name: resolvePlanConfig(successRecord.plan_id).name,
+          plan_unit_limit: successRecord.plan_unit_limit || successRecord.unit_limit,
+          billing_cycle: successRecord.billing_cycle,
+          amount_paid: successRecord.amount_paid,
+          payment_method: successRecord.payment_method,
+          transaction_ref: successRecord.transaction_ref,
+          starts_at: successRecord.starts_at,
+          expires_at: successRecord.expires_at,
+          created_at: successRecord.created_at,
+        },
+        isFrench
+      );
+    } catch (err) {
+      console.error("Receipt PNG download error:", err);
+    } finally {
+      setIsDownloadingPng(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!successRecord || !profile) return;
+    setIsDownloadingPdf(true);
+    try {
+      await downloadSubscriptionReceiptPdf(
+        {
+          receipt_number: successRecord.receipt_number,
+          landlord_name: successRecord.landlord_name || profile.full_name,
+          landlord_phone: successRecord.landlord_phone || profile.phone,
+          landlord_email: successRecord.landlord_email || profile.email,
+          payer_phone: payerPhone.trim() || successRecord.payer_phone,
+          plan_id: successRecord.plan_id,
+          plan_name: resolvePlanConfig(successRecord.plan_id).name,
+          plan_unit_limit: successRecord.plan_unit_limit || successRecord.unit_limit,
+          billing_cycle: successRecord.billing_cycle,
+          amount_paid: successRecord.amount_paid,
+          payment_method: successRecord.payment_method,
+          transaction_ref: successRecord.transaction_ref,
+          starts_at: successRecord.starts_at,
+          expires_at: successRecord.expires_at,
+          created_at: successRecord.created_at,
+        },
+        isFrench
+      );
+    } catch (err) {
+      console.error("Receipt PDF download error:", err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-auto">
@@ -358,19 +426,53 @@ export default function SubscriptionPaymentModal({
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
               <button
-                onClick={() => window.print()}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
+                type="button"
+                onClick={handleDownloadPng}
+                disabled={isDownloadingPng || isDownloadingPdf}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20 disabled:opacity-50"
+                title={isFrench ? "Télécharger la quittance officielle (PNG)" : "Download official receipt (PNG)"}
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>{isFrench ? "Imprimer la Quittance" : "Print Receipt"}</span>
+                {isDownloadingPng ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>{isFrench ? "Téléchargement..." : "Downloading..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>{isFrench ? "Télécharger la Quittance" : "Download Receipt"}</span>
+                  </>
+                )}
               </button>
+
               <button
-                onClick={handleResetAndClose}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-md shadow-blue-500/20 cursor-pointer"
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPng || isDownloadingPdf}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                title={isFrench ? "Télécharger au format PDF" : "Download as PDF"}
               >
-                {isFrench ? "Retourner au Tableau de Bord" : "Return to Dashboard"}
+                {isDownloadingPdf ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Receipt className="w-3.5 h-3.5 text-blue-500" />
+                    <span>{isFrench ? "Format PDF" : "PDF Format"}</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetAndClose}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-md shadow-blue-500/20 cursor-pointer"
+              >
+                {isFrench ? "Retour au Tableau de Bord" : "Return to Dashboard"}
               </button>
             </div>
           </div>
