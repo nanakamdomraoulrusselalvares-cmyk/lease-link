@@ -435,6 +435,7 @@ function RegisterForm() {
               <div className="mb-6 space-y-3">
                 <GoogleAuthButton
                   mode="signup"
+                  phone={phone}
                   label={isFrench ? "Créer mon compte avec Google" : "Sign up with Google"}
                   requireTerms={true}
                   acceptedTerms={acceptedTerms}

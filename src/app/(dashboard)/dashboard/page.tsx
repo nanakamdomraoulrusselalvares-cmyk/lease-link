@@ -24,6 +24,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import DashboardNav from "@/components/DashboardNav";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
 import SmartDataLoader from "@/components/SmartDataLoader";
+import { isMissingPhone } from "@/components/AttachPhoneModal";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -34,6 +35,7 @@ import {
   Layers,
   LogOut,
   Phone,
+  Smartphone,
   Mail,
   User as UserIcon,
   RefreshCw,
@@ -220,12 +222,23 @@ export default function LandlordHomePage() {
     const handleSubUpdated = () => {
       fetchSessionAndProfile();
     };
+
+    // Listen to phone number updates to refresh local state immediately
+    const handlePhoneUpdated = (e: any) => {
+      const newPhone = e.detail?.phone;
+      if (newPhone) {
+        setProfile((prev) => (prev ? { ...prev, phone: newPhone } : prev));
+      }
+    };
+
     if (typeof window !== "undefined") {
       window.addEventListener("leaselink:subscription_updated", handleSubUpdated);
+      window.addEventListener("leaselink:phone_updated", handlePhoneUpdated);
     }
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("leaselink:subscription_updated", handleSubUpdated);
+        window.removeEventListener("leaselink:phone_updated", handlePhoneUpdated);
       }
     };
   }, []);
@@ -500,10 +513,43 @@ export default function LandlordHomePage() {
 
               <div>
                 <span className="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">{isFrench ? "Numéro de Téléphone" : "Phone Number"}</span>
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                  <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>{phone}</span>
-                </div>
+                {isMissingPhone(phone) ? (
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>{isFrench ? "Non renseigné (Requis)" : "Not provided (Required)"}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          window.dispatchEvent(new CustomEvent("leaselink:open_phone_modal"));
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 active:scale-95 text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition cursor-pointer"
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>{isFrench ? "Associer mon Numéro" : "Attach Phone"}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                    <Phone className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="font-mono text-sm font-semibold">{phone}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          window.dispatchEvent(new CustomEvent("leaselink:open_phone_modal"));
+                        }
+                      }}
+                      title={isFrench ? "Modifier mon numéro" : "Edit phone number"}
+                      className="ml-2 text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      {isFrench ? "Modifier" : "Edit"}
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>

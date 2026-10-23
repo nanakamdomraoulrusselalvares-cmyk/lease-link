@@ -15,6 +15,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface GoogleAuthButtonProps {
   mode?: "login" | "signup";
+  phone?: string;
   label?: string;
   nextUrl?: string;
   className?: string;
@@ -27,6 +28,7 @@ interface GoogleAuthButtonProps {
 
 export default function GoogleAuthButton({
   mode = "login",
+  phone,
   label,
   nextUrl = "/dashboard",
   className = "",
@@ -56,9 +58,12 @@ export default function GoogleAuthButton({
           ? window.location.origin
           : "";
 
-      // Store flow mode in a short-lived cookie for fallback in callback route
+      // Store flow mode and phone in short-lived cookies for callback route
       if (typeof document !== "undefined") {
         document.cookie = `sb_oauth_flow=${mode}; path=/; max-age=300; samesite=lax`;
+        if (phone && phone.trim()) {
+          document.cookie = `sb_oauth_phone=${encodeURIComponent(phone.trim())}; path=/; max-age=600; samesite=lax`;
+        }
       }
 
       const redirectTo = `${origin}/auth/callback?mode=${mode}&next=${encodeURIComponent(nextUrl)}`;

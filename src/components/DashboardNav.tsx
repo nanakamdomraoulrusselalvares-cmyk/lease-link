@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import NotificationBell from "@/components/NotificationBell";
+import AttachPhoneModal, { isMissingPhone } from "@/components/AttachPhoneModal";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { LandlordProfile, AVAILABLE_PLANS, resolvePlanConfig } from "@/types/database";
 import {
@@ -31,6 +32,8 @@ import {
   Globe,
   Sun,
   Moon,
+  Smartphone,
+  Phone,
 } from "lucide-react";
 
 interface DashboardNavProps {
@@ -53,11 +56,45 @@ export default function DashboardNav({
 
   const [user, setUser] = useState<SupabaseUser | null>(initialUser || null);
   const [profile, setProfile] = useState<LandlordProfile | null>(initialProfile || null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync profile when initialProfile prop changes
+  useEffect(() => {
+    if (initialProfile) {
+      setProfile(initialProfile);
+    }
+  }, [initialProfile]);
+
+  // Check URL parameters (e.g., need_phone=true from Google signup) & event listeners
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("need_phone") === "true") {
+        setShowPhoneModal(true);
+      }
+    }
+
+    const handleOpenModal = () => setShowPhoneModal(true);
+    const handlePhoneUpdated = (e: any) => {
+      const newPhone = e.detail?.phone;
+      if (newPhone) {
+        setProfile((prev) => (prev ? { ...prev, phone: newPhone } : prev));
+      }
+    };
+
+    window.addEventListener("leaselink:open_phone_modal", handleOpenModal);
+    window.addEventListener("leaselink:phone_updated", handlePhoneUpdated);
+
+    return () => {
+      window.removeEventListener("leaselink:open_phone_modal", handleOpenModal);
+      window.removeEventListener("leaselink:phone_updated", handlePhoneUpdated);
+    };
+  }, []);
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
@@ -452,6 +489,30 @@ export default function DashboardNav({
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
                         {user?.email || "user@leaselink.com"}
                       </p>
+
+                      {profile?.role === "landlord" && isMissingPhone(profile?.phone) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileDropdownOpen(false);
+                            setShowPhoneModal(true);
+                          }}
+                          className="mt-2 w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] font-semibold hover:bg-amber-100 dark:hover:bg-amber-500/20 transition cursor-pointer"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Smartphone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>{isFrench ? "Numéro WhatsApp" : "WhatsApp Number"}</span>
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500 text-white">
+                            {isFrench ? "Requis" : "Required"}
+                          </span>
+                        </button>
+                      ) : profile?.phone ? (
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1 mt-1 font-mono">
+                          <Smartphone className="w-3 h-3 text-emerald-500 shrink-0" />
+                          <span>{profile.phone}</span>
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
@@ -558,6 +619,39 @@ export default function DashboardNav({
           </div>
         </div>
       </header>
+
+      {/* Missing Phone Number Alert Banner for Landlords */}
+      {profile?.role === "landlord" && isMissingPhone(profile?.phone) && (
+        <aside
+          role="alert"
+          aria-label="Configuration du numéro de téléphone requise"
+          className="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 dark:from-amber-500/20 dark:via-orange-500/20 dark:to-amber-500/20 border-b border-amber-300 dark:border-amber-500/30 px-4 py-2 text-xs text-amber-900 dark:text-amber-200 transition-all sticky top-[calc(var(--pwa-banner-height,0px)+4rem)] z-30 backdrop-blur-md"
+        >
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                <Smartphone className="w-4 h-4 animate-bounce" />
+              </span>
+              <span>
+                <strong className="font-bold">
+                  {isFrench ? "Numéro de téléphone requis :" : "Telephone number required:"}
+                </strong>{" "}
+                {isFrench
+                  ? "Vous devez associer votre numéro de téléphone / WhatsApp pour émettre les quittances certifiées et recevoir les alertes locataires."
+                  : "You must attach your telephone / WhatsApp number to emit certified receipts and receive tenant alerts."}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPhoneModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs shrink-0 shadow-sm transition cursor-pointer"
+            >
+              <span>{isFrench ? "Associer mon numéro" : "Attach my phone"}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. MOBILE FIXED BOTTOM NAVIGATION BAR (iOS / Native PWA style)           */}
@@ -697,6 +791,19 @@ export default function DashboardNav({
         userId={user?.id}
         landlordId={profile?.role === "manager" ? profile?.landlord_id : user?.id}
         assignedBuildingIds={profile?.assigned_building_ids}
+      />
+
+      {/* 5. ATTACH PHONE NUMBER MODAL */}
+      <AttachPhoneModal
+        isOpen={showPhoneModal}
+        profile={profile}
+        user={user}
+        canDismiss={true}
+        onPhoneSaved={(newPhone) => {
+          setProfile((prev) => (prev ? { ...prev, phone: newPhone } : prev));
+          setShowPhoneModal(false);
+        }}
+        onClose={() => setShowPhoneModal(false)}
       />
     </>
   );

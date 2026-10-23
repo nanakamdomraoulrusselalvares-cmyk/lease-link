@@ -14,7 +14,9 @@ export async function GET(request: Request) {
   // Read mode ('login' | 'signup') from query params or short-lived cookie
   const cookieStore = await cookies();
   const flowCookie = cookieStore.get("sb_oauth_flow")?.value;
+  const phoneCookie = cookieStore.get("sb_oauth_phone")?.value;
   const mode = (searchParams.get("mode") || flowCookie || "").toLowerCase();
+  const passedPhone = phoneCookie ? decodeURIComponent(phoneCookie).trim() : "";
 
   // Helper to determine destination URL
   const forwardedHost = request.headers.get("x-forwarded-host");
@@ -184,10 +186,12 @@ export async function GET(request: Request) {
         }
 
         // New landlord signup: initialize plan profile
+        let userPhone = passedPhone || "";
         try {
           const userMeta = data.user.user_metadata || {};
           const fullName =
             userMeta.full_name || userMeta.name || userEmail.split("@")[0] || "Bailleur";
+          userPhone = passedPhone || userMeta.phone || "";
           const planConfig = resolvePlanConfig(userMeta.plan);
           const trialExpires = new Date();
           trialExpires.setDate(trialExpires.getDate() + (planConfig.durationDays || 30));
@@ -196,7 +200,7 @@ export async function GET(request: Request) {
             id: userId,
             email: userEmail,
             full_name: fullName,
-            phone: userMeta.phone || "",
+            phone: userPhone,
             role: "landlord",
             plan: planConfig.id,
             plan_name: planConfig.name,
@@ -215,23 +219,33 @@ export async function GET(request: Request) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
+
+          // Sync into auth user metadata if passed
+          if (userPhone) {
+            await supabase.auth.updateUser({ data: { phone: userPhone } }).catch(() => {});
+          }
         } catch (profileErr) {
           console.warn("Could not create landlord profile in auth callback:", profileErr);
         }
 
-        const redirectRes = NextResponse.redirect(getDestination(`${next}?welcome=new_landlord`));
+        const needsPhone = !userPhone || userPhone.trim() === "";
+        const redirectUrl = `${next}?welcome=new_landlord${needsPhone ? "&need_phone=true" : ""}`;
+        const redirectRes = NextResponse.redirect(getDestination(redirectUrl));
         redirectRes.cookies.delete("sb_oauth_flow");
+        redirectRes.cookies.delete("sb_oauth_phone");
         return redirectRes;
       }
 
       // =========================================================================
       // FALLBACK: Mode unspecified -> Route gracefully
       // =========================================================================
+      let userPhone = passedPhone || "";
       if (isBrandNewAccount) {
         try {
           const userMeta = data.user.user_metadata || {};
           const fullName =
             userMeta.full_name || userMeta.name || userEmail.split("@")[0] || "Bailleur";
+          userPhone = passedPhone || userMeta.phone || "";
           const planConfig = resolvePlanConfig(userMeta.plan);
           const trialExpires = new Date();
           trialExpires.setDate(trialExpires.getDate() + (planConfig.durationDays || 30));
@@ -240,7 +254,7 @@ export async function GET(request: Request) {
             id: userId,
             email: userEmail,
             full_name: fullName,
-            phone: userMeta.phone || "",
+            phone: userPhone,
             role: "landlord",
             plan: planConfig.id,
             plan_name: planConfig.name,
@@ -259,6 +273,10 @@ export async function GET(request: Request) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
+
+          if (userPhone) {
+            await supabase.auth.updateUser({ data: { phone: userPhone } }).catch(() => {});
+          }
         } catch (fallbackErr) {
           console.warn("Fallback profile creation warning:", fallbackErr);
         }
@@ -267,10 +285,15 @@ export async function GET(request: Request) {
       let destination = next;
       if (matchedProfile?.role === "tenant" && (!next || next === "/dashboard")) {
         destination = "/tenant/dashboard";
+      } else if (isBrandNewAccount) {
+        const needsPhone = !userPhone || userPhone.trim() === "";
+        const sep = destination.includes("?") ? "&" : "?";
+        destination = `${destination}${sep}welcome=new_landlord${needsPhone ? "&need_phone=true" : ""}`;
       }
 
       const redirectRes = NextResponse.redirect(getDestination(destination));
       redirectRes.cookies.delete("sb_oauth_flow");
+      redirectRes.cookies.delete("sb_oauth_phone");
       return redirectRes;
     } else if (exchangeError) {
       console.error("Failed to exchange auth code for session:", exchangeError.message);
