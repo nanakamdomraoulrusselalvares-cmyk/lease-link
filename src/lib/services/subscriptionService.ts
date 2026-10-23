@@ -112,14 +112,16 @@ export function isPlanAlreadyActiveThisMonth(
 ): { isActiveThisMonth: boolean; expiresAt: string | null; formattedExpiry: string } {
   if (!profile) return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
 
+  const currentConfig = resolvePlanConfig(profile.plan);
+  const targetConfig = resolvePlanConfig(targetPlanId);
+
   // Free trial never blocks paying/upgrading to paid plans
-  if (targetPlanId === "free") return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
-  if (profile.plan === "free" || profile.plan === "free_trial") {
+  if (targetConfig.id === "free" || currentConfig.id === "free") {
     return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
   }
 
   // Check if profile's current plan matches the target plan
-  const matchesPlan = profile.plan === targetPlanId;
+  const matchesPlan = currentConfig.id === targetConfig.id;
   if (!matchesPlan) {
     return { isActiveThisMonth: false, expiresAt: null, formattedExpiry: "" };
   }

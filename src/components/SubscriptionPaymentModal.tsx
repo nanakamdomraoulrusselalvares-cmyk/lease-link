@@ -54,14 +54,17 @@ export default function SubscriptionPaymentModal({
 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlanId>(() => {
-    // If the landlord is already on active Starter, default to Growth so they can upgrade
-    if (profile?.plan === "tier_1_30") {
-      const activeCheck = isPlanAlreadyActiveThisMonth(profile, "tier_1_30");
-      if (activeCheck.isActiveThisMonth) {
-        return "tier_31_60";
-      }
-    }
-    return "tier_1_30";
+    const paidPlans: SubscriptionPlanId[] = [
+      "tier_1_30",
+      "tier_31_60",
+      "tier_61_100",
+      "tier_100_plus",
+    ];
+    // Find the first plan that is not already active for the landlord
+    const available = paidPlans.find(
+      (p) => !isPlanAlreadyActiveThisMonth(profile, p).isActiveThisMonth
+    );
+    return available || "tier_1_30";
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("momo");
   const [payerPhone, setPayerPhone] = useState(profile?.phone || "");
