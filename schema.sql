@@ -2072,11 +2072,15 @@ begin
             file_size_limit = 52428800;
 
         -- 2. Storage Policies for maintenance-media
-        -- Allow public read access to media files
+        -- Note: Public buckets serve files directly via public CDN URLs without needing a broad SELECT policy.
+        -- Dropping the broad public select policy prevents external visitors from listing/enumerating all files.
         drop policy if exists "Maintenance media public select" on storage.objects;
-        create policy "Maintenance media public select"
+
+        -- Only authenticated users (landlords, managers) can list files via the Supabase Storage API
+        drop policy if exists "Maintenance media authenticated select" on storage.objects;
+        create policy "Maintenance media authenticated select"
             on storage.objects for select
-            using (bucket_id = 'maintenance-media');
+            using (bucket_id = 'maintenance-media' and auth.role() = 'authenticated');
 
         -- Allow authenticated and anon users (tenants) to upload media files
         drop policy if exists "Maintenance media upload" on storage.objects;
