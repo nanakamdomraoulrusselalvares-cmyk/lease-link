@@ -38,6 +38,7 @@ import PayRentModal from "@/components/PayRentModal";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import TenantNav from "@/components/TenantNav";
 import SmartDataLoader from "@/components/SmartDataLoader";
+import { uploadMediaToStorage } from "@/lib/services/storageService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
   Building2,
@@ -289,6 +290,26 @@ function TenantPortalContent() {
     setSubmitError(null);
 
     try {
+      // Upload media files to Supabase Storage bucket if present
+      let finalPhotoUrl = formPhoto;
+      let finalVideoUrl = formVideo;
+      let finalVoiceUrl = formVoice;
+
+      if (formPhoto) {
+        const photoUpload = await uploadMediaToStorage(formPhoto, "photos");
+        if (photoUpload.url) finalPhotoUrl = photoUpload.url;
+      }
+
+      if (formVideo) {
+        const videoUpload = await uploadMediaToStorage(formVideo, "videos");
+        if (videoUpload.url) finalVideoUrl = videoUpload.url;
+      }
+
+      if (formVoice) {
+        const voiceUpload = await uploadMediaToStorage(formVoice, "voices");
+        if (voiceUpload.url) finalVoiceUrl = voiceUpload.url;
+      }
+
       const res = await submitMaintenanceRequest({
         unit_id: data.unit_id,
         building_id: data.building_id,
@@ -302,9 +323,9 @@ function TenantPortalContent() {
         urgency: formUrgency,
         title: formTitle.trim(),
         description: formDescription.trim(),
-        photo_url: formPhoto,
-        video_url: formVideo,
-        voice_url: formVoice,
+        photo_url: finalPhotoUrl,
+        video_url: finalVideoUrl,
+        voice_url: finalVoiceUrl,
         voice_duration_seconds: formVoiceDuration,
       });
 

@@ -2047,7 +2047,59 @@ $$;
 
 
 -- ==============================================================================
+-- PHASE 11.5: Supabase Storage Buckets & Policies (Media, Photos, Videos)
+-- ==============================================================================
+
+do $$
+begin
+    -- 1. Create public maintenance-media bucket if storage schema exists
+    if exists (select 1 from information_schema.schemata where schema_name = 'storage') then
+        insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+        values (
+            'maintenance-media',
+            'maintenance-media',
+            true,
+            52428800, -- 50 MB limit
+            array[
+                'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+                'video/mp4', 'video/webm', 'video/quicktime',
+                'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/wav',
+                'application/pdf'
+            ]
+        )
+        on conflict (id) do update set
+            public = true,
+            file_size_limit = 52428800;
+
+        -- 2. Storage Policies for maintenance-media
+        -- Allow public read access to media files
+        drop policy if exists "Maintenance media public select" on storage.objects;
+        create policy "Maintenance media public select"
+            on storage.objects for select
+            using (bucket_id = 'maintenance-media');
+
+        -- Allow authenticated and anon users (tenants) to upload media files
+        drop policy if exists "Maintenance media upload" on storage.objects;
+        create policy "Maintenance media upload"
+            on storage.objects for insert
+            with check (bucket_id = 'maintenance-media');
+
+        -- Allow landlords/authenticated users to delete media if needed
+        drop policy if exists "Maintenance media delete" on storage.objects;
+        create policy "Maintenance media delete"
+            on storage.objects for delete
+            using (bucket_id = 'maintenance-media' and auth.role() = 'authenticated');
+    end if;
+exception
+    when others then
+        raise notice 'Storage bucket setup notice: %', sqlerrm;
+end;
+$$;
+
+
+-- ==============================================================================
 -- PHASE 12: Reload PostgREST Schema Cache
 -- ==============================================================================
 
 notify pgrst, 'reload schema';
+
