@@ -22,6 +22,7 @@ import {
   Sun,
   Moon,
   DollarSign,
+  Lock,
   CheckCircle2,
   ShieldCheck,
   Loader2,
@@ -133,9 +134,10 @@ export default function TenantNav({
     },
     {
       href: `${portalBase}#rent`,
-      label: isFrench ? "Payer" : "Pay Rent",
-      icon: DollarSign,
+      label: isFrench ? "Payer (🔒)" : "Pay (🔒)",
+      icon: Lock,
       active: false,
+      badge: isFrench ? "Travaux" : "Locked",
       onClick: onPayRentClick,
     },
     {

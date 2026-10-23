@@ -28,6 +28,7 @@ import {
   Calendar,
   Plus,
   Minus,
+  Lock,
 } from "lucide-react";
 
 interface PayRentModalProps {
@@ -636,24 +637,16 @@ export default function PayRentModal({
               </button>
 
               <button
-                type="submit"
-                disabled={numericAmount <= 0}
-                className={`flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition cursor-pointer ${
-                  numericAmount > 0
-                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
-                }`}
+                type="button"
+                disabled
+                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-slate-800 text-amber-300 border border-amber-500/30 cursor-not-allowed shadow-md"
               >
+                <Lock className="w-4 h-4 text-amber-400" />
                 <span>
-                  {numericAmount > 0
-                    ? isFrench
-                      ? `Payer ${numericAmount.toLocaleString()} XAF (${monthsCount} M)`
-                      : `Pay ${numericAmount.toLocaleString()} XAF (${monthsCount} Mo)`
-                    : isFrench
-                    ? "Entrez le montant ci-dessus"
-                    : "Enter Amount Above"}
+                  {isFrench
+                    ? "Paiement en ligne indisponible (En travaux)"
+                    : "Online payment unavailable (Under work)"}
                 </span>
-                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </form>
