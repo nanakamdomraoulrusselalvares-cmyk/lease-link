@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   SubscriptionPlanId,
   BillingCycle,
@@ -29,6 +29,10 @@ import {
   Receipt,
   Clock,
   Zap,
+  Smartphone,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 interface SubscriptionPaymentModalProps {
@@ -56,6 +60,19 @@ export default function SubscriptionPaymentModal({
   const [successRecord, setSuccessRecord] = useState<SubscriptionPaymentRecord | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [campayRef, setCampayRef] = useState<string | null>(null);
+  const [campayUssd, setCampayUssd] = useState<string | null>(null);
+  const [campayOperator, setCampayOperator] = useState<string | null>(null);
+  const [campaySecondsLeft, setCampaySecondsLeft] = useState(90);
+  const [isAwaitingUssd, setIsAwaitingUssd] = useState(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
   // Guard: If modal is not open or if user is a manager, do not render modal
   if (!isOpen || profile?.role === "manager") return null;
 
@@ -69,41 +86,106 @@ export default function SubscriptionPaymentModal({
     setErrorMsg(null);
 
     try {
-      const result = await processSubscriptionPayment({
-        landlordId: profile.id,
-        landlordName: payerName.trim() || profile.full_name,
-        landlordEmail: profile.email,
-        landlordPhone: payerPhone.trim() || profile.phone,
-        planId: selectedPlanId,
-        billingCycle,
-        paymentMethod,
-        payerPhone: payerPhone.trim(),
-        payerName: payerName.trim(),
-        notes: notes.trim(),
+      // 1. Initiate Campay Mobile Money Collect
+      const collectRes = await fetch("/api/campay/collect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          landlordId: profile.id,
+          planId: selectedPlanId,
+          billingCycle,
+          payerPhone: payerPhone.trim(),
+          payerName: payerName.trim() || profile.full_name,
+        }),
       });
 
-      if (result.success && result.record) {
-        setSuccessRecord(result.record);
-        if (onSubscriptionUpdated) {
-          onSubscriptionUpdated(result.record);
-        }
-      } else {
+      const collectData = await collectRes.json();
+      if (!collectRes.ok || !collectData.success) {
         setErrorMsg(
-          result.error ||
+          collectData.error ||
             (isFrench
-              ? "Échec du traitement du paiement d'abonnement."
-              : "Failed to process subscription payment.")
+              ? "Échec de l'initialisation du débit Mobile Money via Campay."
+              : "Failed to initiate Mobile Money debit via Campay.")
         );
+        setIsProcessing(false);
+        return;
       }
+
+      setCampayRef(collectData.reference);
+      setCampayUssd(collectData.ussdCode || null);
+      setCampayOperator(collectData.operator || null);
+      setIsAwaitingUssd(true);
+      setCampaySecondsLeft(90);
+
+      // 2. Poll Campay transaction status every 3 seconds
+      const pollStart = Date.now();
+      pollingRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(
+            `/api/campay/status?reference=${encodeURIComponent(
+              collectData.reference
+            )}&landlordId=${encodeURIComponent(
+              profile.id
+            )}&planId=${encodeURIComponent(
+              selectedPlanId
+            )}&billingCycle=${encodeURIComponent(
+              billingCycle
+            )}&payerPhone=${encodeURIComponent(
+              payerPhone.trim()
+            )}&payerName=${encodeURIComponent(
+              payerName.trim() || profile.full_name
+            )}`
+          );
+          const statusData = await statusRes.json();
+
+          if (statusData.status === "SUCCESSFUL") {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            setIsAwaitingUssd(false);
+            setIsProcessing(false);
+            if (statusData.record) {
+              setSuccessRecord(statusData.record);
+              if (onSubscriptionUpdated) {
+                onSubscriptionUpdated(statusData.record);
+              }
+            }
+          } else if (statusData.status === "FAILED") {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            setIsAwaitingUssd(false);
+            setIsProcessing(false);
+            setErrorMsg(
+              isFrench
+                ? "Le paiement Mobile Money a été rejeté ou annulé sur votre téléphone."
+                : "Mobile Money payment was rejected or cancelled on your phone."
+            );
+          } else {
+            if (Date.now() - pollStart > 90000) {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              setIsAwaitingUssd(false);
+              setIsProcessing(false);
+              setErrorMsg(
+                isFrench
+                  ? "Délai de validation USSD dépassé (90s). Veuillez réessayer."
+                  : "USSD validation timed out (90s). Please try again."
+              );
+            } else {
+              setCampaySecondsLeft((prev) => Math.max(0, prev - 3));
+            }
+          }
+        } catch (pollErr) {
+          console.warn("Campay status poll notice:", pollErr);
+        }
+      }, 3000);
     } catch (err: any) {
       console.error("Payment error:", err);
       setErrorMsg(err?.message || "An unexpected error occurred");
-    } finally {
       setIsProcessing(false);
     }
   };
 
   const handleResetAndClose = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    setIsAwaitingUssd(false);
+    setIsProcessing(false);
     setSuccessRecord(null);
     setErrorMsg(null);
     onClose();
@@ -192,6 +274,98 @@ export default function SubscriptionPaymentModal({
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-md shadow-blue-500/20 cursor-pointer"
               >
                 {isFrench ? "Retourner au Tableau de Bord" : "Return to Dashboard"}
+              </button>
+            </div>
+          </div>
+        ) : isAwaitingUssd ? (
+          /* ========================================================================= */
+          /* CAMPAY USSD LIVE APPROVAL SCREEN                                         */
+          /* ========================================================================= */
+          <div className="p-4 sm:p-8 text-center space-y-6 animate-in zoom-in-95 duration-150">
+            <div className="relative w-20 h-20 mx-auto">
+              <div className="w-20 h-20 rounded-full border-4 border-blue-500/20 border-t-blue-600 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <Smartphone className="w-9 h-9 animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-2 max-w-md mx-auto">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                <span>{isFrench ? "Passerelle Campay MoMo" : "Campay MoMo Gateway"}</span>
+              </div>
+
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                {isFrench ? "Validez le débit sur votre téléphone" : "Approve Payment on Your Phone"}
+              </h3>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                {isFrench
+                  ? `Une demande de débit Mobile Money de `
+                  : `A Mobile Money debit prompt of `}
+                <strong className="text-slate-900 dark:text-white font-mono">{currentPricing.priceDisplay}</strong>
+                {isFrench
+                  ? ` a été transmise à votre numéro `
+                  : ` was sent to `}
+                <strong className="text-blue-600 dark:text-blue-400 font-mono">{payerPhone}</strong>.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 text-xs text-left space-y-2 max-w-md mx-auto">
+              <p className="font-bold text-blue-900 dark:text-blue-200 flex items-center gap-2">
+                <span>📱</span>
+                {isFrench ? "Instructions de confirmation :" : "Confirmation Instructions:"}
+              </p>
+              <ol className="list-decimal list-inside space-y-1.5 text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed">
+                <li>
+                  {isFrench
+                    ? "Déverrouillez votre téléphone portable."
+                    : "Unlock your mobile phone."}
+                </li>
+                <li>
+                  {campayUssd ? (
+                    <span>
+                      {isFrench
+                        ? `Consultez l'invite USSD ou composez `
+                        : `Check the USSD prompt or dial `}
+                      <strong className="text-blue-600 dark:text-blue-400 font-mono font-bold">{campayUssd}</strong>.
+                    </span>
+                  ) : (
+                    <span>
+                      {isFrench
+                        ? "Saisissez votre code PIN secret Mobile Money (MTN MoMo ou Orange Money)."
+                        : "Enter your secret Mobile Money PIN (MTN MoMo or Orange Money)."}
+                    </span>
+                  )}
+                </li>
+                <li>
+                  {isFrench
+                    ? "Validez pour autoriser le paiement. Votre forfait LeaseLink sera immédiatement activé !"
+                    : "Approve payment. Your LeaseLink plan will activate instantly!"}
+                </li>
+              </ol>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500 font-mono">
+              <Clock className="w-3.5 h-3.5 text-blue-500" />
+              <span>
+                {isFrench
+                  ? `Délai d'attente : ${campaySecondsLeft}s`
+                  : `Time remaining: ${campaySecondsLeft}s`}
+              </span>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (pollingRef.current) clearInterval(pollingRef.current);
+                  setIsAwaitingUssd(false);
+                  setIsProcessing(false);
+                }}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                {isFrench ? "Annuler la transaction" : "Cancel Transaction"}
               </button>
             </div>
           </div>
@@ -348,8 +522,12 @@ export default function SubscriptionPaymentModal({
 
             {/* 3. Payment Method - Strictly MTN MoMo and Orange Money */}
             <div className="space-y-2 pt-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                {isFrench ? "Mode de Règlement (MoMo / Orange Money)" : "Payment Method (Mobile Money Only)"}
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                <span>{isFrench ? "Règlement Mobile Money" : "Mobile Money Payment"}</span>
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold lowercase bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/20 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Campay API
+                </span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
@@ -447,10 +625,13 @@ export default function SubscriptionPaymentModal({
                   className="w-1/2 sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isProcessing ? (
-                    <span>{isFrench ? "Traitement..." : "Processing..."}</span>
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>{isFrench ? "Connexion Campay..." : "Connecting Campay..."}</span>
+                    </span>
                   ) : (
                     <>
-                      <span>{isFrench ? "Confirmer & Payer" : "Confirm & Pay"}</span>
+                      <span>{isFrench ? "Payer via Campay (MoMo)" : "Pay with Campay (MoMo)"}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </>
                   )}

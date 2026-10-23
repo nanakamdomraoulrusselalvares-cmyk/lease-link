@@ -36,8 +36,8 @@ export interface SubscriptionPaymentRecord {
 export interface ProcessSubscriptionInput {
   landlordId: string;
   landlordName: string;
-  landlordEmail: string;
-  landlordPhone: string;
+  landlordEmail?: string;
+  landlordPhone?: string;
   planId: SubscriptionPlanId;
   billingCycle: BillingCycle;
   paymentMethod: PaymentMethod;
@@ -185,8 +185,8 @@ export async function processSubscriptionPayment(
       receipt_number: receiptNumber,
       landlord_id: landlordId,
       landlord_name: landlordName,
-      landlord_email: landlordEmail,
-      landlord_phone: landlordPhone,
+      landlord_email: landlordEmail || "",
+      landlord_phone: landlordPhone || payerPhone || "",
       plan_id: resolvedPlanId,
       plan_name: formattedPlanName,
       billing_cycle: billingCycle,
