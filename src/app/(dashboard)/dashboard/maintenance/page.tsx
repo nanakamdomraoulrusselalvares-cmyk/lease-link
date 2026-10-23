@@ -128,6 +128,15 @@ export default function LandlordMaintenancePage() {
   };
 
   const handleStatusChange = async (requestId: string, newStatus: MaintenanceStatus) => {
+    if (newStatus === "resolved") {
+      alert(
+        isFrench
+          ? "Seul le locataire peut marquer cette demande comme résolue une fois l'intervention vérifiée dans son logement."
+          : "Only the tenant can mark this reparation request as resolved once verified in their unit."
+      );
+      return;
+    }
+
     setSavingRequestId(requestId);
     const currentNotes = editingNotes[requestId] || "";
 
@@ -142,6 +151,8 @@ export default function LandlordMaintenancePage() {
       );
       setSaveSuccessId(requestId);
       setTimeout(() => setSaveSuccessId(null), 3000);
+    } else if (res.error) {
+      alert(res.error);
     }
     setSavingRequestId(null);
   };
@@ -447,31 +458,45 @@ export default function LandlordMaintenancePage() {
                         <span>{isFrench ? categoryMeta.fr : categoryMeta.label}</span>
                       </span>
 
-                      {/* Status Dropdown */}
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
-                          {isFrench ? "Statut :" : "Status:"}
-                        </span>
-                        <select
-                          value={req.status}
-                          disabled={isSavingThis}
-                          onChange={(e) => handleStatusChange(req.id, e.target.value as MaintenanceStatus)}
-                          className={`text-xs font-bold px-3 py-1 rounded-full border focus:outline-none cursor-pointer transition ${statusMeta.badgeClass}`}
-                        >
-                          <option value="pending" className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-semibold">
-                            {isFrench ? "En Attente d'Examen" : "Pending Review"}
-                          </option>
-                          <option value="in_progress" className="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold">
-                            {isFrench ? "En Cours (Intervention)" : "In Progress"}
-                          </option>
-                          <option value="resolved" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 font-semibold">
-                            {isFrench ? "Résolu (Terminé)" : "Resolved"}
-                          </option>
-                          <option value="rejected" className="bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-semibold">
-                            {isFrench ? "Rejeté / Fermé" : "Rejected / Closed"}
-                          </option>
-                        </select>
-                      </div>
+                      {/* Status Dropdown / Badge (Only Tenant can mark Resolved) */}
+                      {req.status === "resolved" ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
+                            {isFrench ? "Statut :" : "Status:"}
+                          </span>
+                          <span className="text-xs font-bold px-3 py-1 rounded-full border bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1.5 shadow-xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>{isFrench ? "Résolu (Validé par le locataire)" : "Resolved (Confirmed by tenant)"}</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
+                              {isFrench ? "Statut :" : "Status:"}
+                            </span>
+                            <select
+                              value={req.status}
+                              disabled={isSavingThis}
+                              onChange={(e) => handleStatusChange(req.id, e.target.value as MaintenanceStatus)}
+                              className={`text-xs font-bold px-3 py-1 rounded-full border focus:outline-none cursor-pointer transition ${statusMeta.badgeClass}`}
+                            >
+                              <option value="pending" className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-semibold">
+                                {isFrench ? "En Attente d'Examen" : "Pending Review"}
+                              </option>
+                              <option value="in_progress" className="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold">
+                                {isFrench ? "En Cours (Intervention)" : "In Progress"}
+                              </option>
+                              <option value="rejected" className="bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-semibold">
+                                {isFrench ? "Rejeté / Fermé" : "Rejected / Closed"}
+                              </option>
+                            </select>
+                          </div>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 italic">
+                            ({isFrench ? "Validation finale par le locataire" : "Final resolution by tenant"})
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5">

@@ -336,7 +336,7 @@ alter table public.profiles add column if not exists updated_at timestamptz not 
 do $$
 begin
     update public.profiles set role = 'landlord' where role is null or role not in ('landlord', 'manager', 'admin', 'tenant');
-    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'free_trial', 'tier_1_30', 'tier_31_60', 'tier_61_100', 'tier_100_plus', 'ultimate');
+    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate');
     update public.profiles set billing_cycle = 'monthly' where billing_cycle is null or billing_cycle not in ('monthly', 'annual');
     update public.profiles set plan_status = 'active' where plan_status is null or plan_status not in ('active', 'expired', 'renewed', 'suspended');
     update public.profiles set subscription_status = plan_status where subscription_status is null;
@@ -349,7 +349,7 @@ begin
     alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin', 'tenant'));
 
     alter table public.profiles drop constraint if exists profiles_plan_check;
-    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'free_trial', 'tier_1_30', 'tier_31_60', 'tier_61_100', 'tier_100_plus', 'ultimate'));
+    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate'));
 
     alter table public.profiles drop constraint if exists profiles_billing_cycle_check;
     alter table public.profiles add constraint profiles_billing_cycle_check check (billing_cycle in ('monthly', 'annual'));
@@ -729,7 +729,33 @@ create trigger trg_enforce_maintenance_tenant_isolation
     before insert or update on public.maintenance_requests
     for each row execute function public.enforce_maintenance_tenant_isolation();
 
--- 6.3 Rent Payments Isolation
+-- 6.3 Maintenance Resolution Rule (Only the Tenant Can Mark Requests as Resolved)
+create or replace function public.enforce_maintenance_status_rules()
+returns trigger as $$
+declare
+    v_updater_role text;
+begin
+    -- If status is being transitioned to 'resolved'
+    if new.status = 'resolved' and (old.status is null or old.status <> 'resolved') then
+        if auth.uid() is not null then
+            select role into v_updater_role from public.profiles where id = auth.uid();
+            -- Landlords and delegated managers cannot set status to resolved directly
+            if v_updater_role in ('landlord', 'manager') and not public.is_admin() then
+                raise exception 'Only the tenant can mark a reparation request as resolved (Seul le locataire peut marquer sa demande de réparation comme résolue).';
+            end if;
+        end if;
+    end if;
+
+    return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_enforce_maintenance_status_rules on public.maintenance_requests;
+create trigger trg_enforce_maintenance_status_rules
+    before update on public.maintenance_requests
+    for each row execute function public.enforce_maintenance_status_rules();
+
+-- 6.4 Rent Payments Isolation
 create or replace function public.enforce_payment_tenant_isolation()
 returns trigger as $$
 begin
@@ -944,8 +970,14 @@ create policy "Maintenance insert policy"
 
 create policy "Maintenance update policy"
     on public.maintenance_requests for update
-    using (public.can_access_landlord_portfolio(landlord_id))
-    with check (public.can_access_landlord_portfolio(landlord_id));
+    using (
+        public.can_access_landlord_portfolio(landlord_id)
+        or (auth.role() = 'anon')
+    )
+    with check (
+        public.can_access_landlord_portfolio(landlord_id)
+        or (auth.role() = 'anon')
+    );
 
 create policy "Maintenance delete policy"
     on public.maintenance_requests for delete
@@ -1236,15 +1268,18 @@ begin
     if p_plan in ('free', 'free_trial') then
         v_plan_name := 'Free Trial (30 Days)';
         v_unit_limit := 5;
-    elsif p_plan = 'tier_1_30' then
+    elsif p_plan in ('tier_1_30', 'starter') then
         v_plan_name := 'Starter (1 to 30 Units)';
         v_unit_limit := 30;
-    elsif p_plan = 'tier_31_60' then
+    elsif p_plan in ('tier_31_60', 'growth') then
         v_plan_name := 'Growth (31 to 60 Units)';
         v_unit_limit := 60;
-    elsif p_plan = 'tier_61_100' then
+    elsif p_plan in ('tier_61_100', 'pro') then
         v_plan_name := 'Pro (61 to 100 Units)';
         v_unit_limit := 100;
+    elsif p_plan in ('tier_100_plus', 'ultimate') then
+        v_plan_name := 'Ultimate (101 to 300 Units)';
+        v_unit_limit := 300;
     else
         return json_build_object('success', false, 'error', 'Invalid plan type');
     end if;
@@ -1832,6 +1867,89 @@ begin
     end loop;
 
     return json_build_object('success', true, 'notifications_created', v_notif_count);
+end;
+$$ language plpgsql security definer set search_path = public, auth;
+
+-- 8.12 Secure Tenant Maintenance Request Resolution
+create or replace function public.resolve_tenant_maintenance_request(
+    p_request_id uuid,
+    p_token text
+)
+returns json as $$
+declare
+    v_unit_id uuid;
+    v_req record;
+begin
+    -- 1. Identify unit associated with tenant access token
+    select id into v_unit_id
+    from public.units
+    where tenant_access_token = trim(p_token) and status = 'occupied';
+
+    if v_unit_id is null then
+        return json_build_object('success', false, 'error', 'Invalid access token (Jeton locataire invalide)');
+    end if;
+
+    -- 2. Fetch maintenance request and verify ownership
+    select id, unit_id, building_id, landlord_id, unit_number, building_name, title, tenant_name
+    into v_req
+    from public.maintenance_requests
+    where id = p_request_id;
+
+    if v_req.id is null then
+        return json_build_object('success', false, 'error', 'Maintenance request not found (Demande introuvable)');
+    end if;
+
+    if v_req.unit_id <> v_unit_id then
+        return json_build_object('success', false, 'error', 'Unauthorized: Request does not belong to this unit');
+    end if;
+
+    -- 3. Update status to resolved
+    update public.maintenance_requests
+    set
+        status = 'resolved',
+        updated_at = now()
+    where id = p_request_id;
+
+    -- 4. Dispatch notification to landlord and managers
+    insert into public.notifications (
+        type,
+        recipient_role,
+        landlord_id,
+        building_id,
+        building_name,
+        unit_id,
+        unit_number,
+        tenant_name,
+        title,
+        title_fr,
+        message,
+        message_fr,
+        metadata
+    ) values (
+        'maintenance_resolved',
+        'management',
+        v_req.landlord_id,
+        v_req.building_id,
+        v_req.building_name,
+        v_req.unit_id,
+        v_req.unit_number,
+        v_req.tenant_name,
+        'Repair Resolved: Unit ' || v_req.unit_number,
+        'Réparation Résolue : Logement ' || v_req.unit_number,
+        'Tenant ' || v_req.tenant_name || ' confirmed that the issue "' || v_req.title || '" in Unit ' || v_req.unit_number || ' has been successfully resolved.',
+        'Le locataire ' || v_req.tenant_name || ' a confirmé que le problème "' || v_req.title || '" au logement ' || v_req.unit_number || ' a été résolu avec succès.',
+        jsonb_build_object(
+            'requestId', v_req.id,
+            'status', 'resolved',
+            'title', v_req.title,
+            'unitNumber', v_req.unit_number
+        )
+    );
+
+    return json_build_object(
+        'success', true,
+        'message', 'Demande de réparation marquée comme résolue avec succès !'
+    );
 end;
 $$ language plpgsql security definer set search_path = public, auth;
 

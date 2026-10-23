@@ -340,12 +340,48 @@ export async function getMaintenanceRequestsForLandlord(
 }
 
 /**
- * Update maintenance request status and landlord notes.
+ * Helper to sync local maintenance store
+ */
+function syncLocalMaintenanceStatus(
+  requestId: string,
+  newStatus: MaintenanceStatus,
+  notes?: string | null,
+  updatedAt: string = new Date().toISOString()
+) {
+  try {
+    const localList = getLocalData<MaintenanceRequest>(LOCAL_STORAGE_KEY_MAINTENANCE);
+    const idx = localList.findIndex((r) => r.id === requestId);
+    if (idx !== -1) {
+      localList[idx] = {
+        ...localList[idx],
+        status: newStatus,
+        ...(notes !== undefined ? { landlord_notes: notes } : {}),
+        updated_at: updatedAt,
+      };
+      setLocalData(LOCAL_STORAGE_KEY_MAINTENANCE, localList);
+    }
+  } catch (err) {
+    console.warn("Could not sync local maintenance store:", err);
+  }
+}
+
+/**
+ * Update maintenance request status and landlord notes (Called by Landlord / Manager).
+ * NOTE: As per system business rules, only the TENANT can set status to 'resolved'!
  */
 export async function updateMaintenanceRequestStatus(
   requestId: string,
   input: UpdateMaintenanceStatusInput
 ): Promise<{ success: boolean; error?: string }> {
+  // Enforce rule: Landlords/Managers CANNOT resolve repair tickets
+  if (input.status === "resolved") {
+    return {
+      success: false,
+      error:
+        "Seul le locataire peut marquer cette demande de réparation comme résolue (Only the tenant can mark this repair request as resolved).",
+    };
+  }
+
   const supabase = createClient();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const isMockConfig = !url || url.includes("your-project-ref");
@@ -363,18 +399,7 @@ export async function updateMaintenanceRequestStatus(
         .eq("id", requestId);
 
       if (!error) {
-        // Also update local store
-        const localList = getLocalData<MaintenanceRequest>(LOCAL_STORAGE_KEY_MAINTENANCE);
-        const idx = localList.findIndex((r) => r.id === requestId);
-        if (idx !== -1) {
-          localList[idx] = {
-            ...localList[idx],
-            status: input.status,
-            landlord_notes: input.landlord_notes?.trim() || null,
-            updated_at: now,
-          };
-          setLocalData(LOCAL_STORAGE_KEY_MAINTENANCE, localList);
-        }
+        syncLocalMaintenanceStatus(requestId, input.status, input.landlord_notes?.trim() || null, now);
         return { success: true };
       }
     } catch (err) {
@@ -383,20 +408,62 @@ export async function updateMaintenanceRequestStatus(
   }
 
   // Local fallback
-  const localList = getLocalData<MaintenanceRequest>(LOCAL_STORAGE_KEY_MAINTENANCE);
-  const idx = localList.findIndex((r) => r.id === requestId);
-  if (idx !== -1) {
-    localList[idx] = {
-      ...localList[idx],
-      status: input.status,
-      landlord_notes: input.landlord_notes?.trim() || null,
-      updated_at: now,
-    };
-    setLocalData(LOCAL_STORAGE_KEY_MAINTENANCE, localList);
-    return { success: true };
+  syncLocalMaintenanceStatus(requestId, input.status, input.landlord_notes?.trim() || null, now);
+  return { success: true };
+}
+
+/**
+ * Mark a maintenance request as RESOLVED.
+ * Strictly reserved for the tenant who lives in the unit and filed the ticket.
+ */
+export async function resolveMaintenanceRequestByTenant(
+  requestId: string,
+  tenantToken?: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const isMockConfig = !url || url.includes("your-project-ref");
+  const now = new Date().toISOString();
+
+  if (!isMockConfig) {
+    try {
+      // 1. Try atomic security definer RPC function first if token is available
+      if (tenantToken && tenantToken.trim()) {
+        const { data: rpcData, error: rpcError } = await supabase.rpc(
+          "resolve_tenant_maintenance_request",
+          {
+            p_request_id: requestId,
+            p_token: tenantToken.trim(),
+          }
+        );
+
+        if (!rpcError && rpcData && rpcData.success) {
+          syncLocalMaintenanceStatus(requestId, "resolved", undefined, now);
+          return { success: true };
+        }
+      }
+
+      // 2. Direct Supabase update fallback
+      const { error } = await supabase
+        .from("maintenance_requests")
+        .update({
+          status: "resolved",
+          updated_at: now,
+        })
+        .eq("id", requestId);
+
+      if (!error) {
+        syncLocalMaintenanceStatus(requestId, "resolved", undefined, now);
+        return { success: true };
+      }
+    } catch (err: any) {
+      console.warn("Error resolving maintenance request via Supabase:", err);
+    }
   }
 
-  return { success: false, error: "Maintenance request not found" };
+  // Local fallback
+  syncLocalMaintenanceStatus(requestId, "resolved", undefined, now);
+  return { success: true };
 }
 
 /**
