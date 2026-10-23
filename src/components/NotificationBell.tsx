@@ -23,6 +23,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   clearNotification,
+  getLocalizedNotificationText,
 } from "@/lib/services/notificationService";
 import {
   PlatformHeadsUpBanner,
@@ -65,6 +66,7 @@ export default function NotificationBell({
   const [selectedNotifForView, setSelectedNotifForView] = useState<AppNotification | null>(null);
   const [showAllNotifsModal, setShowAllNotifsModal] = useState(false);
   const seenNotifIdsRef = useRef<Set<string>>(new Set());
+  const seenReceiptsRef = useRef<Set<string>>(new Set());
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -181,9 +183,24 @@ export default function NotificationBell({
     const handleIncoming = (incoming: AppNotification) => {
       if (!incoming || !isNotificationForMe(incoming)) return;
 
+      const receiptKey = incoming.receipt_number
+        ? `${incoming.receipt_number}_${incoming.landlord_id || ""}_${incoming.type}`
+        : null;
+
+      if (receiptKey && seenReceiptsRef.current.has(receiptKey)) {
+        return;
+      }
+      if (receiptKey) {
+        seenReceiptsRef.current.add(receiptKey);
+      }
+
       setNotifications((prev) => [
         incoming,
-        ...prev.filter((item) => item.id !== incoming.id),
+        ...prev.filter(
+          (item) =>
+            item.id !== incoming.id &&
+            (!incoming.receipt_number || item.receipt_number !== incoming.receipt_number)
+        ),
       ]);
 
       if (!seenNotifIdsRef.current.has(incoming.id)) {
@@ -196,8 +213,7 @@ export default function NotificationBell({
 
         // Native System Notification (shows banner + sound even when user is outside this tab)
         if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-          const notifTitle = isFrench ? (incoming.title_fr || incoming.title) : incoming.title;
-          const notifBody = isFrench ? (incoming.message_fr || incoming.message) : incoming.message;
+          const { title: notifTitle, message: notifBody } = getLocalizedNotificationText(incoming, isFrench);
           const targetUrl = incoming.metadata?.action_url || (role === "tenant" ? "/tenant/portal" : "/dashboard");
 
           try {
@@ -599,31 +615,38 @@ export default function NotificationBell({
 
                     {/* Content */}
                     <div className="flex-1 min-w-0 space-y-1 pr-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4
-                          className={`text-xs truncate ${
-                            isUnread
-                              ? "font-extrabold text-slate-900 dark:text-white"
-                              : "font-semibold text-slate-700 dark:text-slate-300"
-                          }`}
-                        >
-                          {isFrench ? notif.title_fr || notif.title : notif.title}
-                        </h4>
+                      {(() => {
+                        const { title: localizedTitle, message: localizedMsg } = getLocalizedNotificationText(notif, isFrench);
+                        return (
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <h4
+                                className={`text-xs truncate ${
+                                  isUnread
+                                    ? "font-extrabold text-slate-900 dark:text-white"
+                                    : "font-semibold text-slate-700 dark:text-slate-300"
+                                }`}
+                              >
+                                {localizedTitle}
+                              </h4>
 
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0 font-medium">
-                          {getRelativeTime(notif.created_at)}
-                        </span>
-                      </div>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0 font-medium">
+                                {getRelativeTime(notif.created_at)}
+                              </span>
+                            </div>
 
-                      <p
-                        className={`text-xs leading-relaxed line-clamp-2 ${
-                          isUnread
-                            ? "text-slate-800 dark:text-slate-200"
-                            : "text-slate-500 dark:text-slate-400"
-                        }`}
-                      >
-                        {isFrench ? notif.message_fr || notif.message : notif.message}
-                      </p>
+                            <p
+                              className={`text-xs leading-relaxed line-clamp-2 ${
+                                isUnread
+                                  ? "text-slate-800 dark:text-slate-200"
+                                  : "text-slate-500 dark:text-slate-400"
+                              }`}
+                            >
+                              {localizedMsg}
+                            </p>
+                          </>
+                        );
+                      })()}
 
                       {/* Detail Chips */}
                       <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px]">

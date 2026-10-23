@@ -370,25 +370,33 @@ export async function processSubscriptionPayment(
           console.warn("Supabase auth user metadata sync warning:", authMetaErr);
         }
 
-        // D. Record notification for the landlord
-        await supabase.from("notifications").insert([
-          {
-            type: "system",
-            title: `Abonnement ${pricing.plan.name} Activé`,
-            title_fr: `Abonnement ${pricing.plan.name} Activé`,
-            message: `Votre abonnement ${pricing.plan.name} (${cycleLabelFr}) est désormais actif jusqu'au ${expiresAt.toLocaleDateString()}. Capacité : ${pricing.plan.maxUnits} logements. Quittance : ${receiptNumber}`,
-            message_fr: `Votre abonnement ${pricing.plan.name} (${cycleLabelFr}) est désormais actif jusqu'au ${expiresAt.toLocaleDateString()}. Capacité : ${pricing.plan.maxUnits} logements. Quittance : ${receiptNumber}`,
-            recipient_role: "landlord",
-            landlord_id: landlordId,
-            receipt_number: receiptNumber,
-            metadata: {
-              plan_id: resolvedPlanId,
-              billing_cycle: billingCycle,
-              amount: pricing.price,
+        // D. Fallback: Record notification for landlord ONLY if RPC did not already record it
+        if (!rpcSucceeded) {
+          const cycleLabelEn = billingCycle === "annual" ? "yearly" : "monthly";
+          await supabase.from("notifications").insert([
+            {
+              type: "system",
+              title: `Subscription ${pricing.plan.name} Activated`,
+              title_fr: `Abonnement ${pricing.plan.name} Activé`,
+              message: `Your ${pricing.plan.name} subscription (${cycleLabelEn}) is now active until ${expiresAt.toLocaleDateString()}. Capacity: ${pricing.plan.maxUnits} units. Receipt: ${receiptNumber}`,
+              message_fr: `Votre abonnement ${pricing.plan.name} (${cycleLabelFr}) est désormais actif jusqu'au ${expiresAt.toLocaleDateString()}. Capacité : ${pricing.plan.maxUnits} logements. Quittance : ${receiptNumber}`,
+              recipient_role: "landlord",
+              landlord_id: landlordId,
               receipt_number: receiptNumber,
+              metadata: {
+                plan_id: resolvedPlanId,
+                billing_cycle: billingCycle,
+                amount: pricing.price,
+                max_units: pricing.plan.maxUnits,
+                receipt_number: receiptNumber,
+                title_en: `Subscription ${pricing.plan.name} Activated`,
+                title_fr: `Abonnement ${pricing.plan.name} Activé`,
+                message_en: `Your ${pricing.plan.name} subscription (${cycleLabelEn}) is now active until ${expiresAt.toLocaleDateString()}. Capacity: ${pricing.plan.maxUnits} units. Receipt: ${receiptNumber}`,
+                message_fr: `Votre abonnement ${pricing.plan.name} (${cycleLabelFr}) est désormais actif jusqu'au ${expiresAt.toLocaleDateString()}. Capacité : ${pricing.plan.maxUnits} logements. Quittance : ${receiptNumber}`,
+              },
             },
-          },
-        ]);
+          ]);
+        }
       } catch (dbErr) {
         console.warn("Error persisting subscription to Supabase:", dbErr);
       }

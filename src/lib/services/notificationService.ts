@@ -60,6 +60,52 @@ function setLocalNotifications(notifications: AppNotification[]) {
 }
 
 /**
+ * Resolves the appropriate language title and message for any notification,
+ * automatically handling legacy records or bilingual fields so users never
+ * see foreign language text when localized text is available.
+ */
+export function getLocalizedNotificationText(
+  notif: AppNotification | null | undefined,
+  isFrench: boolean
+): { title: string; message: string } {
+  if (!notif) return { title: "", message: "" };
+
+  if (isFrench) {
+    const title = notif.title_fr || (notif.metadata?.title_fr as string) || notif.title || "";
+    const message = notif.message_fr || (notif.metadata?.message_fr as string) || notif.message || "";
+    return { title, message };
+  }
+
+  // English requested:
+  let title = notif.title || "";
+  let message = notif.message || "";
+
+  // If title was stored only in French (e.g., "Abonnement ... Activé"), convert to English
+  if (title.startsWith("Abonnement ") || title === "Abonnement Activé") {
+    if (notif.metadata?.title_en) {
+      title = notif.metadata.title_en as string;
+    } else {
+      title = title.replace(/^Abonnement\s+/, "Subscription ").replace(/\s+Activé$/, " Activated");
+      if (title === "Abonnement Activé") title = "Subscription Activated";
+    }
+  }
+
+  // If message was stored only in French, provide English fallback
+  if (message.startsWith("Votre abonnement ")) {
+    if (notif.metadata?.message_en) {
+      message = notif.metadata.message_en as string;
+    } else {
+      const receipt = notif.receipt_number || notif.metadata?.receipt_number || "";
+      const planName = (notif.metadata?.plan_name as string) || (notif.metadata?.plan_id as string) || "Starter";
+      const maxUnits = notif.metadata?.max_units || notif.metadata?.plan_unit_limit;
+      message = `Your ${planName} subscription is active${maxUnits ? ` with allowance of ${maxUnits} units.` : "."}${receipt ? ` Receipt: ${receipt}` : ""}`;
+    }
+  }
+
+  return { title, message };
+}
+
+/**
  * Creates a notification and broadcasts it across the platform with strict routing metadata.
  */
 export async function createNotification(
@@ -98,6 +144,20 @@ export async function createNotification(
 
   if (!isMockConfig) {
     try {
+      // Idempotency check: if receipt_number is provided, do not insert if already present
+      if (newNotif.receipt_number) {
+        const { data: existing } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("receipt_number", newNotif.receipt_number)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          newNotif.id = existing[0].id;
+          return newNotif;
+        }
+      }
+
       const { data, error } = await supabase
         .from("notifications")
         .insert({
@@ -144,6 +204,9 @@ export async function createNotification(
 
   // Always store in local storage cache for offline resilience and instant reactivity
   const localList = getLocalNotifications();
+  if (newNotif.receipt_number && localList.some((n) => n.receipt_number === newNotif.receipt_number)) {
+    return newNotif;
+  }
   setLocalNotifications([newNotif, ...localList]);
 
   // Dispatch cross-tab and cross-window events so WhatsApp-style popup triggers in any tab
@@ -449,9 +512,48 @@ export async function getNotificationsForUser(
     return n;
   });
 
-  return merged.sort(
+  const sorted = merged.sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
+
+  // Deduplicate by receipt_number (for payments/subscriptions) and ID to prevent duplicate notifications
+  const seenReceipts = new Set<string>();
+  const seenIds = new Set<string>();
+  const deduplicated: AppNotification[] = [];
+
+  for (const item of sorted) {
+    if (seenIds.has(item.id)) continue;
+    seenIds.add(item.id);
+
+    if (item.receipt_number) {
+      const receiptKey = `${item.receipt_number}_${item.landlord_id || ""}_${item.type}`;
+      if (seenReceipts.has(receiptKey)) {
+        // If a duplicate exists, merge bilingual attributes into the existing notification
+        const existing = deduplicated.find(
+          (d) => `${d.receipt_number}_${d.landlord_id || ""}_${d.type}` === receiptKey
+        );
+        if (existing) {
+          if (!existing.title_fr && item.title_fr) existing.title_fr = item.title_fr;
+          if (!existing.message_fr && item.message_fr) existing.message_fr = item.message_fr;
+          // Prefer English title for `title` and French for `title_fr`
+          if (existing.title.toLowerCase().startsWith("abonnement") && !item.title.toLowerCase().startsWith("abonnement")) {
+            existing.title_fr = existing.title;
+            existing.title = item.title;
+          }
+          if (existing.message.toLowerCase().startsWith("votre abonnement") && !item.message.toLowerCase().startsWith("votre abonnement")) {
+            existing.message_fr = existing.message;
+            existing.message = item.message;
+          }
+        }
+        continue;
+      }
+      seenReceipts.add(receiptKey);
+    }
+
+    deduplicated.push(item);
+  }
+
+  return deduplicated;
 }
 
 /**

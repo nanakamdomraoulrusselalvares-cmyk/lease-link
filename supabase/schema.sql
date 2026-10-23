@@ -2031,36 +2031,46 @@ begin
         status = 'completed',
         expires_at = v_expires_at;
 
-    -- 3. Insert system notification for the landlord
-    insert into public.notifications (
-        type,
-        title,
-        title_fr,
-        message,
-        message_fr,
-        recipient_role,
-        landlord_id,
-        receipt_number,
-        metadata,
-        created_at
-    ) values (
-        'system',
-        'Subscription Activated',
-        'Abonnement Activé',
-        format('Your %s subscription is active until %s with allowance of %s units.', p_plan_name, v_expires_at::date, p_max_units),
-        format('Votre abonnement %s est actif jusqu''au %s avec une capacité de %s logements.', p_plan_name, v_expires_at::date, p_max_units),
-        'landlord',
-        p_landlord_id,
-        p_receipt_number,
-        json_build_object(
-            'plan_id', p_plan_id,
-            'billing_cycle', p_billing_cycle,
-            'amount', p_amount_paid,
-            'max_units', p_max_units,
-            'receipt_number', p_receipt_number
-        ),
-        now()
-    );
+    -- 3. Insert system notification for the landlord (idempotent: only if no notification exists for this receipt)
+    if not exists (
+        select 1 from public.notifications
+        where receipt_number = p_receipt_number
+          and landlord_id = p_landlord_id
+    ) then
+        insert into public.notifications (
+            type,
+            title,
+            title_fr,
+            message,
+            message_fr,
+            recipient_role,
+            landlord_id,
+            receipt_number,
+            metadata,
+            created_at
+        ) values (
+            'system',
+            format('Subscription %s Activated', p_plan_name),
+            format('Abonnement %s Activé', p_plan_name),
+            format('Your %s subscription is active until %s with allowance of %s units.', p_plan_name, v_expires_at::date, p_max_units),
+            format('Votre abonnement %s est actif jusqu''au %s avec une capacité de %s logements.', p_plan_name, v_expires_at::date, p_max_units),
+            'landlord',
+            p_landlord_id,
+            p_receipt_number,
+            json_build_object(
+                'plan_id', p_plan_id,
+                'billing_cycle', p_billing_cycle,
+                'amount', p_amount_paid,
+                'max_units', p_max_units,
+                'receipt_number', p_receipt_number,
+                'title_en', format('Subscription %s Activated', p_plan_name),
+                'title_fr', format('Abonnement %s Activé', p_plan_name),
+                'message_en', format('Your %s subscription is active until %s with allowance of %s units.', p_plan_name, v_expires_at::date, p_max_units),
+                'message_fr', format('Votre abonnement %s est actif jusqu''au %s avec une capacité de %s logements.', p_plan_name, v_expires_at::date, p_max_units)
+            ),
+            now()
+        );
+    end if;
 
     return json_build_object(
         'success', true,

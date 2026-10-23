@@ -28,6 +28,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { AppNotification } from "@/types/database";
+import { getLocalizedNotificationText } from "@/lib/services/notificationService";
 
 // Synthesized acoustic chime tuned to LeaseLink's clean platform frequency (C5 ~523.25Hz -> G5 ~783.99Hz)
 export function playPlatformNotificationChime() {
@@ -97,13 +98,7 @@ export function PlatformHeadsUpBanner({
     (notification.metadata?.sender_name as string) ||
     (isFrench ? "Bailleur LeaseLink" : "LeaseLink Property Manager");
 
-  const title = isFrench
-    ? notification.title_fr || notification.title
-    : notification.title;
-
-  const message = isFrench
-    ? notification.message_fr || notification.message
-    : notification.message;
+  const { title, message } = getLocalizedNotificationText(notification, isFrench);
 
   return (
     <div
@@ -237,13 +232,7 @@ export function FullNotificationModal({
 }: FullNotificationModalProps) {
   if (!notification) return null;
 
-  const title = isFrench
-    ? notification.title_fr || notification.title
-    : notification.title;
-
-  const message = isFrench
-    ? notification.message_fr || notification.message
-    : notification.message;
+  const { title, message } = getLocalizedNotificationText(notification, isFrench);
 
   const senderName =
     (notification.metadata?.sender_name as string) ||
@@ -609,29 +598,36 @@ export function AllNotificationsModal({
 
                   {/* Body */}
                   <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4
-                        className={`text-xs truncate ${
-                          isUnread
-                            ? "font-black text-slate-900 dark:text-white"
-                            : "font-bold text-slate-700 dark:text-slate-300"
-                        }`}
-                      >
-                        {isFrench ? notif.title_fr || notif.title : notif.title}
-                      </h4>
-                      <span className="text-[10px] text-slate-400 shrink-0 font-medium">
-                        {new Date(notif.created_at).toLocaleDateString(isFrench ? "fr-FR" : "en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
+                    {(() => {
+                      const { title: localizedTitle, message: localizedMsg } = getLocalizedNotificationText(notif, isFrench);
+                      return (
+                        <>
+                          <div className="flex items-center justify-between gap-2">
+                            <h4
+                              className={`text-xs truncate ${
+                                isUnread
+                                  ? "font-black text-slate-900 dark:text-white"
+                                  : "font-bold text-slate-700 dark:text-slate-300"
+                              }`}
+                            >
+                              {localizedTitle}
+                            </h4>
+                            <span className="text-[10px] text-slate-400 shrink-0 font-medium">
+                              {new Date(notif.created_at).toLocaleDateString(isFrench ? "fr-FR" : "en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
-                      {isFrench ? notif.message_fr || notif.message : notif.message}
-                    </p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
+                            {localizedMsg}
+                          </p>
+                        </>
+                      );
+                    })()}
 
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       {notif.amount && (
