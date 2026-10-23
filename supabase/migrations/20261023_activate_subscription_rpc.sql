@@ -10,6 +10,7 @@
 -- ==============================================================================
 
 -- 1. Ensure public.subscriptions insert policy permits server-side/anon insertion
+drop policy if exists "Subscriptions insert policy" on public.subscriptions;
 create policy "Subscriptions insert policy"
     on public.subscriptions for insert
     with check (
