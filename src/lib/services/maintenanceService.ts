@@ -237,8 +237,13 @@ export async function getMaintenanceRequestsForLandlord(
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const isMockConfig = !url || url.includes("your-project-ref");
   const localList = getLocalData<MaintenanceRequest>(LOCAL_STORAGE_KEY_MAINTENANCE);
-  const localBuildings = getLocalData<{ id: string; landlord_id: string; name: string }>(LOCAL_STORAGE_KEY_BUILDINGS);
-  const localUnits = getLocalData<{ id: string; landlord_id: string; building_id: string }>(LOCAL_STORAGE_KEY_UNITS);
+  const b1 = getLocalData<{ id: string; landlord_id: string; name: string }>("leaselink_local_buildings");
+  const b2 = getLocalData<{ id: string; landlord_id: string; name: string }>("leaselink_buildings");
+  const localBuildings = [...b1, ...b2.filter((x) => !b1.some((y) => y.id === x.id))];
+
+  const u1 = getLocalData<{ id: string; landlord_id: string; building_id: string }>("leaselink_local_units");
+  const u2 = getLocalData<{ id: string; landlord_id: string; building_id: string }>("leaselink_units");
+  const localUnits = [...u1, ...u2.filter((x) => !u1.some((y) => y.id === x.id))];
 
   // Collect building IDs, unit IDs, and building names associated with this landlord
   const myBuildingIds = new Set(

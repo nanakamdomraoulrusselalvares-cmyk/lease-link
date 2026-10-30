@@ -214,7 +214,7 @@ export default function UnpaidRentsPage() {
     const effectiveLandlordId =
       profile?.role === "manager" && profile.landlord_id
         ? profile.landlord_id
-        : user?.id || "mock-landlord";
+        : user?.id || profile?.id || "";
 
     setIsSubmittingRecord(true);
     try {

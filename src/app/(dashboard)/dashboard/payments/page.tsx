@@ -143,25 +143,29 @@ function PaymentsContent() {
       authUser = userRes.data?.user || null;
     }
 
-    let profileData: any = null;
-    if (authUser) {
-      setUser(authUser);
-      const res = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .maybeSingle();
-      profileData = res.data;
-      if (profileData) {
-        if (profileData.role === "manager") {
-          router.replace("/dashboard/unpaid-rents");
-          return;
-        }
-        setProfile(profileData as LandlordProfile);
-      }
+    if (!authUser) {
+      router.push("/login");
+      return;
     }
 
-    const landlordId = authUser?.id || "mock-landlord";
+    setUser(authUser);
+
+    let profileData: any = null;
+    const res = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authUser.id)
+      .maybeSingle();
+    profileData = res.data;
+    if (profileData) {
+      if (profileData.role === "manager") {
+        router.replace("/dashboard/unpaid-rents");
+        return;
+      }
+      setProfile(profileData as LandlordProfile);
+    }
+
+    const landlordId = authUser.id;
 
     try {
       const buildingsData = await getBuildingsWithUnits(landlordId);
@@ -284,7 +288,7 @@ function PaymentsContent() {
       const res = await recordRentPayment({
         unit_id: recordTarget.unit_id,
         building_id: recordTarget.building_id,
-        landlord_id: user?.id || "mock-landlord",
+        landlord_id: user?.id || profile?.id || "",
         landlord_name: profile?.full_name || "Landlord Management",
         tenant_name: recordTarget.tenant_name,
         tenant_phone: recordTarget.tenant_phone,

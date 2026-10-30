@@ -281,7 +281,7 @@ export default function HomePage() {
                 {isFrench ? "Fonctionnalités" : "Features"}
               </a>
               <a href="#showcase" className="hover:text-blue-600 dark:hover:text-white transition">
-                {isFrench ? "Aperçu en Direct" : "Live Demo"}
+                {isFrench ? "Aperçu de la Plateforme" : "Product Tour"}
               </a>
               <a href="#pricing" className="hover:text-blue-600 dark:hover:text-white transition">
                 {isFrench ? "Tarifs" : "Pricing"}
@@ -393,7 +393,7 @@ export default function HomePage() {
               href="#showcase"
               className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border-2 border-slate-300 hover:border-slate-400 dark:border-slate-600 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>{isFrench ? "Explorer la Démo Interactive" : "Explore Interactive Demo"}</span>
+              <span>{isFrench ? "Découvrir la Plateforme" : "Explore Product Tour"}</span>
               <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </a>
 

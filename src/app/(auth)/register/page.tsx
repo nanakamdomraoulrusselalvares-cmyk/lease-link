@@ -169,8 +169,8 @@ function RegisterForm() {
     if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
       setErrorMsg(
         isFrench
-          ? "Les identifiants Supabase ne sont pas configurés. Veuillez vérifier les variables d'environnement dans .env.local."
-          : "Supabase credentials are not configured yet. Please update NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file with your real Supabase project details."
+          ? "Service d'inscription temporairement indisponible. Veuillez réessayer sous peu."
+          : "Registration service temporarily unavailable. Please try again shortly."
       );
       setLoading(false);
       return;

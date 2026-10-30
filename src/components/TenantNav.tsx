@@ -163,10 +163,10 @@ export default function TenantNav({
     },
     {
       href: `${portalBase}#rent`,
-      label: isFrench ? "Payer (🔒)" : "Pay (🔒)",
-      icon: Lock,
+      label: isFrench ? "Payer" : "Pay",
+      icon: DollarSign,
       active: false,
-      badge: isFrench ? "Travaux" : "Locked",
+      badge: null,
       onClick: onPayRentClick,
     },
     {

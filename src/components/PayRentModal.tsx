@@ -29,6 +29,7 @@ import {
   Plus,
   Minus,
   Lock,
+  Loader2,
 } from "lucide-react";
 
 interface PayRentModalProps {
@@ -111,7 +112,7 @@ export default function PayRentModal({
     setIsProcessing(true);
 
     try {
-      // Step 1: Connecting to demo payment gateway
+      // Step 1: Connecting to payment gateway
       setSimulationStep(
         isFrench
           ? `Connexion à la passerelle de paiement ${PAYMENT_METHOD_LABELS[paymentMethod].label}...`
@@ -638,16 +639,25 @@ export default function PayRentModal({
               </button>
 
               <button
-                type="button"
-                disabled
-                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-slate-800 text-amber-300 border border-amber-500/30 cursor-not-allowed shadow-md"
+                type="submit"
+                disabled={isProcessing}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-md shadow-emerald-600/25 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Lock className="w-4 h-4 text-amber-400" />
-                <span>
-                  {isFrench
-                    ? "Paiement en ligne indisponible (En travaux)"
-                    : "Online payment unavailable (Under work)"}
-                </span>
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>{isFrench ? "Traitement en cours..." : "Processing Payment..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                    <span>
+                      {isFrench
+                        ? `Valider le Règlement (${numericAmount.toLocaleString()} XAF)`
+                        : `Confirm Payment (${numericAmount.toLocaleString()} XAF)`}
+                    </span>
+                  </>
+                )}
               </button>
             </div>
           </form>

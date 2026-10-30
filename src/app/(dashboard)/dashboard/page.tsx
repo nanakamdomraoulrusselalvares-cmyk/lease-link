@@ -399,21 +399,7 @@ export default function LandlordHomePage() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
-        {!isConfigured && (
-          <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-base text-amber-300">
-              <AlertTriangle className="w-5 h-5" />
-              <span>{isFrench ? "Supabase Non Connecté dans .env.local" : "Supabase Not Connected in .env.local"}</span>
-            </div>
-            <p className="text-sm text-slate-300">
-              {isFrench
-                ? "Veuillez renseigner votre véritable URL Supabase et clé anonyme dans .env.local pour sauvegarder les données de façon permanente."
-                : "Please provide your real Supabase URL and anon key in .env.local to store records permanently."}
-            </p>
-          </div>
-        )}
-
-        {/* Welcome & Registration Test Success Banner */}
+        {/* Welcome & Session Status Banner */}
         <div className="bg-gradient-to-r from-blue-50 via-white to-indigo-50/40 dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 sm:p-8 shadow-sm dark:shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 pointer-events-none opacity-10">
             <Sparkles className="w-48 h-48 text-blue-600 dark:text-blue-400" />
@@ -433,7 +419,7 @@ export default function LandlordHomePage() {
                     : "Manager Session Verified & Active"
                   : isFrench
                   ? "Session Bailleur Vérifiée & Active"
-                  : "Registration Successful & Session Verified"}
+                  : "Landlord Session Verified & Active"}
               </span>
             </div>
 
@@ -452,7 +438,7 @@ export default function LandlordHomePage() {
                     : "Your manager account is active. You have operational access to manage buildings, tenants, repairs, and unpaid rent tracking."
                   : isFrench
                   ? "Votre compte propriétaire est opérationnel. Vous êtes connecté à l'espace de gestion LeaseLink. Voici le récapitulatif de votre portefeuille."
-                  : "Your landlord account was created successfully. You are now logged into the LeaseLink landlord portal. Below are the details captured during registration."}
+                  : "Welcome to your LeaseLink landlord portal. Here is a live overview of your properties, rental collection, and tenants."}
               </p>
             </div>
 
@@ -712,12 +698,12 @@ export default function LandlordHomePage() {
         <div className="space-y-4 pt-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {isFrench ? "Modules de Gestion Opérationnelle" : "Next Step: Operational Modules"}
+              {isFrench ? "Modules de Gestion Opérationnelle" : "Property Management Modules"}
             </h2>
             <p className="text-xs text-slate-400">
               {isFrench
                 ? "Gérez votre patrimoine, générez les accès locataires et suivez les paiements."
-                : "The registration flow is confirmed working. These modules will manage your buildings and tenant ledgers."}
+                : "Manage your properties, generate tenant access credentials, and track rental collections in real time."}
             </p>
           </div>
 

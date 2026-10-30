@@ -535,7 +535,7 @@ export default function AdminDashboardPage() {
 
   // View Receipt helper
   const handleOpenReceiptModal = (tx: AdminGlobalTransaction) => {
-    const mockPayment: RentPayment = {
+    const receiptPayment: RentPayment = {
       id: tx.id,
       receipt_number: tx.receipt_number,
       unit_id: "preview-unit",
@@ -560,7 +560,7 @@ export default function AdminDashboardPage() {
       created_at: tx.created_at,
       updated_at: tx.created_at,
     };
-    setSelectedReceipt(mockPayment);
+    setSelectedReceipt(receiptPayment);
     setShowReceiptModal(true);
   };
 

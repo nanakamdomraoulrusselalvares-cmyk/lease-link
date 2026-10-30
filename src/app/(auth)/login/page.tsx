@@ -117,8 +117,8 @@ function LoginForm() {
     if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
       setErrorMsg(
         isFrench
-          ? "Les identifiants Supabase ne sont pas encore configurés. Veuillez mettre à jour NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY dans votre fichier .env.local."
-          : "Supabase credentials are not configured yet. Please update NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file with your real Supabase project details."
+          ? "Service d'authentification temporairement indisponible. Veuillez réessayer sous peu."
+          : "Authentication service temporarily unavailable. Please try again shortly."
       );
       setLoading(false);
       return;
@@ -182,8 +182,8 @@ function LoginForm() {
       let message = err instanceof Error ? err.message : (isFrench ? "Une erreur inattendue est survenue." : "An unexpected error occurred.");
       if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
         message = isFrench
-          ? "Impossible de joindre le serveur Supabase. Veuillez vérifier votre connexion internet."
-          : "Could not reach Supabase server. Please check your internet connection and verify the Supabase URL in .env.local.";
+          ? "Impossible de joindre le serveur. Veuillez vérifier votre connexion internet et réessayer."
+          : "Could not reach the server. Please check your internet connection and try again.";
       }
       setErrorMsg(message);
       setLoading(false);

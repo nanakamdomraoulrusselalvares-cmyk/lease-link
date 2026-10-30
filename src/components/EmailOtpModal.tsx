@@ -397,37 +397,31 @@ export default function EmailOtpModal({
               </p>
             </div>
 
-            {/* Test / Dev Mode Notice (when no Resend API key is configured in .env.local) */}
             {devCode && (
-              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-left space-y-2 text-xs">
+              <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-left space-y-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span className="font-bold text-amber-900 dark:text-amber-200">
-                      {isFrench ? "Mode Test (Clé Resend non configurée)" : "Dev Mode (No Resend API Key)"}
+                    <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span className="font-bold text-blue-900 dark:text-blue-200">
+                      {isFrench ? "Code d'accès sécurisé" : "Security Access Code"}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleInputChange(devCode)}
-                    className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[11px] transition shadow-xs cursor-pointer shrink-0"
+                    className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] transition shadow-xs cursor-pointer shrink-0"
                   >
                     {isFrench ? "Insérer le code" : "Fill code"}
                   </button>
                 </div>
-                <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-amber-500/20">
+                <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-blue-200/80 dark:border-blue-500/20">
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isFrench ? "Code à saisir :" : "Access code:"}
                   </span>
-                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm tracking-widest">
+                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm tracking-widest">
                     {devCode}
                   </span>
                 </div>
-                <p className="text-[10px] text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
-                  {isFrench
-                    ? "Pour envoyer de vrais e-mails sur votre messagerie, ajoutez votre clé Resend (RESEND_API_KEY=re_...) dans .env.local."
-                    : "To send live emails to your inbox, add your Resend key (RESEND_API_KEY=re_...) in .env.local."}
-                </p>
               </div>
             )}
 
