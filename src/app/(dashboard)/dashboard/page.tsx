@@ -25,6 +25,7 @@ import DashboardNav from "@/components/DashboardNav";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
 import SmartDataLoader from "@/components/SmartDataLoader";
 import { isMissingPhone } from "@/components/AttachPhoneModal";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -111,43 +112,15 @@ export default function LandlordHomePage() {
 
       setUser(authUser);
 
-      // Fetch landlord profile from database
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .maybeSingle();
+      // Fetch landlord profile safely (via /api/profile with offline fallback)
+      const profileData = await fetchCurrentProfileSafe(authUser);
 
       let effectiveLandlordId = authUser.id;
-      if (!profileError && profileData) {
+      if (profileData) {
         if (profileData.role === "manager" && profileData.landlord_id) {
           effectiveLandlordId = profileData.landlord_id;
-          try {
-            const { data: landlordData } = await supabase
-              .from("profiles")
-              .select("plan, plan_name, plan_unit_limit, unit_limit, plan_status, subscription_status, billing_cycle, plan_expires_at")
-              .eq("id", profileData.landlord_id)
-              .maybeSingle();
-
-            if (landlordData) {
-              setProfile({
-                ...profileData,
-                plan: landlordData.plan || profileData.plan,
-                plan_name: landlordData.plan_name || profileData.plan_name,
-                plan_unit_limit: landlordData.plan_unit_limit || landlordData.unit_limit || profileData.plan_unit_limit,
-                plan_status: landlordData.plan_status || profileData.plan_status,
-                billing_cycle: landlordData.billing_cycle || profileData.billing_cycle,
-                plan_expires_at: landlordData.plan_expires_at || profileData.plan_expires_at,
-              } as LandlordProfile);
-            } else {
-              setProfile(profileData as LandlordProfile);
-            }
-          } catch (_) {
-            setProfile(profileData as LandlordProfile);
-          }
-        } else {
-          setProfile(profileData as LandlordProfile);
         }
+        setProfile(profileData);
       }
 
       const assignedBuildingIds =

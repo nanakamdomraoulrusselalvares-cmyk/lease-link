@@ -20,6 +20,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/services/maintenanceService";
 import { formatWhatsAppPhoneNumber } from "@/lib/services/tenantService";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -84,15 +85,11 @@ export default function LandlordMaintenancePage() {
 
       setUser(authUser);
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .maybeSingle();
+      const profileData = await fetchCurrentProfileSafe(authUser);
 
       let effectiveLandlordId = authUser.id;
       if (profileData) {
-        setProfile(profileData as LandlordProfile);
+        setProfile(profileData);
         if (profileData.role === "manager" && profileData.landlord_id) {
           effectiveLandlordId = profileData.landlord_id;
         }

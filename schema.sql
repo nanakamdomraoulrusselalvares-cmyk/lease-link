@@ -712,7 +712,7 @@ begin
     end if;
     return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer set search_path = public, auth;
 
 drop trigger if exists trg_enforce_unit_tenant_isolation on public.units;
 create trigger trg_enforce_unit_tenant_isolation
@@ -742,7 +742,7 @@ begin
     end if;
     return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer set search_path = public, auth;
 
 drop trigger if exists trg_enforce_maintenance_tenant_isolation on public.maintenance_requests;
 create trigger trg_enforce_maintenance_tenant_isolation
@@ -768,7 +768,7 @@ begin
 
     return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer set search_path = public, auth;
 
 drop trigger if exists trg_enforce_maintenance_status_rules on public.maintenance_requests;
 create trigger trg_enforce_maintenance_status_rules
@@ -798,7 +798,7 @@ begin
     end if;
     return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer set search_path = public, auth;
 
 drop trigger if exists trg_enforce_payment_tenant_isolation on public.rent_payments;
 create trigger trg_enforce_payment_tenant_isolation
@@ -843,7 +843,7 @@ begin
 
     return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer set search_path = public, auth;
 
 drop trigger if exists trg_enforce_notification_tenant_isolation on public.notifications;
 create trigger trg_enforce_notification_tenant_isolation
@@ -855,13 +855,24 @@ create trigger trg_enforce_notification_tenant_isolation
 -- PHASE 7: Row-Level Security (RLS) Multi-Tenant Policies
 -- ==============================================================================
 
--- 7.1 Profiles RLS
+-- 7.1 Profiles RLS (Non-Recursive via SECURITY DEFINER helpers)
+alter table public.profiles no force row level security;
 alter table public.profiles enable row level security;
 
-drop policy if exists "Profiles select policy" on public.profiles;
-drop policy if exists "Profiles insert policy" on public.profiles;
-drop policy if exists "Profiles update policy" on public.profiles;
-drop policy if exists "Profiles delete policy" on public.profiles;
+do $$
+declare
+    v_pol record;
+begin
+    for v_pol in
+        select policyname
+        from pg_policies
+        where schemaname = 'public'
+          and tablename = 'profiles'
+    loop
+        execute format('drop policy if exists %I on public.profiles', v_pol.policyname);
+    end loop;
+end;
+$$;
 
 create policy "Profiles select policy"
     on public.profiles for select
@@ -869,7 +880,7 @@ create policy "Profiles select policy"
         (auth.uid() is not null and (
             auth.uid() = id
             or landlord_id = auth.uid()
-            or id = (select p.landlord_id from public.profiles p where p.id = auth.uid())
+            or id = public.get_auth_landlord_id()
             or public.is_admin()
         ))
     );
@@ -2145,6 +2156,106 @@ end;
 $$ language plpgsql security definer set search_path = public, auth;
 
 grant execute on function public.activate_landlord_subscription to authenticated, anon, service_role;
+
+-- 8.14 Self-Profile Lookup & Phone Update RPCs (SECURITY DEFINER, RLS-immune)
+create or replace function public.get_my_profile()
+returns json as $$
+declare
+    v_uid uuid;
+    v_profile public.profiles%rowtype;
+    v_auth_user record;
+begin
+    v_uid := auth.uid();
+    if v_uid is null then
+        return json_build_object('success', false, 'error', 'Not authenticated');
+    end if;
+
+    select * into v_profile from public.profiles where id = v_uid;
+
+    if v_profile.id is null then
+        select id, email, raw_user_meta_data into v_auth_user
+        from auth.users
+        where id = v_uid;
+
+        if v_auth_user.id is not null then
+            insert into public.profiles (
+                id,
+                email,
+                full_name,
+                phone,
+                role
+            ) values (
+                v_uid,
+                coalesce(v_auth_user.email, ''),
+                coalesce(v_auth_user.raw_user_meta_data->>'full_name', v_auth_user.raw_user_meta_data->>'name', ''),
+                coalesce(v_auth_user.raw_user_meta_data->>'phone', ''),
+                coalesce(v_auth_user.raw_user_meta_data->>'role', 'landlord')
+            )
+            on conflict (id) do update set
+                updated_at = now()
+            returning * into v_profile;
+        end if;
+    end if;
+
+    return json_build_object('success', true, 'profile', row_to_json(v_profile));
+end;
+$$ language plpgsql security definer set search_path = public, auth;
+
+create or replace function public.update_my_profile_phone(p_phone text)
+returns json as $$
+declare
+    v_uid uuid;
+    v_clean_phone text;
+    v_profile public.profiles%rowtype;
+    v_auth_user record;
+begin
+    v_uid := auth.uid();
+    if v_uid is null then
+        return json_build_object('success', false, 'error', 'Not authenticated');
+    end if;
+
+    v_clean_phone := trim(coalesce(p_phone, ''));
+    if v_clean_phone = '' then
+        return json_build_object('success', false, 'error', 'Phone number is required');
+    end if;
+
+    update public.profiles
+    set
+        phone = v_clean_phone,
+        updated_at = now()
+    where id = v_uid
+    returning * into v_profile;
+
+    if v_profile.id is null then
+        select id, email, raw_user_meta_data into v_auth_user
+        from auth.users
+        where id = v_uid;
+
+        insert into public.profiles (
+            id,
+            email,
+            full_name,
+            phone,
+            role
+        ) values (
+            v_uid,
+            coalesce(v_auth_user.email, ''),
+            coalesce(v_auth_user.raw_user_meta_data->>'full_name', v_auth_user.raw_user_meta_data->>'name', ''),
+            v_clean_phone,
+            coalesce(v_auth_user.raw_user_meta_data->>'role', 'landlord')
+        )
+        on conflict (id) do update set
+            phone = excluded.phone,
+            updated_at = now()
+        returning * into v_profile;
+    end if;
+
+    return json_build_object('success', true, 'profile', row_to_json(v_profile));
+end;
+$$ language plpgsql security definer set search_path = public, auth;
+
+grant execute on function public.get_my_profile() to authenticated, service_role;
+grant execute on function public.update_my_profile_phone(text) to authenticated, service_role;
 
 -- ==============================================================================
 -- PHASE 9: Auth Users Trigger (Safely Wrapped)

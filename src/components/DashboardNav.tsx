@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import NotificationBell from "@/components/NotificationBell";
 import AttachPhoneModal, { isMissingPhone } from "@/components/AttachPhoneModal";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import SubscriptionExpirationBanner from "@/components/SubscriptionExpirationBanner";
 import SubscriptionLockBarrier from "@/components/SubscriptionLockBarrier";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
@@ -79,18 +80,45 @@ export default function DashboardNav({
     }
   }, []);
 
-  // Sync profile when initialProfile prop changes
+  // Sync user & profile when parent props change
+  useEffect(() => {
+    if (initialUser) {
+      setUser(initialUser);
+    }
+  }, [initialUser]);
+
   useEffect(() => {
     if (initialProfile) {
       setProfile(initialProfile);
     }
   }, [initialProfile]);
 
+  // If phone is already present on profile or auth metadata, clear stale ?need_phone=true
+  useEffect(() => {
+    const existingPhone =
+      profile?.phone || (user?.user_metadata?.phone as string | undefined);
+    if (!isMissingPhone(existingPhone) && typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("need_phone") === "true") {
+          url.searchParams.delete("need_phone");
+          window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+          setShowPhoneModal(false);
+        }
+      } catch {
+        // ignore URL parse error
+      }
+    }
+  }, [profile?.phone, user?.user_metadata?.phone]);
+
   // Check URL parameters (e.g., need_phone=true from Google signup) & event listeners
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("need_phone") === "true") {
+      const existingPhone =
+        initialProfile?.phone ||
+        (initialUser?.user_metadata?.phone as string | undefined);
+      if (params.get("need_phone") === "true" && isMissingPhone(existingPhone)) {
         setShowPhoneModal(true);
       }
     }
@@ -142,14 +170,11 @@ export default function DashboardNav({
         const currentUser = sData?.session?.user;
         if (currentUser) {
           setUser(currentUser);
-          supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", currentUser.id)
-            .maybeSingle()
-            .then(({ data: pData }) => {
-              if (pData) setProfile(pData as LandlordProfile);
+          if (!initialProfile) {
+            fetchCurrentProfileSafe(currentUser).then((pData) => {
+              if (pData) setProfile(pData);
             });
+          }
           return;
         }
 
@@ -170,19 +195,16 @@ export default function DashboardNav({
           }
           if (data?.user) {
             setUser(data.user);
-            supabase
-              .from("profiles")
-              .select("*")
-              .eq("id", data.user.id)
-              .maybeSingle()
-              .then(({ data: pData }) => {
-                if (pData) setProfile(pData as LandlordProfile);
+            if (!initialProfile) {
+              fetchCurrentProfileSafe(data.user).then((pData) => {
+                if (pData) setProfile(pData);
               });
+            }
           }
         });
       });
     }
-  }, [initialUser]);
+  }, [initialUser, initialProfile]);
 
   // Lock body scroll and handle escape key for logout modal
   useEffect(() => {

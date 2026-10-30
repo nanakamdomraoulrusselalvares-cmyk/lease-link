@@ -26,6 +26,7 @@ import {
   dispatchRentDueNotification,
 } from "@/lib/services/rentDueDateService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import DashboardNav from "@/components/DashboardNav";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
 import SmartDataLoader from "@/components/SmartDataLoader";
@@ -187,13 +188,8 @@ export default function BuildingsManagementPage() {
 
       setUser(authUser);
 
-      // Load Profile
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .maybeSingle();
-
+      // Load Profile (RLS-safe via /api/profile with offline fallback)
+      const profileData = await fetchCurrentProfileSafe(authUser);
       const isManager = profileData?.role === "manager";
       const effectiveLandlordId =
         isManager && profileData?.landlord_id
@@ -201,33 +197,7 @@ export default function BuildingsManagementPage() {
           : authUser.id;
 
       if (profileData) {
-        if (isManager && profileData.landlord_id) {
-          try {
-            const { data: landlordData } = await supabase
-              .from("profiles")
-              .select("plan, plan_name, plan_unit_limit, unit_limit, plan_status, billing_cycle, plan_expires_at")
-              .eq("id", profileData.landlord_id)
-              .maybeSingle();
-
-            if (landlordData) {
-              setProfile({
-                ...profileData,
-                plan: landlordData.plan || profileData.plan,
-                plan_name: landlordData.plan_name || profileData.plan_name,
-                plan_unit_limit: landlordData.plan_unit_limit || landlordData.unit_limit || profileData.plan_unit_limit,
-                plan_status: landlordData.plan_status || profileData.plan_status,
-                billing_cycle: landlordData.billing_cycle || profileData.billing_cycle,
-                plan_expires_at: landlordData.plan_expires_at || profileData.plan_expires_at,
-              } as LandlordProfile);
-            } else {
-              setProfile(profileData as LandlordProfile);
-            }
-          } catch (_) {
-            setProfile(profileData as LandlordProfile);
-          }
-        } else {
-          setProfile(profileData as LandlordProfile);
-        }
+        setProfile(profileData);
       }
 
       // Load Buildings & Units

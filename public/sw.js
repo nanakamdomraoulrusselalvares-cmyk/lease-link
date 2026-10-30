@@ -1,5 +1,5 @@
-// LeaseLink PWA Service Worker v5.0 - Smooth Scroll & Full Offline Suite
-const CACHE_NAME = "leaselink-cache-v5";
+// LeaseLink PWA Service Worker v6.0 - Smooth Scroll & Full Offline Suite
+const CACHE_NAME = "leaselink-cache-v6";
 
 const PRECACHE_ASSETS = [
   "/",
@@ -57,11 +57,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (!url.protocol.startsWith("http")) return;
 
-  // Bypass dynamic external backend databases and live mutation endpoints
+  // Bypass dynamic external backend databases and authenticated API routes
   if (
     url.hostname.includes("supabase.co") ||
-    url.pathname.startsWith("/api/campay/") ||
-    url.pathname.startsWith("/api/auth/")
+    url.pathname.startsWith("/api/")
   ) {
     return;
   }

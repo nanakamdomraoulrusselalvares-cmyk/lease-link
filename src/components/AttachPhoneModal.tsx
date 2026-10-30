@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { LandlordProfile } from "@/types/database";
+import { updateCurrentProfilePhoneSafe } from "@/lib/services/profileService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -125,33 +125,9 @@ export default function AttachPhoneModal({
     setIsSaving(true);
 
     try {
-      const supabase = createClient();
+      const updatedProfile = await updateCurrentProfilePhoneSafe(fullPhoneNumber);
 
-      // 1. Update Supabase profiles table
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          phone: fullPhoneNumber,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", effectiveUserId);
-
-      if (profileError) {
-        throw new Error(profileError.message);
-      }
-
-      // 2. Update Supabase Auth user metadata
-      try {
-        await supabase.auth.updateUser({
-          data: {
-            phone: fullPhoneNumber,
-          },
-        });
-      } catch (authErr) {
-        console.warn("Could not sync phone into auth metadata:", authErr);
-      }
-
-      // 3. Update cached dashboard state
+      // Update cached dashboard state & remove ?need_phone=true query param
       if (typeof window !== "undefined") {
         try {
           const cached = localStorage.getItem("leaselink_cached_dashboard");
@@ -160,7 +136,28 @@ export default function AttachPhoneModal({
             if (parsed.profile && parsed.profile.id === effectiveUserId) {
               parsed.profile.phone = fullPhoneNumber;
               localStorage.setItem("leaselink_cached_dashboard", JSON.stringify(parsed));
+            } else if (!parsed.profile && (updatedProfile || profile)) {
+              parsed.profile = { ...(updatedProfile || profile), phone: fullPhoneNumber };
+              localStorage.setItem("leaselink_cached_dashboard", JSON.stringify(parsed));
             }
+          } else if (updatedProfile || profile) {
+            localStorage.setItem(
+              "leaselink_cached_dashboard",
+              JSON.stringify({
+                profile: { ...(updatedProfile || profile), phone: fullPhoneNumber },
+                buildings: [],
+                maintenanceRequests: [],
+                cachedAt: Date.now(),
+              })
+            );
+          }
+        } catch (_) {}
+
+        try {
+          const url = new URL(window.location.href);
+          if (url.searchParams.has("need_phone")) {
+            url.searchParams.delete("need_phone");
+            window.history.replaceState({}, "", url.pathname + url.search + url.hash);
           }
         } catch (_) {}
 

@@ -19,6 +19,7 @@ import {
   buildPaymentReminderWhatsAppUrl,
 } from "@/lib/services/paymentService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import DashboardNav from "@/components/DashboardNav";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -93,13 +94,7 @@ export default function UnpaidRentsPage() {
 
       setUser(authUser);
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .maybeSingle();
-
-      const activeProfile = profileData as LandlordProfile | null;
+      const activeProfile = await fetchCurrentProfileSafe(authUser);
       if (activeProfile) {
         setProfile(activeProfile);
       }

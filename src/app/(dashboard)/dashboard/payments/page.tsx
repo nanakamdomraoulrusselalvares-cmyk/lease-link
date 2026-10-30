@@ -22,6 +22,7 @@ import {
 } from "@/lib/services/paymentService";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import BroadcastReminderModal from "@/components/BroadcastReminderModal";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -150,19 +151,13 @@ function PaymentsContent() {
 
     setUser(authUser);
 
-    let profileData: any = null;
-    const res = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", authUser.id)
-      .maybeSingle();
-    profileData = res.data;
+    const profileData = await fetchCurrentProfileSafe(authUser);
     if (profileData) {
       if (profileData.role === "manager") {
         router.replace("/dashboard/unpaid-rents");
         return;
       }
-      setProfile(profileData as LandlordProfile);
+      setProfile(profileData);
     }
 
     const landlordId = authUser.id;

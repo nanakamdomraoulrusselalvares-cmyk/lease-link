@@ -232,11 +232,21 @@ export default function SubscriptionPaymentModal({
                   updated_at: new Date().toISOString(),
                 };
 
-                // A. Direct update on public.profiles
-                await supabase
-                  .from("profiles")
-                  .update(updatePayload)
-                  .eq("id", profile.id);
+                // A. SECURITY DEFINER RPC update on public.profiles & subscriptions
+                await supabase.rpc("activate_landlord_subscription", {
+                  p_landlord_id: profile.id,
+                  p_plan_id: record.plan_id,
+                  p_plan_name: record.plan_name,
+                  p_billing_cycle: record.billing_cycle || "monthly",
+                  p_max_units: cfg.maxUnits,
+                  p_duration_days: record.duration_days || 30,
+                  p_amount_paid: record.amount_paid || 0,
+                  p_receipt_number: record.receipt_number,
+                  p_transaction_ref: record.transaction_ref,
+                  p_payment_method: record.payment_method || "momo",
+                  p_payer_phone: record.payer_phone || null,
+                  p_notes: record.notes || null,
+                });
 
                 // B. Update Auth metadata
                 await supabase.auth.updateUser({

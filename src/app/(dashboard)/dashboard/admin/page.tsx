@@ -32,6 +32,7 @@ import {
   getWhatsAppReminderLink,
   AdminCreatedCredentials,
 } from "@/lib/services/adminService";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
@@ -188,14 +189,10 @@ export default function AdminDashboardPage() {
 
         setUser(authUser);
 
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authUser.id)
-          .maybeSingle();
+        const profileData = await fetchCurrentProfileSafe(authUser);
 
         if (profileData) {
-          setProfile(profileData as LandlordProfile);
+          setProfile(profileData);
         }
       } catch (err) {
         console.error("Error verifying admin role:", err);

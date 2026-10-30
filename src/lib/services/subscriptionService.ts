@@ -297,28 +297,30 @@ export async function processSubscriptionPayment(
         }
 
         // B. Fallback: Update public.profiles with new plan, capacity, status, and expiration
-        const { error: profileErr } = await supabase
-          .from("profiles")
-          .update({
-            plan: resolvedPlanId,
-            plan_name: formattedPlanName,
-            plan_unit_limit: pricing.plan.maxUnits,
-            unit_limit: pricing.plan.maxUnits,
-            plan_duration_days: pricing.durationDays,
-            plan_status: "active",
-            subscription_status: "active",
-            has_used_free_trial: true,
-            has_used_trial: true,
-            plan_starts_at: now.toISOString(),
-            plan_expires_at: expiresAt.toISOString(),
-            subscription_expires_at: expiresAt.toISOString(),
-            billing_cycle: billingCycle,
-            updated_at: now.toISOString(),
-          })
-          .eq("id", landlordId);
+        if (!rpcSucceeded) {
+          const { error: profileErr } = await supabase
+            .from("profiles")
+            .update({
+              plan: resolvedPlanId,
+              plan_name: formattedPlanName,
+              plan_unit_limit: pricing.plan.maxUnits,
+              unit_limit: pricing.plan.maxUnits,
+              plan_duration_days: pricing.durationDays,
+              plan_status: "active",
+              subscription_status: "active",
+              has_used_free_trial: true,
+              has_used_trial: true,
+              plan_starts_at: now.toISOString(),
+              plan_expires_at: expiresAt.toISOString(),
+              subscription_expires_at: expiresAt.toISOString(),
+              billing_cycle: billingCycle,
+              updated_at: now.toISOString(),
+            })
+            .eq("id", landlordId);
 
-        if (profileErr) {
-          console.warn("Supabase profile plan update error:", profileErr);
+          if (profileErr) {
+            console.warn("Supabase profile plan update error:", profileErr);
+          }
         }
 
         // C. Fallback: Insert into public.subscriptions table if RPC didn't already insert

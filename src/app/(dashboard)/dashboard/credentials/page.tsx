@@ -11,6 +11,7 @@ import {
   generateAccessToken,
 } from "@/lib/services/tenantService";
 import { getBuildingsWithUnits } from "@/lib/services/buildingService";
+import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -118,14 +119,10 @@ function CredentialsContent() {
         setUser(authUser);
         let effectiveLandlordId = authUser.id;
 
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authUser.id)
-          .maybeSingle();
+        const profileData = await fetchCurrentProfileSafe(authUser);
 
         if (profileData) {
-          setProfile(profileData as LandlordProfile);
+          setProfile(profileData);
           if (profileData.role === "manager" && profileData.landlord_id) {
             effectiveLandlordId = profileData.landlord_id;
           }
