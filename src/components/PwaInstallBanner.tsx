@@ -269,6 +269,11 @@ export default function PwaInstallBanner() {
         }
       } catch (err) {
         console.error("[PWA] Native install prompt error:", err);
+        if (platform === "ios") {
+          setShowIosGuideModal(true);
+        } else {
+          setShowInstallGuideModal(true);
+        }
       } finally {
         setIsInstalling(false);
       }
