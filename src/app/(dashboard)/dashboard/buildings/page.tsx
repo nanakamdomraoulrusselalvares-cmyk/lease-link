@@ -286,12 +286,17 @@ export default function BuildingsManagementPage() {
       }
       loadData(true);
     };
+    const handleBuildingsUpdated = () => {
+      loadData(true);
+    };
     if (typeof window !== "undefined") {
       window.addEventListener("leaselink:subscription_updated", handleSubUpdated);
+      window.addEventListener("leaselink:buildings_updated", handleBuildingsUpdated);
     }
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("leaselink:subscription_updated", handleSubUpdated);
+        window.removeEventListener("leaselink:buildings_updated", handleBuildingsUpdated);
       }
     };
   }, []);
@@ -452,6 +457,17 @@ export default function BuildingsManagementPage() {
         return;
       }
 
+      if (result.building) {
+        setBuildings((prev) => [
+          result.building!,
+          ...prev.filter((b) => b.id !== result.building!.id),
+        ]);
+        setExpandedBuildingIds((prev) => ({
+          ...prev,
+          [result.building!.id]: true,
+        }));
+      }
+
       setFormSuccess(
         isFrench
           ? `Bâtiment "${formData.name}" créé avec succès avec ${unitsCount} logements vacants ! Vous pouvez maintenant configurer le loyer, salons, chambres, salles de bain et cuisines de chaque logement ci-dessous.`
@@ -470,8 +486,8 @@ export default function BuildingsManagementPage() {
         description: "",
       });
 
-      // Reload list
-      await loadData();
+      // Reload list while preserving open state
+      await loadData(true);
       setShowCreateForm(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -1857,7 +1873,7 @@ export default function BuildingsManagementPage() {
       {/* MODAL: Unit Modification Modal */}
       {editingUnit && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-hidden select-none"
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
           onClick={(e) => {
             if (e.target === e.currentTarget && !savingUnit) {
               setEditingUnit(null);
@@ -1865,12 +1881,13 @@ export default function BuildingsManagementPage() {
           }}
           onWheel={handleModalWheel}
         >
-          <div
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] h-auto min-h-0 select-text"
-            onWheel={handleModalWheel}
-          >
-            {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 z-10">
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div
+              className="relative w-full max-w-lg my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] h-auto min-h-0 select-text"
+              onWheel={handleModalWheel}
+            >
+              {/* Modal Header */}
+              <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 sticky top-0 z-10 backdrop-blur-md">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-600/20 border border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <Edit3 className="w-5 h-5" />
@@ -2350,6 +2367,7 @@ export default function BuildingsManagementPage() {
             </form>
           </div>
         </div>
+      </div>
       )}
 
       {/* Subscription Upgrade Modal - Landlords only */}

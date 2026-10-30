@@ -250,14 +250,21 @@ export default function LandlordHomePage() {
       }
     };
 
+    // Listen to buildings update event to refresh portfolio stats immediately
+    const handleBuildingsUpdated = () => {
+      fetchSessionAndProfile();
+    };
+
     if (typeof window !== "undefined") {
       window.addEventListener("leaselink:subscription_updated", handleSubUpdated);
       window.addEventListener("leaselink:phone_updated", handlePhoneUpdated);
+      window.addEventListener("leaselink:buildings_updated", handleBuildingsUpdated);
     }
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("leaselink:subscription_updated", handleSubUpdated);
         window.removeEventListener("leaselink:phone_updated", handlePhoneUpdated);
+        window.removeEventListener("leaselink:buildings_updated", handleBuildingsUpdated);
       }
     };
   }, []);

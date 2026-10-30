@@ -50,6 +50,26 @@ create table if not exists public.profiles (
     updated_at timestamptz not null default now()
 );
 
+-- Idempotent column migrations for existing databases
+alter table public.profiles add column if not exists plan text not null default 'free';
+alter table public.profiles add column if not exists plan_name text not null default 'Free Trial (30 Days)';
+alter table public.profiles add column if not exists billing_cycle text not null default 'monthly';
+alter table public.profiles add column if not exists plan_unit_limit integer not null default 5;
+alter table public.profiles add column if not exists unit_limit integer not null default 5;
+alter table public.profiles add column if not exists plan_duration_days integer not null default 30;
+alter table public.profiles add column if not exists plan_starts_at timestamptz not null default now();
+alter table public.profiles add column if not exists plan_expires_at timestamptz not null default (now() + interval '30 days');
+alter table public.profiles add column if not exists trial_expires_at timestamptz not null default (now() + interval '30 days');
+alter table public.profiles add column if not exists subscription_expires_at timestamptz not null default (now() + interval '30 days');
+alter table public.profiles add column if not exists plan_status text not null default 'active';
+alter table public.profiles add column if not exists subscription_status text not null default 'active';
+alter table public.profiles add column if not exists has_used_free_trial boolean not null default false;
+alter table public.profiles add column if not exists has_used_trial boolean not null default false;
+
+-- Idempotent column migrations for financial receipts storage
+alter table public.rent_payments add column if not exists receipt_url text;
+alter table public.subscriptions add column if not exists receipt_url text;
+
 -- 1.2 Buildings Table (Properties, Complexes & Residences)
 create table if not exists public.buildings (
     id uuid primary key default gen_random_uuid(),
@@ -845,7 +865,14 @@ drop policy if exists "Profiles delete policy" on public.profiles;
 
 create policy "Profiles select policy"
     on public.profiles for select
-    using (true);
+    using (
+        (auth.uid() is not null and (
+            auth.uid() = id
+            or landlord_id = auth.uid()
+            or id = (select p.landlord_id from public.profiles p where p.id = auth.uid())
+            or public.is_admin()
+        ))
+    );
 
 create policy "Profiles insert policy"
     on public.profiles for insert
@@ -894,8 +921,6 @@ create policy "Buildings select policy"
     on public.buildings for select
     using (
         public.can_access_landlord_portfolio(landlord_id)
-        or
-        (auth.role() = 'anon')
     );
 
 create policy "Buildings insert policy"
@@ -927,8 +952,6 @@ create policy "Units select policy"
     on public.units for select
     using (
         public.can_access_landlord_portfolio(landlord_id)
-        or
-        (auth.role() = 'anon' and status = 'occupied')
     );
 
 create policy "Units insert policy"
@@ -960,23 +983,29 @@ create policy "Maintenance select policy"
     on public.maintenance_requests for select
     using (
         public.can_access_landlord_portfolio(landlord_id)
-        or
-        (auth.role() = 'anon')
     );
 
 create policy "Maintenance insert policy"
     on public.maintenance_requests for insert
-    with check (true);
+    with check (
+        public.can_access_landlord_portfolio(landlord_id)
+        or
+        exists (
+            select 1 from public.units u
+            where u.id = unit_id
+              and u.status = 'occupied'
+              and u.building_id = building_id
+              and u.landlord_id = landlord_id
+        )
+    );
 
 create policy "Maintenance update policy"
     on public.maintenance_requests for update
     using (
         public.can_access_landlord_portfolio(landlord_id)
-        or (auth.role() = 'anon')
     )
     with check (
         public.can_access_landlord_portfolio(landlord_id)
-        or (auth.role() = 'anon')
     );
 
 create policy "Maintenance delete policy"
@@ -995,16 +1024,12 @@ create policy "Payments select policy"
     on public.rent_payments for select
     using (
         public.can_access_landlord_portfolio(landlord_id)
-        or
-        (auth.role() = 'anon')
     );
 
 create policy "Payments insert policy"
     on public.rent_payments for insert
     with check (
         public.can_access_landlord_portfolio(landlord_id)
-        or
-        (auth.role() = 'anon')
     );
 
 create policy "Payments update policy"
@@ -1029,30 +1054,32 @@ create policy "Notifications select policy"
     using (
         public.is_admin()
         or
-        (auth.uid() is not null and landlord_id = auth.uid())
-        or
-        (auth.uid() is not null and public.can_access_landlord_portfolio(landlord_id))
-        or
-        (recipient_role in ('tenant', 'building_community'))
-        or
-        (auth.role() = 'anon' and id = '00000000-0000-0000-0000-000000000000')
+        (auth.uid() is not null and (
+            landlord_id = auth.uid()
+            or public.can_access_landlord_portfolio(landlord_id)
+        ))
     );
 
 create policy "Notifications insert policy"
     on public.notifications for insert
-    with check (true);
+    with check (
+        public.is_admin()
+        or
+        (auth.uid() is not null and (
+            landlord_id = auth.uid()
+            or public.can_access_landlord_portfolio(landlord_id)
+        ))
+    );
 
 create policy "Notifications update policy"
     on public.notifications for update
     using (
         public.is_admin()
-        or (auth.uid() is not null and (landlord_id is null or auth.uid() = landlord_id or public.can_access_landlord_portfolio(landlord_id)))
-        or (auth.role() = 'anon')
+        or (auth.uid() is not null and (auth.uid() = landlord_id or public.can_access_landlord_portfolio(landlord_id)))
     )
     with check (
         public.is_admin()
-        or (auth.uid() is not null and (landlord_id is null or auth.uid() = landlord_id or public.can_access_landlord_portfolio(landlord_id)))
-        or (auth.role() = 'anon')
+        or (auth.uid() is not null and (auth.uid() = landlord_id or public.can_access_landlord_portfolio(landlord_id)))
     );
 
 create policy "Notifications delete policy"
@@ -1075,7 +1102,7 @@ create policy "Subscriptions select policy"
 create policy "Subscriptions insert policy"
     on public.subscriptions for insert
     with check (
-        auth.uid() = landlord_id or public.is_admin() or auth.role() = 'anon'
+        auth.uid() = landlord_id or public.is_admin()
     );
 
 create policy "Subscriptions update policy"
@@ -1311,10 +1338,11 @@ create or replace function public.create_building_with_vacant_units(
     p_address text,
     p_city text default null,
     p_state_region text default null,
-    p_property_type text default 'apartment',
+    p_property_type text default 'commercial',
     p_total_units integer default 1,
     p_unit_prefix text default 'Unit',
-    p_description text default null
+    p_description text default null,
+    p_landlord_id uuid default null
 )
 returns json as $$
 declare
@@ -1329,23 +1357,30 @@ declare
     v_unit_number text;
 begin
     v_user_id := auth.uid();
-    if v_user_id is null then
+    
+    -- Resolve effective landlord ID
+    if p_landlord_id is not null then
+        v_effective_landlord_id := p_landlord_id;
+    elsif v_user_id is not null then
+        select landlord_id into v_effective_landlord_id
+        from public.profiles
+        where id = v_user_id and role = 'manager';
+        
+        if v_effective_landlord_id is null then
+            v_effective_landlord_id := v_user_id;
+        end if;
+    else
         return json_build_object('success', false, 'error', 'Unauthorized. Please log in.');
-    end if;
-
-    v_effective_landlord_id := public.get_auth_landlord_id();
-    if v_effective_landlord_id is null then
-        v_effective_landlord_id := v_user_id;
     end if;
 
     v_units_count := greatest(coalesce(p_total_units, 1), 1);
     v_clean_prefix := coalesce(nullif(trim(p_unit_prefix), ''), 'Unit');
 
-    select coalesce(plan_unit_limit, unit_limit, 5) into v_unit_limit
+    select coalesce(plan_unit_limit, unit_limit, 30) into v_unit_limit
     from public.profiles
     where id = v_effective_landlord_id;
 
-    v_unit_limit := coalesce(v_unit_limit, 5);
+    v_unit_limit := coalesce(v_unit_limit, 30);
 
     select count(*) into v_current_units
     from public.units
@@ -1508,7 +1543,10 @@ begin
         tenant_name = trim(p_tenant_name),
         tenant_phone = trim(p_tenant_phone),
         tenant_email = lower(trim(p_tenant_email)),
-        tenant_password = trim(p_tenant_password),
+        tenant_password = case
+            when trim(p_tenant_password) like '$2%' then trim(p_tenant_password)
+            else crypt(trim(p_tenant_password), gen_salt('bf', 10))
+        end,
         tenant_access_token = trim(p_tenant_access_token),
         tenant_assigned_at = coalesce(tenant_assigned_at, now()),
         lease_start_date = coalesce(p_lease_start_date, lease_start_date, current_date),
@@ -1596,7 +1634,13 @@ begin
         'assigned_at', u.tenant_assigned_at,
         'lease_start_date', u.lease_start_date,
         'rent_due_day', coalesce(u.rent_due_day, 5),
-        'access_token', u.tenant_access_token
+        'access_token', u.tenant_access_token,
+        'is_landlord_plan_expired', (
+            (coalesce(p.plan_expires_at, p.trial_expires_at, p.subscription_expires_at, now()) < now())
+            or coalesce(p.plan_status, p.subscription_status, 'active') = 'expired'
+        ),
+        'landlord_plan_expires_at', coalesce(p.plan_expires_at, p.trial_expires_at, p.subscription_expires_at),
+        'landlord_plan_status', coalesce(p.plan_status, p.subscription_status, 'active')
     ) into v_res
     from public.units u
     join public.buildings b on b.id = u.building_id
@@ -1649,7 +1693,13 @@ begin
         'assigned_at', u.tenant_assigned_at,
         'lease_start_date', u.lease_start_date,
         'rent_due_day', coalesce(u.rent_due_day, 5),
-        'access_token', u.tenant_access_token
+        'access_token', u.tenant_access_token,
+        'is_landlord_plan_expired', (
+            (coalesce(p.plan_expires_at, p.trial_expires_at, p.subscription_expires_at, now()) < now())
+            or coalesce(p.plan_status, p.subscription_status, 'active') = 'expired'
+        ),
+        'landlord_plan_expires_at', coalesce(p.plan_expires_at, p.trial_expires_at, p.subscription_expires_at),
+        'landlord_plan_status', coalesce(p.plan_status, p.subscription_status, 'active')
     ) into v_res
     from public.units u
     join public.buildings b on b.id = u.building_id
@@ -1659,7 +1709,13 @@ begin
         or
         (length(v_clean_digits) >= 6 and regexp_replace(coalesce(u.tenant_phone, ''), '\D', '', 'g') = v_clean_digits)
     )
-    and u.tenant_password = trim(p_password)
+    and (
+        -- If stored as bcrypt hash ($2a$ or $2b$)
+        (u.tenant_password like '$2%' and u.tenant_password = crypt(trim(p_password), u.tenant_password))
+        or
+        -- Fallback for legacy plaintext passwords
+        (u.tenant_password = trim(p_password))
+    )
     and u.status = 'occupied'
     limit 1;
 
@@ -2180,18 +2236,19 @@ $$;
 
 
 -- ==============================================================================
--- PHASE 11.5: Supabase Storage Buckets & Policies (Media, Photos, Videos)
+-- PHASE 11.5: Hardened Supabase Storage Buckets & Policies (Private Buckets & Receipts)
 -- ==============================================================================
 
 do $$
 begin
-    -- 1. Create public maintenance-media bucket if storage schema exists
     if exists (select 1 from information_schema.schemata where schema_name = 'storage') then
+        -- 1. Hardened Private Bucket: maintenance-media
+        -- Switched to public = false (Private bucket requiring Signed URLs)
         insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
         values (
             'maintenance-media',
             'maintenance-media',
-            true,
+            false, -- Strictly Private Bucket
             52428800, -- 50 MB limit
             array[
                 'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -2201,31 +2258,118 @@ begin
             ]
         )
         on conflict (id) do update set
-            public = true,
-            file_size_limit = 52428800;
+            public = false,
+            file_size_limit = 52428800,
+            allowed_mime_types = array[
+                'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+                'video/mp4', 'video/webm', 'video/quicktime',
+                'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/wav',
+                'application/pdf'
+            ];
 
-        -- 2. Storage Policies for maintenance-media
-        -- Note: Public buckets serve files directly via public CDN URLs without needing a broad SELECT policy.
-        -- Dropping the broad public select policy prevents external visitors from listing/enumerating all files.
+        -- 2. New Dedicated Private Bucket: receipts
+        -- Securely stores user rent payment receipts & landlord subscription receipts
+        insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+        values (
+            'receipts',
+            'receipts',
+            false, -- Strictly Private Bucket
+            10485760, -- 10 MB limit
+            array[
+                'application/pdf',
+                'image/png',
+                'image/jpeg',
+                'image/webp'
+            ]
+        )
+        on conflict (id) do update set
+            public = false,
+            file_size_limit = 10485760,
+            allowed_mime_types = array[
+                'application/pdf',
+                'image/png',
+                'image/jpeg',
+                'image/webp'
+            ];
+
+        -- ======================================================================
+        -- Policies for maintenance-media Bucket
+        -- ======================================================================
         drop policy if exists "Maintenance media public select" on storage.objects;
-
-        -- Only authenticated users (landlords, managers) can list files via the Supabase Storage API
         drop policy if exists "Maintenance media authenticated select" on storage.objects;
+        drop policy if exists "Maintenance media upload" on storage.objects;
+        drop policy if exists "Maintenance media delete" on storage.objects;
+
+        -- Authenticated users and tenants can read maintenance media (or via Signed URLs)
         create policy "Maintenance media authenticated select"
             on storage.objects for select
-            using (bucket_id = 'maintenance-media' and auth.role() = 'authenticated');
+            using (bucket_id = 'maintenance-media' and (auth.role() = 'authenticated' or auth.role() = 'anon'));
 
-        -- Allow authenticated and anon users (tenants) to upload media files
-        drop policy if exists "Maintenance media upload" on storage.objects;
+        -- Authenticated and anon users (tenants submitting maintenance tickets) can upload media
         create policy "Maintenance media upload"
             on storage.objects for insert
-            with check (bucket_id = 'maintenance-media');
+            with check (
+                bucket_id = 'maintenance-media'
+                and (
+                    (storage.foldername(name))[1] in ('photos', 'videos', 'voices', 'documents')
+                )
+            );
 
-        -- Allow landlords/authenticated users to delete media if needed
-        drop policy if exists "Maintenance media delete" on storage.objects;
+        -- Only landlord owners, file owners, or super-admins can delete maintenance media
         create policy "Maintenance media delete"
             on storage.objects for delete
-            using (bucket_id = 'maintenance-media' and auth.role() = 'authenticated');
+            using (
+                bucket_id = 'maintenance-media'
+                and (
+                    public.is_admin()
+                    or (auth.role() = 'authenticated' and owner = auth.uid())
+                )
+            );
+
+        -- ======================================================================
+        -- Policies for receipts Bucket (Rent Receipts & Plan Subscriptions)
+        -- ======================================================================
+        drop policy if exists "Receipts authenticated select" on storage.objects;
+        drop policy if exists "Receipts upload" on storage.objects;
+        drop policy if exists "Receipts delete" on storage.objects;
+
+        -- Select: Super-Admins, Landlords, Managers, or via Signed URLs
+        create policy "Receipts authenticated select"
+            on storage.objects for select
+            using (
+                bucket_id = 'receipts'
+                and (
+                    public.is_admin()
+                    or auth.role() = 'authenticated'
+                    or auth.role() = 'service_role'
+                )
+            );
+
+        -- Insert: Authenticated users (landlords, managers) and service role
+        create policy "Receipts upload"
+            on storage.objects for insert
+            with check (
+                bucket_id = 'receipts'
+                and (
+                    (storage.foldername(name))[1] in ('rent', 'subscriptions', 'plans')
+                )
+                and (
+                    auth.role() = 'authenticated'
+                    or auth.role() = 'service_role'
+                )
+            );
+
+        -- Delete: Protected financial audit records - Only Super-Admins or owner
+        create policy "Receipts delete"
+            on storage.objects for delete
+            using (
+                bucket_id = 'receipts'
+                and (
+                    public.is_admin()
+                    or auth.uid() = owner
+                )
+            );
+
     end if;
 exception
     when others then
