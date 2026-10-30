@@ -189,16 +189,17 @@ export default function PayRentModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
+      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isProcessing) {
           onClose();
         }
       }}
     >
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden select-text animate-in fade-in zoom-in-95 duration-150">
-        {/* Header - Fixed & Pinned */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 shrink-0 z-10">
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        <div className="relative w-full max-w-lg my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-hidden select-text animate-in fade-in zoom-in-95 duration-150">
+          {/* Header - Fixed & Pinned */}
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 shrink-0 z-10 sticky top-0 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <DollarSign className="w-4 h-4" />
@@ -651,6 +652,7 @@ export default function PayRentModal({
             </div>
           </form>
         )}
+      </div>
       </div>
     </div>
   );

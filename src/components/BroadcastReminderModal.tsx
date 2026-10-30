@@ -164,9 +164,17 @@ export default function BroadcastReminderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Modal Header */}
+    <div
+      className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 animate-in fade-in duration-200 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSubmitting) {
+          onClose();
+        }
+      }}
+    >
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        <div className="relative w-full max-w-2xl my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] select-text">
+          {/* Modal Header */}
         <div className="p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950 text-white relative">
           <button
             type="button"
@@ -517,6 +525,7 @@ export default function BroadcastReminderModal({
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

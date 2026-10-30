@@ -343,6 +343,7 @@ export async function processSubscriptionPayment(
                 status: "completed",
                 payer_phone: payerPhone || landlordPhone,
                 notes: notes || null,
+                receipt_url: `subscriptions/${landlordId}/${receiptNumber}.png`,
                 created_at: now.toISOString(),
               },
             ]);

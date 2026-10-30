@@ -109,6 +109,25 @@ export default function EmailOtpModal({
     }
   }, [isOpen, email, initialOtpToken, initialDevCode, requestOtpCode]);
 
+  // Lock body scroll and handle escape key
+  useEffect(() => {
+    if (isOpen) {
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && !loading) {
+          onClose();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.documentElement.classList.remove("modal-open");
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [isOpen, loading, onClose]);
+
   // Resend countdown timer
   useEffect(() => {
     if (!isOpen || cooldown <= 0) return;
@@ -319,8 +338,16 @@ export default function EmailOtpModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 relative text-center">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) {
+          onClose();
+        }
+      }}
+    >
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 relative text-center my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain select-text">
         {/* Close Button */}
         <button
           type="button"
@@ -590,6 +617,7 @@ export default function EmailOtpModal({
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

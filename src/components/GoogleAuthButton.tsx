@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Loader2,
@@ -47,6 +47,22 @@ export default function GoogleAuthButton({
   // By default, terms are required on signup, but not strictly needed repeatedly on login
   const shouldRequireTerms =
     requireTerms !== undefined ? requireTerms : mode === "signup";
+
+  useEffect(() => {
+    if (showTermsModal) {
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && !loading) setShowTermsModal(false);
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.documentElement.classList.remove("modal-open");
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [showTermsModal, loading]);
 
   const executeGoogleSignIn = async () => {
     try {
@@ -178,8 +194,16 @@ export default function GoogleAuthButton({
 
       {/* Terms & Conditions Acceptance Modal for Google Sign-In */}
       {showTermsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 relative text-left">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !loading) {
+              setShowTermsModal(false);
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 relative text-left my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain select-text">
             {/* Close Button */}
             <button
               type="button"
@@ -292,6 +316,7 @@ export default function GoogleAuthButton({
             </div>
           </div>
         </div>
+      </div>
       )}
     </>
   );

@@ -1,5 +1,46 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+
+async function verifyLandlordAuthorization(
+  landlordId: string
+): Promise<{ authorized: boolean; error?: string; status?: number }> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  if (!supabaseUrl || supabaseUrl.includes("your-project-ref")) {
+    return { authorized: true };
+  }
+  try {
+    const serverSupabase = await createServerClient();
+    const {
+      data: { user },
+      error: userErr,
+    } = await serverSupabase.auth.getUser();
+
+    if (userErr || !user) {
+      return { authorized: false, error: "Unauthorized. Please log in.", status: 401 };
+    }
+
+    if (user.id !== landlordId) {
+      const { data: profile } = await serverSupabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profile?.role !== "admin") {
+        return {
+          authorized: false,
+          error: "Forbidden. You do not have permission to manage this landlord's team.",
+          status: 403,
+        };
+      }
+    }
+    return { authorized: true };
+  } catch (err) {
+    console.warn("Authorization verification error in /api/managers:", err);
+    return { authorized: false, error: "Authentication verification failed", status: 401 };
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -10,6 +51,14 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { success: false, error: "Missing required fields: landlordId, fullName, email, and phone" },
         { status: 400 }
+      );
+    }
+
+    const authCheck = await verifyLandlordAuthorization(landlordId);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: authCheck.status || 401 }
       );
     }
 
@@ -172,6 +221,14 @@ export async function PATCH(req: Request) {
       );
     }
 
+    const authCheck = await verifyLandlordAuthorization(landlordId);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: authCheck.status || 401 }
+      );
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const supabaseServiceKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -240,6 +297,14 @@ export async function DELETE(req: Request) {
       return NextResponse.json(
         { success: false, error: "Missing required fields: managerId and landlordId" },
         { status: 400 }
+      );
+    }
+
+    const authCheck = await verifyLandlordAuthorization(landlordId);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: authCheck.status || 401 }
       );
     }
 

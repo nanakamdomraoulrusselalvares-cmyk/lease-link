@@ -205,6 +205,7 @@ export async function recordRentPayment(
       status: "completed",
       payer_phone: input.payer_phone?.trim() || input.tenant_phone.trim(),
       notes: input.notes?.trim() || null,
+      receipt_url: `rent/${input.landlord_id}/${receiptNumber}.png`,
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
     };
@@ -240,6 +241,7 @@ export async function recordRentPayment(
             status: newPayment.status,
             payer_phone: newPayment.payer_phone,
             notes: newPayment.notes,
+            receipt_url: newPayment.receipt_url,
           },
         ]);
 

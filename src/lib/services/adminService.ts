@@ -280,6 +280,9 @@ export async function getAdminLandlords(): Promise<AdminLandlordSummary[]> {
         plan_name: p.plan_name || "Free Trial",
         plan_status: p.plan_status || "active",
         plan_unit_limit: p.plan_unit_limit || 5,
+        plan_duration_days: p.plan_duration_days || 30,
+        plan_starts_at: p.plan_starts_at || p.created_at,
+        plan_expires_at: p.plan_expires_at || (p as any).subscription_expires_at,
         buildings_count: buildingsCount,
         units_count: unitsCount,
         occupied_units_count: occupiedUnitsCount,
@@ -465,7 +468,8 @@ export async function getAdminActivityStream(): Promise<AdminActivityEvent[]> {
 export async function updateLandlordPlanAdmin(
   landlordId: string,
   planId: SubscriptionPlanId,
-  durationDays: number = 30
+  durationDays: number = 30,
+  customUnitLimit?: number
 ): Promise<boolean> {
   const supabase = createClient();
   const planConfig = resolvePlanConfig(planId);
@@ -478,15 +482,24 @@ export async function updateLandlordPlanAdmin(
 
   const billingCycle = durationDays >= 360 ? "annual" : "monthly";
 
+  // Support 300+ units or custom unit capacity
+  let effectiveUnitLimit = planConfig.maxUnits;
+  if (resolvedPlanId === "tier_300_plus" || resolvedPlanId === "custom" || customUnitLimit) {
+    effectiveUnitLimit = Math.max(300, Number(customUnitLimit) || 500);
+  }
+
+  const cycleLabelFr = billingCycle === "annual" ? "Annuel (12 Mois)" : "Mensuel (30 Jours)";
+  const planDisplayName = `${planConfig.nameFr || planConfig.name} - ${effectiveUnitLimit} Lots (${cycleLabelFr})`;
+
   try {
     const { error } = await supabase
       .from("profiles")
       .update({
         plan: resolvedPlanId,
-        plan_name: planConfig.name,
+        plan_name: planDisplayName,
         billing_cycle: billingCycle,
-        plan_unit_limit: planConfig.maxUnits,
-        unit_limit: planConfig.maxUnits,
+        plan_unit_limit: effectiveUnitLimit,
+        unit_limit: effectiveUnitLimit,
         plan_duration_days: durationDays,
         plan_status: "active",
         subscription_status: "active",
@@ -513,7 +526,7 @@ export async function updateLandlordPlanAdmin(
           receipt_number: receiptNumber,
           landlord_id: landlordId,
           plan_id: resolvedPlanId,
-          plan_name: planConfig.name,
+          plan_name: planDisplayName,
           billing_cycle: billingCycle,
           amount_paid:
             billingCycle === "annual"
@@ -525,7 +538,7 @@ export async function updateLandlordPlanAdmin(
           starts_at: now.toISOString(),
           expires_at: expiresAt.toISOString(),
           status: "completed",
-          notes: "Admin plan assignment",
+          notes: `Admin plan assignment: ${effectiveUnitLimit} units`,
           created_at: now.toISOString(),
         },
       ]);
@@ -542,9 +555,9 @@ export async function updateLandlordPlanAdmin(
             list[idx] = {
               ...list[idx],
               plan: resolvedPlanId,
-              plan_name: planConfig.name,
-              plan_unit_limit: planConfig.maxUnits,
-              unit_limit: planConfig.maxUnits,
+              plan_name: planDisplayName,
+              plan_unit_limit: effectiveUnitLimit,
+              unit_limit: effectiveUnitLimit,
               plan_duration_days: durationDays,
               plan_status: "active",
               subscription_status: "active",
@@ -568,9 +581,9 @@ export async function updateLandlordPlanAdmin(
               parsedDash.profile = {
                 ...parsedDash.profile,
                 plan: resolvedPlanId,
-                plan_name: planConfig.name,
-                plan_unit_limit: planConfig.maxUnits,
-                unit_limit: planConfig.maxUnits,
+                plan_name: planDisplayName,
+                plan_unit_limit: effectiveUnitLimit,
+                unit_limit: effectiveUnitLimit,
                 plan_status: "active",
                 subscription_status: "active",
                 plan_starts_at: now.toISOString(),
@@ -589,7 +602,7 @@ export async function updateLandlordPlanAdmin(
               landlordId,
               planId: resolvedPlanId,
               planConfig,
-              unitLimit: planConfig.maxUnits,
+              unitLimit: effectiveUnitLimit,
             },
           })
         );
@@ -601,6 +614,206 @@ export async function updateLandlordPlanAdmin(
     console.error("Error updating landlord plan:", err);
     return false;
   }
+}
+
+export interface CreateLandlordInput {
+  fullName: string;
+  email: string;
+  phone: string;
+  password?: string;
+  planId: SubscriptionPlanId;
+  customUnitLimit?: number;
+  durationDays: 30 | 365 | number;
+}
+
+export interface AdminCreatedCredentials {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  plan: SubscriptionPlanId;
+  planName: string;
+  unitLimit: number;
+  durationDays: number;
+  billingCycle: "monthly" | "annual";
+  startsAt: string;
+  expiresAt: string;
+}
+
+/**
+ * Super-Admin capability: Create a new landlord account with 300+ units or custom plan
+ */
+export async function createLandlordAccountAdmin(
+  input: CreateLandlordInput
+): Promise<{ success: boolean; credentials?: AdminCreatedCredentials; error?: string }> {
+  try {
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || "Failed to create landlord account." };
+    }
+
+    // Refresh local cache if in sandbox mode
+    if (typeof window !== "undefined" && data.credentials) {
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_PROFILES_KEY);
+        const list = raw ? JSON.parse(raw) : [];
+        list.unshift({
+          id: data.credentials.userId,
+          full_name: data.credentials.fullName,
+          email: data.credentials.email,
+          phone: data.credentials.phone,
+          role: "landlord",
+          plan: data.credentials.plan,
+          plan_name: data.credentials.planName,
+          plan_unit_limit: data.credentials.unitLimit,
+          unit_limit: data.credentials.unitLimit,
+          plan_duration_days: data.credentials.durationDays,
+          plan_starts_at: data.credentials.startsAt,
+          plan_expires_at: data.credentials.expiresAt,
+          plan_status: "active",
+          created_at: data.credentials.startsAt,
+        });
+        localStorage.setItem(LOCAL_STORAGE_PROFILES_KEY, JSON.stringify(list));
+      } catch (_) {}
+    }
+
+    return { success: true, credentials: data.credentials };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Network error creating user";
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Computes subscription expiration milestone (7 days, 4 days, 3 days, 0 days / expired)
+ */
+export function getSubscriptionExpirationMilestone(
+  planExpiresAt?: string | null
+): {
+  daysLeft: number;
+  isExpired: boolean;
+  milestone: "7d" | "4d" | "3d" | "0d" | "none";
+  urgency: "normal" | "warning" | "urgent" | "expired";
+  labelFr: string;
+  labelEn: string;
+} {
+  if (!planExpiresAt) {
+    return {
+      daysLeft: 999,
+      isExpired: false,
+      milestone: "none",
+      urgency: "normal",
+      labelFr: "Actif",
+      labelEn: "Active",
+    };
+  }
+
+  const now = Date.now();
+  const expTime = new Date(planExpiresAt).getTime();
+  const diffMs = expTime - now;
+  const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (daysLeft <= 0) {
+    return {
+      daysLeft,
+      isExpired: true,
+      milestone: "0d",
+      urgency: "expired",
+      labelFr: "Expiré (Accès Suspendu)",
+      labelEn: "Expired (Access Suspended)",
+    };
+  }
+
+  if (daysLeft <= 3) {
+    return {
+      daysLeft,
+      isExpired: false,
+      milestone: "3d",
+      urgency: "urgent",
+      labelFr: `Expire dans ${daysLeft}j (J-3 Urgent)`,
+      labelEn: `Expires in ${daysLeft}d (Critical)`,
+    };
+  }
+
+  if (daysLeft <= 4) {
+    return {
+      daysLeft,
+      isExpired: false,
+      milestone: "4d",
+      urgency: "warning",
+      labelFr: `Expire dans ${daysLeft}j (J-4)`,
+      labelEn: `Expires in ${daysLeft}d (J-4)`,
+    };
+  }
+
+  if (daysLeft <= 7) {
+    return {
+      daysLeft,
+      isExpired: false,
+      milestone: "7d",
+      urgency: "warning",
+      labelFr: `Expire dans ${daysLeft}j (J-7)`,
+      labelEn: `Expires in ${daysLeft}d (J-7)`,
+    };
+  }
+
+  return {
+    daysLeft,
+    isExpired: false,
+    milestone: "none",
+    urgency: "normal",
+    labelFr: `Actif (${daysLeft}j restants)`,
+    labelEn: `Active (${daysLeft}d remaining)`,
+  };
+}
+
+/**
+ * Builds a direct WhatsApp reminder URL pre-filled with professional French or English text
+ */
+export function getWhatsAppReminderLink(
+  landlord: {
+    full_name: string;
+    phone: string;
+    plan_name?: string;
+    plan_expires_at?: string;
+    plan_unit_limit?: number;
+  },
+  isFrench: boolean = true
+): string {
+  const rawDigits = landlord.phone.replace(/[^0-9]/g, "");
+  const expiryFormatted = landlord.plan_expires_at
+    ? new Date(landlord.plan_expires_at).toLocaleDateString(isFrench ? "fr-FR" : "en-US", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+
+  const milestone = getSubscriptionExpirationMilestone(landlord.plan_expires_at);
+
+  let message = "";
+  if (isFrench) {
+    if (milestone.isExpired) {
+      message = `Bonjour ${landlord.full_name},\n\nVotre abonnement LeaseLink (${landlord.plan_name || "Forfait Bailleurs"}) est arrivé à expiration le ${expiryFormatted}.\n\nPour réactiver immédiatement vos fonctionnalités et restaurer l'accès de vos locataires et gestionnaires, veuillez procéder au renouvellement de votre formule sur votre tableau de bord.\n\nSoyez rassuré(e) : l'ensemble de vos données, quittances et historiques de paiement sont précieusement et en toute sécurité conservés.\n\nL'équipe LeaseLink.`;
+    } else {
+      message = `Bonjour ${landlord.full_name},\n\nRappel amical : votre forfait LeaseLink (${landlord.plan_name || "Bailleurs"} - ${landlord.plan_unit_limit || 300} logements) arrive à échéance dans ${milestone.daysLeft} jour(s), le ${expiryFormatted}.\n\nPour éviter toute interruption de service pour vos gestionnaires et locataires, pensez à renouveler votre formule dès maintenant.\n\nL'équipe LeaseLink.`;
+    }
+  } else {
+    if (milestone.isExpired) {
+      message = `Hello ${landlord.full_name},\n\nYour LeaseLink plan (${landlord.plan_name || "Landlord Plan"}) expired on ${expiryFormatted}.\n\nTo restore access for yourself, your property managers, and your tenants, please renew your subscription via your dashboard.\n\nRest assured: all your property records, leases, and receipts remain securely saved.\n\nThe LeaseLink Team.`;
+    } else {
+      message = `Hello ${landlord.full_name},\n\nFriendly reminder: your LeaseLink subscription (${landlord.plan_name || "Landlord Plan"}) will expire in ${milestone.daysLeft} day(s) on ${expiryFormatted}.\n\nPlease renew your plan to prevent any service interruption for your managers and tenants.\n\nThe LeaseLink Team.`;
+    }
+  }
+
+  return `https://wa.me/${rawDigits}?text=${encodeURIComponent(message)}`;
 }
 
 /**

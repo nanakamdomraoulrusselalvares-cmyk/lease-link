@@ -652,26 +652,34 @@ export default function UnpaidRentsPage() {
         const balanceAfterPayment = Math.max(0, totalPeriodExpected - numericAmount);
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in">
-            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 animate-in zoom-in-95">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    {isFrench
-                      ? "Enregistrer un Paiement en Espèces"
-                      : "Record Physical Cash Payment"}
-                  </h3>
+          <div
+            className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !isSubmittingRecord) {
+                setRecordTarget(null);
+              }
+            }}
+          >
+            <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+              <div className="relative w-full max-w-lg my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col select-text">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 shrink-0 sticky top-0 z-10 backdrop-blur-md">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {isFrench
+                        ? "Enregistrer un Paiement en Espèces"
+                        : "Record Physical Cash Payment"}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setRecordTarget(null)}
+                    className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setRecordTarget(null)}
-                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              <form onSubmit={handleRecordPayment} className="p-6 space-y-4 text-xs">
+                <form onSubmit={handleRecordPayment} className="p-6 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
                 {/* Tenant & Property Overview Strip */}
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -896,6 +904,7 @@ export default function UnpaidRentsPage() {
               </form>
             </div>
           </div>
+        </div>
         );
       })()}
 
@@ -903,41 +912,50 @@ export default function UnpaidRentsPage() {
       {/* CASH PAYMENT CONFIRMATION TOAST / NOTIFICATION                            */}
       {/* ========================================================================= */}
       {cashConfirmedPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-7 h-7" />
-            </div>
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setCashConfirmedPayment(null);
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div className="relative w-full max-w-md my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 text-center max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto select-text">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
 
-            <div className="space-y-1">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                {isFrench ? "Paiement en Espèces Enregistré !" : "Cash Payment Recorded!"}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isFrench
-                  ? `Reçu officiel N° ${cashConfirmedPayment.receipt_number} généré pour ${cashConfirmedPayment.tenant_name}.`
-                  : `Official receipt N° ${cashConfirmedPayment.receipt_number} generated for ${cashConfirmedPayment.tenant_name}.`}
-              </p>
-            </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                  {isFrench ? "Paiement en Espèces Enregistré !" : "Cash Payment Recorded!"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isFrench
+                    ? `Reçu officiel N° ${cashConfirmedPayment.receipt_number} généré pour ${cashConfirmedPayment.tenant_name}.`
+                    : `Official receipt N° ${cashConfirmedPayment.receipt_number} generated for ${cashConfirmedPayment.tenant_name}.`}
+                </p>
+              </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
-              <button
-                onClick={() => {
-                  setSelectedReceipt(cashConfirmedPayment);
-                  setShowReceiptModal(true);
-                  setCashConfirmedPayment(null);
-                }}
-                className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md transition cursor-pointer"
-              >
-                {isFrench ? "Voir & Télécharger la Quittance" : "View & Download Receipt"}
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setSelectedReceipt(cashConfirmedPayment);
+                    setShowReceiptModal(true);
+                    setCashConfirmedPayment(null);
+                  }}
+                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md transition cursor-pointer"
+                >
+                  {isFrench ? "Voir & Télécharger la Quittance" : "View & Download Receipt"}
+                </button>
 
-              <button
-                onClick={() => setCashConfirmedPayment(null)}
-                className="w-full sm:w-auto py-2.5 px-4 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition"
-              >
-                {isFrench ? "Fermer" : "Close"}
-              </button>
+                <button
+                  onClick={() => setCashConfirmedPayment(null)}
+                  className="w-full sm:w-auto py-2.5 px-4 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition"
+                >
+                  {isFrench ? "Fermer" : "Close"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

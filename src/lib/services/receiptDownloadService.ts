@@ -1,5 +1,8 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
+import { uploadReceiptToStorage } from "./storageService";
+
 export interface SubscriptionReceiptData {
   receipt_number: string;
   landlord_name: string;
@@ -535,3 +538,46 @@ export async function downloadSubscriptionReceiptPdf(
     }
   });
 }
+
+/**
+ * Renders and archives an official Subscription Receipt in the private receipts bucket.
+ * Also updates the database record with the resulting receipt_url.
+ */
+export async function archiveSubscriptionReceiptToStorage(
+  data: SubscriptionReceiptData,
+  landlordId: string,
+  isFrench: boolean = false
+): Promise<{ url: string | null; path: string | null; error: string | null }> {
+  try {
+    const canvas = renderSubscriptionReceiptCanvas(data, isFrench);
+    return new Promise((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          resolve({ url: null, path: null, error: "Canvas blob creation failed" });
+          return;
+        }
+        const uploadRes = await uploadReceiptToStorage(
+          blob,
+          "subscriptions",
+          landlordId,
+          data.receipt_number,
+          "png"
+        );
+        if (uploadRes.url) {
+          try {
+            const supabase = createClient();
+            await supabase
+              .from("subscriptions")
+              .update({ receipt_url: uploadRes.path || uploadRes.url })
+              .eq("receipt_number", data.receipt_number);
+          } catch (_) {}
+        }
+        resolve(uploadRes);
+      }, "image/png");
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Archive subscription receipt error";
+    return { url: null, path: null, error: msg };
+  }
+}
+

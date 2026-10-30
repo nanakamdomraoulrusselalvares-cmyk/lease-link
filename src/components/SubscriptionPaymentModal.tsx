@@ -20,6 +20,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
   downloadSubscriptionReceiptPng,
   downloadSubscriptionReceiptPdf,
+  archiveSubscriptionReceiptToStorage,
 } from "@/lib/services/receiptDownloadService";
 import {
   Sparkles,
@@ -92,6 +93,24 @@ export default function SubscriptionPaymentModal({
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && !isProcessing) {
+          handleResetAndClose();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.documentElement.classList.remove("modal-open");
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [isOpen, isProcessing]);
 
   // Check if the currently selected plan is already paid and active for the current month/period
   const currentPlanActiveInfo = useMemo(() => {
@@ -187,6 +206,11 @@ export default function SubscriptionPaymentModal({
               };
 
               setSuccessRecord(enrichedRecord);
+
+              // Automatically archive receipt in private receipts bucket
+              archiveSubscriptionReceiptToStorage(enrichedRecord, profile.id, isFrench).catch((err) =>
+                console.warn("Auto-archiving subscription receipt notice:", err)
+              );
 
               // 3. Client-side authenticated synchronization directly to Supabase
               try {
@@ -357,8 +381,16 @@ export default function SubscriptionPaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-auto">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isProcessing) {
+          handleResetAndClose();
+        }
+      }}
+    >
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl relative my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain select-text">
         {/* Close Button */}
         <button
           onClick={handleResetAndClose}
@@ -872,6 +904,7 @@ export default function SubscriptionPaymentModal({
             </div>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

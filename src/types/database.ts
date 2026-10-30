@@ -7,7 +7,9 @@ export type SubscriptionPlanId =
   | 'tier_1_30'
   | 'tier_31_60'
   | 'tier_61_100'
-  | 'tier_100_plus';
+  | 'tier_100_plus'
+  | 'tier_300_plus'
+  | 'custom';
 
 export type BillingCycle = 'monthly' | 'annual';
 
@@ -149,11 +151,34 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     badge: 'Enterprise',
     badgeFr: 'Entreprise',
   },
+  {
+    id: 'tier_300_plus',
+    name: 'Enterprise VIP',
+    nameFr: 'Entreprise VIP (300+)',
+    tagline: 'Institutional portfolios (300+ units, personalized capacity)',
+    taglineFr: 'Grands patrimoines, foncières & institutionnels (300+ logements sur-mesure)',
+    target: 'Institutional portfolios & VIPs',
+    targetFr: 'Grands patrimoines & Institutionnels (300+ logements)',
+    unitRange: '300+ units',
+    unitRangeFr: '300+ logements',
+    maxUnits: 500,
+    monthlyPrice: 199900,
+    annualPrice: 2199000,
+    monthlyPriceDisplay: '199,900 FCFA',
+    annualPriceDisplay: '2,199,000 FCFA',
+    annualSavings: 'Save 199,800 FCFA / yr',
+    annualSavingsFr: 'Économisez 199 800 FCFA / an',
+    durationDays: 30,
+    durationDaysAnnual: 365,
+    isFreeTrial: false,
+    badge: 'VIP 300+',
+    badgeFr: 'VIP 300+',
+  },
 ];
 
 /**
  * Universal resolver to match any plan string (id, key, name, alias) to its PlanConfig.
- * Handles: 'starter' | 'tier_1_30', 'growth' | 'tier_31_60', 'pro' | 'tier_61_100', 'ultimate' | 'tier_100_plus', 'free' | 'trial'
+ * Handles: 'starter' | 'tier_1_30', 'growth' | 'tier_31_60', 'pro' | 'tier_61_100', 'ultimate' | 'tier_100_plus', 'tier_300_plus' | 'custom', 'free' | 'trial'
  */
 export function resolvePlanConfig(rawPlanId?: string | null): PlanConfig {
   if (!rawPlanId) return AVAILABLE_PLANS[0];
@@ -164,6 +189,18 @@ export function resolvePlanConfig(rawPlanId?: string | null): PlanConfig {
   if (direct) return direct;
 
   // Semantic alias mappings
+  if (
+    cleaned === 'tier_300_plus' ||
+    cleaned === 'tier_300' ||
+    cleaned === '300+' ||
+    cleaned === '300_plus' ||
+    cleaned === 'vip' ||
+    cleaned === 'vip_300' ||
+    cleaned === 'custom' ||
+    cleaned === 'enterprise_vip'
+  ) {
+    return AVAILABLE_PLANS.find((p) => p.id === 'tier_300_plus') || AVAILABLE_PLANS[5];
+  }
   if (
     cleaned === 'starter' ||
     cleaned === 'tier_1_30' ||
@@ -270,6 +307,9 @@ export interface AdminLandlordSummary {
   billing_cycle?: BillingCycle;
   plan_status: string;
   plan_unit_limit: number;
+  plan_duration_days?: number;
+  plan_starts_at?: string;
+  plan_expires_at?: string;
   buildings_count: number;
   units_count: number;
   occupied_units_count: number;
@@ -460,6 +500,9 @@ export interface TenantPortalData {
   lease_start_date?: string | null;
   rent_due_day?: number | null;
   access_token: string;
+  is_landlord_plan_expired?: boolean;
+  landlord_plan_expires_at?: string | null;
+  landlord_plan_status?: string | null;
 }
 
 export interface TenantSession {
@@ -569,8 +612,32 @@ export interface RentPayment {
   status: PaymentStatus;
   payer_phone?: string | null;
   notes?: string | null;
+  receipt_url?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SubscriptionRecord {
+  id: string;
+  receipt_number: string;
+  landlord_id: string;
+  landlord_name?: string | null;
+  landlord_email?: string | null;
+  landlord_phone?: string | null;
+  plan_id: string;
+  plan_name: string;
+  billing_cycle: string;
+  amount_paid: number;
+  payment_method: string;
+  transaction_ref: string;
+  duration_days: number;
+  starts_at: string;
+  expires_at: string;
+  status: string;
+  payer_phone?: string | null;
+  notes?: string | null;
+  receipt_url?: string | null;
+  created_at: string;
 }
 
 export interface TenantRentStatus {

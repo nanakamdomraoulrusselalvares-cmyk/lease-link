@@ -32,6 +32,22 @@ export default function RentPaymentUnderWorkModal({
 }: RentPaymentUnderWorkModalProps) {
   const { isFrench } = useLanguage();
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.documentElement.classList.remove("modal-open");
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const cleanPhone = landlordPhone ? landlordPhone.replace(/[^0-9+]/g, "") : "";
@@ -44,15 +60,15 @@ export default function RentPaymentUnderWorkModal({
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 z-10 animate-in zoom-in-95 duration-150">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/70 backdrop-blur-sm select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        {/* Modal Card */}
+        <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain select-text">
         {/* Close Button */}
         <button
           type="button"
@@ -181,5 +197,6 @@ export default function RentPaymentUnderWorkModal({
         </div>
       </div>
     </div>
+  </div>
   );
 }

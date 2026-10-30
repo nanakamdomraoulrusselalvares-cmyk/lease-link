@@ -321,12 +321,19 @@ export async function assignTenantToUnit(
         .single();
 
       if (!updateErr && updatedUnit) {
-        // Also update local storage cache for consistency
-        const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
-        const idx = localUnits.findIndex((u) => u.id === unitId);
-        if (idx !== -1) {
-          localUnits[idx] = updatedUnit as Unit;
-          setLocalData(LOCAL_STORAGE_KEY_UNITS, localUnits);
+        // Sanitize sensitive credentials before any local state caching
+        if (typeof window !== "undefined") {
+          try {
+            const localUnits = getLocalData<Unit>(LOCAL_STORAGE_KEY_UNITS);
+            const idx = localUnits.findIndex((u) => u.id === unitId);
+            if (idx !== -1) {
+              const safeUnit = { ...updatedUnit, tenant_password: null };
+              localUnits[idx] = safeUnit as Unit;
+              setLocalData(LOCAL_STORAGE_KEY_UNITS, localUnits);
+            }
+          } catch {
+            // ignore
+          }
         }
 
         return {
@@ -460,7 +467,7 @@ export async function getTenantPortalDataByToken(
 
   if (!isMockConfig) {
     try {
-      // 1. Try stored procedure
+      // 1. Execute secure stored procedure (security definer)
       const { data: rpcData, error: rpcErr } = await supabase.rpc("get_tenant_portal_data", {
         p_token: token,
       });
@@ -469,61 +476,11 @@ export async function getTenantPortalDataByToken(
         return { success: true, data: rpcData.data as TenantPortalData };
       }
 
-      // 2. Direct query fallback
-      const { data: unitData, error: unitErr } = await supabase
-        .from("units")
-        .select("*, buildings(*)")
-        .eq("tenant_access_token", token)
-        .maybeSingle();
-
-      if (!unitErr && unitData) {
-        const building = unitData.buildings as unknown as Building;
-        let landlordName = "Property Landlord";
-        let landlordPhone = "";
-        let landlordEmail = "";
-
-        if (building?.landlord_id) {
-          const { data: landlordData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", building.landlord_id)
-            .maybeSingle();
-
-          if (landlordData) {
-            landlordName = landlordData.full_name || landlordName;
-            landlordPhone = landlordData.phone || "";
-            landlordEmail = landlordData.email || "";
-          }
-        }
-
-        const portalData: TenantPortalData = {
-          tenant_name: unitData.tenant_name || "Valued Tenant",
-          tenant_phone: unitData.tenant_phone || "",
-          tenant_email: unitData.tenant_email || "",
-          unit_id: unitData.id,
-          unit_number: unitData.unit_number,
-          rent_amount: unitData.rent_amount || 0,
-          parlors: unitData.parlors || 0,
-          rooms: unitData.rooms || unitData.bedrooms || 0,
-          bathrooms: unitData.bathrooms || 0,
-          kitchens: unitData.kitchens || 0,
-          notes: unitData.notes || null,
-          building_id: building?.id || unitData.building_id,
-          building_name: building?.name || "Residential Property",
-          building_address: building?.address || "Address on file",
-          building_city: building?.city || "Cameroon",
-          landlord_id: unitData.landlord_id,
-          landlord_name: landlordName,
-          landlord_phone: landlordPhone,
-          landlord_email: landlordEmail,
-          assigned_at: unitData.tenant_assigned_at,
-          access_token: token,
-        };
-
-        return { success: true, data: portalData };
+      if (!rpcErr && rpcData && !rpcData.success) {
+        return { success: false, error: rpcData.error || "Invalid or expired access token." };
       }
     } catch (err) {
-      console.warn("Supabase portal data lookup failed, checking local storage:", err);
+      console.warn("Supabase portal data lookup exception, checking local storage:", err);
     }
   }
 
@@ -565,6 +522,9 @@ export async function getTenantPortalDataByToken(
   return { success: true, data: portalData };
 }
 
+// Rate limiting / brute-force lockout for tenant login
+const tenantLoginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
 /**
  * Authenticate tenant with Email/Phone and Password when logging in manually after logout.
  */
@@ -579,75 +539,46 @@ export async function authenticateTenant(
     return { success: false, error: "Please enter your email/phone and password." };
   }
 
+  // Check brute-force lockout
+  const now = Date.now();
+  const attempt = tenantLoginAttempts.get(cleanId);
+  if (attempt && attempt.lockedUntil > now) {
+    const minutesLeft = Math.ceil((attempt.lockedUntil - now) / 60000);
+    return {
+      success: false,
+      error: `Too many failed login attempts. Please wait ${minutesLeft} minute(s) before trying again.`,
+    };
+  }
+
   const supabase = createClient();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const isMockConfig = !url || url.includes("your-project-ref");
 
   if (!isMockConfig) {
     try {
-      // 1. Try RPC procedure
+      // 1. Execute secure RPC procedure (security definer with bcrypt hash verification)
       const { data: rpcData, error: rpcErr } = await supabase.rpc("authenticate_tenant", {
         p_identifier: cleanId,
         p_password: cleanPass,
       });
 
       if (!rpcErr && rpcData?.success && rpcData?.data) {
+        tenantLoginAttempts.delete(cleanId);
         return { success: true, data: rpcData.data as TenantPortalData };
       }
 
-      // 2. Direct query fallback
-      const { data: unitData } = await supabase
-        .from("units")
-        .select("*, buildings(*)")
-        .or(`tenant_email.ilike.${cleanId},tenant_phone.ilike.%${cleanId}%`)
-        .eq("tenant_password", cleanPass)
-        .maybeSingle();
-
-      if (unitData) {
-        const building = unitData.buildings as unknown as Building;
-        let landlordName = "Property Landlord";
-        let landlordPhone = "";
-        let landlordEmail = "";
-
-        if (building?.landlord_id) {
-          const { data: landlordData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", building.landlord_id)
-            .maybeSingle();
-
-          if (landlordData) {
-            landlordName = landlordData.full_name || landlordName;
-            landlordPhone = landlordData.phone || "";
-            landlordEmail = landlordData.email || "";
-          }
+      // If the RPC returned an explicit failure message
+      if (!rpcErr && rpcData && !rpcData.success) {
+        const currentCount = (attempt?.count || 0) + 1;
+        if (currentCount >= 5) {
+          tenantLoginAttempts.set(cleanId, { count: currentCount, lockedUntil: now + 15 * 60 * 1000 });
+          return {
+            success: false,
+            error: "Too many failed login attempts. Account temporarily locked for 15 minutes.",
+          };
         }
-
-        const portalData: TenantPortalData = {
-          tenant_name: unitData.tenant_name || "Valued Tenant",
-          tenant_phone: unitData.tenant_phone || "",
-          tenant_email: unitData.tenant_email || "",
-          unit_id: unitData.id,
-          unit_number: unitData.unit_number,
-          rent_amount: unitData.rent_amount || 0,
-          parlors: unitData.parlors || 0,
-          rooms: unitData.rooms || unitData.bedrooms || 0,
-          bathrooms: unitData.bathrooms || 0,
-          kitchens: unitData.kitchens || 0,
-          notes: unitData.notes || null,
-          building_id: building?.id || unitData.building_id,
-          building_name: building?.name || "Residential Property",
-          building_address: building?.address || "Address on file",
-          building_city: building?.city || "Cameroon",
-          landlord_id: unitData.landlord_id,
-          landlord_name: landlordName,
-          landlord_phone: landlordPhone,
-          landlord_email: landlordEmail,
-          assigned_at: unitData.tenant_assigned_at,
-          access_token: unitData.tenant_access_token || generateAccessToken(),
-        };
-
-        return { success: true, data: portalData };
+        tenantLoginAttempts.set(cleanId, { count: currentCount, lockedUntil: 0 });
+        return { success: false, error: rpcData.error || "Invalid email/phone or password." };
       }
     } catch (err) {
       console.warn("Supabase tenant login attempt exception:", err);
@@ -701,38 +632,110 @@ export async function authenticateTenant(
   return { success: true, data: portalData };
 }
 
+// In-memory tenant session cache for active window lifecycle (zero sensitive persistence in localStorage)
+let memoryTenantSession: TenantSession | null = null;
+
 /**
- * Tenant Browser Session Storage Helpers
+ * Persists tenant session securely in an HttpOnly, Secure, SameSite=Lax cookie via server route.
+ * Completely purges any legacy plaintext localStorage session.
  */
-export function setTenantSession(data: TenantPortalData) {
-  if (typeof window === "undefined") return;
+export async function setTenantSession(data: TenantPortalData): Promise<boolean> {
   const session: TenantSession = {
     token: data.access_token,
     portalData: data,
     authenticatedAt: new Date().toISOString(),
   };
+
+  memoryTenantSession = session;
+
+  // Purge any legacy localStorage item
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_KEY_TENANT_SESSION);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Issue secure HttpOnly cookie on server
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY_TENANT_SESSION, JSON.stringify(session));
+    const res = await fetch("/api/tenant/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: data.access_token, portalData: data }),
+    });
+    return res.ok;
   } catch (err) {
-    console.error("Failed to store tenant session:", err);
+    console.warn("Could not set HttpOnly tenant session cookie:", err);
+    return false;
   }
 }
 
-export function getTenantSession(): TenantSession | null {
+/**
+ * Retrieves the authenticated tenant session securely from HttpOnly cookie via server API.
+ */
+export async function getTenantSession(): Promise<TenantSession | null> {
+  // Return memory cache if already populated in active window session
+  if (memoryTenantSession && memoryTenantSession.portalData) {
+    return memoryTenantSession;
+  }
+
+  // Purge any legacy localStorage item
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_KEY_TENANT_SESSION);
+    } catch {
+      // ignore
+    }
+  }
+
   if (typeof window === "undefined") return null;
+
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY_TENANT_SESSION);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
+    const res = await fetch("/api/tenant/session", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+    const json = await res.json();
+
+    if (json.authenticated && json.session) {
+      memoryTenantSession = json.session as TenantSession;
+      return memoryTenantSession;
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("Could not retrieve secure tenant session:", err);
     return null;
   }
 }
 
-export function clearTenantSession() {
-  if (typeof window === "undefined") return;
+/**
+ * Synchronous in-memory tenant session reader (non-blocking fallback for quick checks)
+ */
+export function getTenantSessionMemory(): TenantSession | null {
+  return memoryTenantSession;
+}
+
+/**
+ * Clears the secure HttpOnly tenant session cookie and memory cache (logout).
+ */
+export async function clearTenantSession(): Promise<void> {
+  memoryTenantSession = null;
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_KEY_TENANT_SESSION);
+    } catch {
+      // ignore
+    }
+  }
+
   try {
-    localStorage.removeItem(LOCAL_STORAGE_KEY_TENANT_SESSION);
+    await fetch("/api/tenant/session", { method: "DELETE" });
   } catch (err) {
-    console.error("Failed to clear tenant session:", err);
+    console.warn("Could not destroy HttpOnly tenant session cookie:", err);
   }
 }

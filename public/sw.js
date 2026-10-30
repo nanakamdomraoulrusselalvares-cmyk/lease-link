@@ -50,11 +50,13 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
+  // Only handle standard http and https requests (ignore chrome-extension, moz-extension, data, blob, etc.)
+  if (!url.protocol.startsWith("http")) return;
+
   // Bypass API and external database calls so we don't hold stale state
   if (
     url.pathname.startsWith("/api/") ||
-    url.hostname.includes("supabase.co") ||
-    url.protocol.startsWith("chrome-extension")
+    url.hostname.includes("supabase.co")
   ) {
     return;
   }
@@ -84,10 +86,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML and dynamic routes -> Network first, fallback to cache
+  // HTML and dynamic routes -> Network first, cache on success, fallback to cache when offline
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return networkResponse;
       })
       .catch(async () => {

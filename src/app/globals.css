@@ -80,7 +80,6 @@ html.modal-open,
 body.modal-open {
   overflow: hidden !important;
   overscroll-behavior: none !important;
-  touch-action: none;
 }
 
 /* Print optimization for official receipts */

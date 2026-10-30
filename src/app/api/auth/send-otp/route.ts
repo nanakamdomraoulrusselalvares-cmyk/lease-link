@@ -4,10 +4,28 @@ import { sendVerificationOtpEmail } from "@/lib/services/emailService";
 
 // In-memory rate limiting map: email -> lastSentTimestamp
 const lastSentMap = new Map<string, number>();
+const ipRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_SECONDS = 30;
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown-ip";
+    const now = Date.now();
+
+    // IP flood protection: max 10 OTP requests per minute per IP
+    const ipRecord = ipRateLimitMap.get(ip);
+    if (!ipRecord || now > ipRecord.resetAt) {
+      ipRateLimitMap.set(ip, { count: 1, resetAt: now + 60000 });
+    } else {
+      if (ipRecord.count >= 10) {
+        return NextResponse.json(
+          { success: false, error: "Too many requests. Please try again in a minute." },
+          { status: 429 }
+        );
+      }
+      ipRecord.count++;
+    }
+
     const body = await req.json();
     const email = (body.email || "").toString().trim().toLowerCase();
 
@@ -21,7 +39,6 @@ export async function POST(req: Request) {
     }
 
     // Rate limiting check
-    const now = Date.now();
     const lastSent = lastSentMap.get(email);
     if (lastSent && now - lastSent < RATE_LIMIT_SECONDS * 1000) {
       const waitTime = Math.ceil((RATE_LIMIT_SECONDS * 1000 - (now - lastSent)) / 1000);
@@ -45,13 +62,15 @@ export async function POST(req: Request) {
     // Update rate limit timestamp
     lastSentMap.set(email, now);
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     return NextResponse.json({
       success: true,
       otpToken: token,
       expiresAt,
       expiresInSeconds: 600,
-      isDevBypass: Boolean(emailResult.isDevBypass),
-      devCode: emailResult.devCode || null,
+      isDevBypass: !isProduction && Boolean(emailResult.isDevBypass),
+      devCode: !isProduction ? (emailResult.devCode || null) : null,
       message: "Verification code sent successfully.",
     });
   } catch (err: unknown) {

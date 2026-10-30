@@ -27,6 +27,10 @@ import {
   getAdminAllMaintenance,
   getAdminActivityStream,
   updateLandlordPlanAdmin,
+  createLandlordAccountAdmin,
+  getSubscriptionExpirationMilestone,
+  getWhatsAppReminderLink,
+  AdminCreatedCredentials,
 } from "@/lib/services/adminService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
@@ -70,6 +74,8 @@ import {
   ArrowUpRight,
   Radio,
   ArrowUpDown,
+  Plus,
+  AlertCircle,
 } from "lucide-react";
 
 type AdminTab = "overview" | "landlords" | "managers" | "tenants" | "transactions" | "maintenance" | "activity";
@@ -135,8 +141,23 @@ export default function AdminDashboardPage() {
   const [selectedLandlordForPlan, setSelectedLandlordForPlan] = useState<AdminLandlordSummary | null>(null);
   const [newPlanSelection, setNewPlanSelection] = useState<SubscriptionPlanId>("tier_1_30");
   const [newPlanDuration, setNewPlanDuration] = useState<number>(30);
+  const [editCustomUnits, setEditCustomUnits] = useState<number>(300);
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
   const [planSuccessNotice, setPlanSuccessNotice] = useState(false);
+
+  // Create Landlord Modal (300+ Units / Custom Plans & 30d/365d Durations)
+  const [showCreateLandlordModal, setShowCreateLandlordModal] = useState(false);
+  const [createFullName, setCreateFullName] = useState("");
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPhone, setCreatePhone] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createPlan, setCreatePlan] = useState<SubscriptionPlanId>("tier_300_plus");
+  const [createCustomUnits, setCreateCustomUnits] = useState<number>(500);
+  const [createDuration, setCreateDuration] = useState<30 | 365>(30);
+  const [isCreatingLandlord, setIsCreatingLandlord] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<AdminCreatedCredentials | null>(null);
+  const [copiedCreds, setCopiedCreds] = useState(false);
 
   // Quittance Receipt Modal State
   const [selectedReceipt, setSelectedReceipt] = useState<RentPayment | null>(null);
@@ -236,7 +257,8 @@ export default function AdminDashboardPage() {
       const success = await updateLandlordPlanAdmin(
         selectedLandlordForPlan.id,
         newPlanSelection,
-        newPlanDuration
+        newPlanDuration,
+        newPlanSelection === "tier_300_plus" ? editCustomUnits : undefined
       );
 
       if (success) {
@@ -251,6 +273,48 @@ export default function AdminDashboardPage() {
       console.error("Error updating landlord plan:", err);
     } finally {
       setIsUpdatingPlan(false);
+    }
+  };
+
+  // Create Landlord Account Submission (300+ Units / Custom Plans)
+  const handleCreateLandlordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError(null);
+    setIsCreatingLandlord(true);
+
+    try {
+      const res = await createLandlordAccountAdmin({
+        fullName: createFullName,
+        email: createEmail,
+        phone: createPhone,
+        password: createPassword.trim() || undefined,
+        planId: createPlan,
+        customUnitLimit: createPlan === "tier_300_plus" ? createCustomUnits : undefined,
+        durationDays: createDuration,
+      });
+
+      if (!res.success || !res.credentials) {
+        setCreateError(res.error || "Failed to create landlord account.");
+        return;
+      }
+
+      setCreatedCredentials(res.credentials);
+      setShowCreateLandlordModal(false);
+      // Reset form
+      setCreateFullName("");
+      setCreateEmail("");
+      setCreatePhone("");
+      setCreatePassword("");
+      setCreatePlan("tier_300_plus");
+      setCreateCustomUnits(500);
+      setCreateDuration(30);
+
+      loadAdminData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error creating landlord";
+      setCreateError(msg);
+    } finally {
+      setIsCreatingLandlord(false);
     }
   };
 
@@ -1120,8 +1184,11 @@ export default function AdminDashboardPage() {
             {/* Header & Filters */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {isFrench ? "Répertoire des Propriétaires Bailleurs" : "Registered Landlords Directory"}
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>{isFrench ? "Répertoire des Propriétaires Bailleurs" : "Registered Landlords Directory"}</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono font-bold">
+                    {filteredLandlords.length}
+                  </span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {isFrench
@@ -1131,6 +1198,18 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateError(null);
+                    setShowCreateLandlordModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{isFrench ? "+ Créer un Compte (300+ Lots)" : "+ Create Landlord (300+ Units)"}</span>
+                </button>
+
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -1138,7 +1217,7 @@ export default function AdminDashboardPage() {
                     placeholder={isFrench ? "Rechercher un bailleur..." : "Search landlord..."}
                     value={landlordSearch}
                     onChange={(e) => setLandlordSearch(e.target.value)}
-                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 w-48 sm:w-60"
+                    className="pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 w-44 sm:w-56"
                   />
                 </div>
 
@@ -1153,6 +1232,7 @@ export default function AdminDashboardPage() {
                   <option value="tier_31_60">Growth (31-60)</option>
                   <option value="tier_61_100">Pro (61-100)</option>
                   <option value="tier_100_plus">Ultimate (101-300)</option>
+                  <option value="tier_300_plus">{isFrench ? "VIP (300+ Logements)" : "VIP (300+ Units)"}</option>
                 </select>
 
                 {/* Sort Landlords */}
@@ -1177,10 +1257,19 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredLandlords.map((landlord) => {
                 const planInfo = resolvePlanConfig(landlord.plan);
+                const milestone = getSubscriptionExpirationMilestone(landlord.plan_expires_at);
+                const whatsappReminderUrl = getWhatsAppReminderLink(landlord, isFrench);
+
                 return (
                   <div
                     key={landlord.id}
-                    className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500/50 rounded-2xl p-5 space-y-4 shadow-sm transition"
+                    className={`bg-white dark:bg-slate-900 border-2 rounded-2xl p-5 space-y-4 shadow-sm transition ${
+                      milestone.isExpired
+                        ? "border-rose-300 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/10"
+                        : milestone.daysLeft <= 7
+                        ? "border-amber-300 dark:border-amber-900/60"
+                        : "border-slate-200 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-500/50"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -1197,9 +1286,16 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
 
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 shrink-0">
-                        {isFrench && planInfo?.nameFr ? planInfo.nameFr : landlord.plan_name}
-                      </span>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
+                          {isFrench && planInfo?.nameFr ? planInfo.nameFr : landlord.plan_name}
+                        </span>
+                        {landlord.plan_unit_limit > 0 && (
+                          <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                            Capacité: {landlord.plan_unit_limit} lots
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Stats Strip */}
@@ -1220,27 +1316,82 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
+                    {/* Subscription Dates & Expiration Pill */}
+                    <div className="p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                        <span>{isFrench ? "Début forfait :" : "Started on:"}</span>
+                        <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                          {landlord.plan_starts_at
+                            ? new Date(landlord.plan_starts_at).toLocaleDateString()
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                        <span>{isFrench ? "Échéance :" : "Expires on:"}</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">
+                          {landlord.plan_expires_at
+                            ? new Date(landlord.plan_expires_at).toLocaleDateString()
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="pt-1 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                          {isFrench ? "Statut Accès :" : "Access Status:"}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            milestone.isExpired
+                              ? "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300"
+                              : milestone.daysLeft <= 3
+                              ? "bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-300 border border-rose-300 animate-pulse"
+                              : milestone.daysLeft <= 7
+                              ? "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-300"
+                              : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-300"
+                          }`}
+                        >
+                          {isFrench ? milestone.labelFr : milestone.labelEn}
+                        </span>
+                      </div>
+                    </div>
+
                     {/* Contact & Actions */}
-                    <div className="flex items-center justify-between pt-1 text-xs">
-                      <a
-                        href={`https://wa.me/${landlord.phone.replace(/[^0-9]/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:underline font-mono"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span>{landlord.phone}</span>
-                      </a>
+                    <div className="flex items-center justify-between pt-1 text-xs gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={`https://wa.me/${landlord.phone.replace(/[^0-9]/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline font-mono text-[11px]"
+                          title="WhatsApp direct"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>{landlord.phone}</span>
+                        </a>
+
+                        {milestone.daysLeft <= 7 && (
+                          <a
+                            href={whatsappReminderUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-bold text-[10px] hover:bg-emerald-200 transition"
+                            title={isFrench ? "Envoyer un rappel WhatsApp J-7/J-4/J-3" : "Send WhatsApp expiration alert"}
+                          >
+                            <span>🔔 Rappel</span>
+                          </a>
+                        )}
+                      </div>
 
                       <button
                         onClick={() => {
                           setSelectedLandlordForPlan(landlord);
                           setNewPlanSelection(landlord.plan);
+                          setNewPlanDuration(landlord.plan_duration_days || 30);
+                          setEditCustomUnits(landlord.plan_unit_limit || 300);
                         }}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-600/20 dark:hover:bg-purple-600/30 border border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 font-semibold text-[11px] transition cursor-pointer"
                       >
                         <Edit3 className="w-3 h-3" />
-                        <span>{isFrench ? "Changer Forfait" : "Edit Plan"}</span>
+                        <span>{isFrench ? "Modifier" : "Edit Plan"}</span>
                       </button>
                     </div>
                   </div>
@@ -2121,6 +2272,23 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              {newPlanSelection === "tier_300_plus" && (
+                <div className="space-y-1.5 p-3 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+                  <label className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center justify-between">
+                    <span>{isFrench ? "Capacité Personnalisée (Lots)" : "Custom Unit Capacity"}</span>
+                    <span className="text-[10px] text-purple-600 dark:text-purple-400">Min. 300 Lots</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="300"
+                    step="10"
+                    value={editCustomUnits}
+                    onChange={(e) => setEditCustomUnits(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -2180,6 +2348,347 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================================= */}
+      {/* MODAL: CREATE LANDLORD ACCOUNT (300+ UNITS / 30D / 365D DURATIONS)       */}
+      {/* ======================================================================= */}
+      {showCreateLandlordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-5 animate-in zoom-in-95 my-auto">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                  {isFrench ? "Création Super-Administrateur" : "Super-Admin Provisioning"}
+                </span>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {isFrench
+                    ? "Créer un Compte Bailleur (300+ Logements / Sur-Mesure)"
+                    : "Create Landlord Account (300+ Units / Custom)"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isFrench
+                    ? "Générez les identifiants pour un grand bailleur avec forfait de 30 jours ou 365 jours."
+                    : "Generate credentials for large portfolio landlords with 30-day or 365-day validity."}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowCreateLandlordModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {createError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/30 text-rose-800 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{createError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateLandlordSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isFrench ? "Nom Complet du Bailleur" : "Full Name"} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ex: M. Talla Jean-Paul"
+                    value={createFullName}
+                    onChange={(e) => setCreateFullName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isFrench ? "Adresse E-mail" : "Email Address"} *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="bailleur@domaine.com"
+                    value={createEmail}
+                    onChange={(e) => setCreateEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {isFrench ? "Numéro WhatsApp / Téléphone" : "Phone / WhatsApp"} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="+237 6XXXXXXXX"
+                    value={createPhone}
+                    onChange={(e) => setCreatePhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      {isFrench ? "Mot de Passe" : "Password"}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+                        setCreatePassword(`LL-VIP-${random}`);
+                      }}
+                      className="text-[10px] text-purple-600 dark:text-purple-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      {isFrench ? "Générer" : "Generate"}
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Laisser vide pour générer automatiquement"
+                    value={createPassword}
+                    onChange={(e) => setCreatePassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Plan Choice */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isFrench ? "Formule d'Abonnement" : "Subscription Plan"}
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {AVAILABLE_PLANS.filter((p) => !p.isFreeTrial).map((plan) => (
+                    <button
+                      type="button"
+                      key={plan.id}
+                      onClick={() => setCreatePlan(plan.id)}
+                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                        createPlan === plan.id
+                          ? "border-purple-600 bg-purple-50/60 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 font-bold ring-2 ring-purple-500/20"
+                          : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="text-xs font-bold truncate">
+                        {isFrench && plan.nameFr ? plan.nameFr : plan.name}
+                      </div>
+                      <div className="text-[10px] text-slate-500">{plan.unitRange}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* If 300+ Units VIP selected: Custom capacity input */}
+              {createPlan === "tier_300_plus" && (
+                <div className="space-y-1.5 p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-purple-950 dark:text-purple-200 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      <span>{isFrench ? "Nombre de Logements (300+ Unités)" : "Unit Capacity (300+ Units)"}</span>
+                    </label>
+                    <div className="flex items-center gap-1">
+                      {[300, 500, 1000].map((quickVal) => (
+                        <button
+                          key={quickVal}
+                          type="button"
+                          onClick={() => setCreateCustomUnits(quickVal)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                            createCustomUnits === quickVal
+                              ? "bg-purple-600 text-white"
+                              : "bg-white dark:bg-slate-900 border text-slate-600 dark:text-slate-400"
+                          }`}
+                        >
+                          {quickVal} lots
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    min="300"
+                    step="10"
+                    value={createCustomUnits}
+                    onChange={(e) => setCreateCustomUnits(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 font-bold font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <p className="text-[10px] text-purple-700 dark:text-purple-300">
+                    {isFrench
+                      ? "Ce bailleur pourra ajouter et gérer jusqu'à ce volume de lots dans ses immeubles."
+                      : "This landlord will be authorized to administer up to this volume of units."}
+                  </p>
+                </div>
+              )}
+
+              {/* Duration: 30 days (1 month) or 365 days (12 months) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isFrench ? "Durée de Validité du Compte" : "Account Validity Period"}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreateDuration(30)}
+                    className={`p-3 rounded-2xl border-2 text-left transition cursor-pointer ${
+                      createDuration === 30
+                        ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 font-bold"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    <div className="text-xs font-bold">{isFrench ? "30 Jours (1 Mois)" : "30 Days (1 Month)"}</div>
+                    <div className="text-[10px] text-slate-500">{isFrench ? "Formule Mensuelle" : "Monthly Plan"}</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCreateDuration(365)}
+                    className={`p-3 rounded-2xl border-2 text-left transition cursor-pointer ${
+                      createDuration === 365
+                        ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 font-bold"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    <div className="text-xs font-bold flex items-center justify-between">
+                      <span>{isFrench ? "365 Jours (12 Mois)" : "365 Days (12 Months)"}</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500 text-white font-black">1 AN</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">{isFrench ? "Formule Annuelle (VIP)" : "Annual VIP Plan"}</div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateLandlordModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  {isFrench ? "Annuler" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingLandlord}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 transition disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                >
+                  {isCreatingLandlord ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>{isFrench ? "Création en cours..." : "Creating account..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{isFrench ? "Créer et Générer les Accès" : "Provision Credentials"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================================= */}
+      {/* MODAL: PROVISIONED CREDENTIALS DISPLAY (WHATSAPP & COPY)                 */}
+      {/* ======================================================================= */}
+      {createdCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border-2 border-emerald-400 dark:border-emerald-500/40 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
+            <div className="text-center space-y-2">
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                {isFrench ? "Compte Bailleur Créé avec Succès !" : "Landlord Account Created!"}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {isFrench
+                  ? "Transmettez ces identifiants sécurisés au propriétaire pour sa première connexion."
+                  : "Share these credentials with the property owner for instant login."}
+              </p>
+            </div>
+
+            {/* Credentials Card */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs font-mono">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                <span>{isFrench ? "Bailleur :" : "Owner:"}</span>
+                <span className="font-bold text-slate-900 dark:text-white font-sans">{createdCredentials.fullName}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span>{isFrench ? "Identifiant / Email :" : "Login / Email:"}</span>
+                <span className="font-bold text-purple-600 dark:text-purple-400">{createdCredentials.email}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span>{isFrench ? "Mot de Passe :" : "Password:"}</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                  {createdCredentials.password}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span>{isFrench ? "Formule :" : "Plan:"}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{createdCredentials.planName}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span>{isFrench ? "Capacité Lots :" : "Unit Limit:"}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{createdCredentials.unitLimit} logements</span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                <span>{isFrench ? "Échéance (Fin de validité) :" : "Expires on:"}</span>
+                <span className="font-bold text-rose-600 dark:text-rose-400">
+                  {new Date(createdCredentials.expiresAt).toLocaleDateString()} ({createdCredentials.durationDays} jours)
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-1">
+              <a
+                href={`https://wa.me/${createdCredentials.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                  isFrench
+                    ? `Bonjour ${createdCredentials.fullName},\n\nVotre compte propriétaire LeaseLink a été configuré avec succès avec une capacité de ${createdCredentials.unitLimit} logements (durée: ${createdCredentials.durationDays} jours).\n\nVoici vos accès :\n- Lien de connexion : ${typeof window !== "undefined" ? window.location.origin : "https://leaselink.app"}/login\n- Email : ${createdCredentials.email}\n- Mot de passe : ${createdCredentials.password}\n\nVotre abonnement est actif jusqu'au ${new Date(createdCredentials.expiresAt).toLocaleDateString()}.\n\nL'équipe LeaseLink.`
+                    : `Hello ${createdCredentials.fullName},\n\nYour LeaseLink landlord account has been set up with a capacity of ${createdCredentials.unitLimit} units (validity: ${createdCredentials.durationDays} days).\n\nYour credentials:\n- Login link: ${typeof window !== "undefined" ? window.location.origin : "https://leaselink.app"}/login\n- Email: ${createdCredentials.email}\n- Password: ${createdCredentials.password}\n\nValid until ${new Date(createdCredentials.expiresAt).toLocaleDateString()}.\n\nThe LeaseLink Team.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>{isFrench ? "Transmettre les Accès via WhatsApp" : "Send Credentials via WhatsApp"}</span>
+              </a>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `LeaseLink - Accès Propriétaire\nEmail: ${createdCredentials.email}\nMot de passe: ${createdCredentials.password}\nLien: ${typeof window !== "undefined" ? window.location.origin : ""}/login`;
+                    navigator.clipboard.writeText(text);
+                    setCopiedCreds(true);
+                    setTimeout(() => setCopiedCreds(false), 2500);
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  {copiedCreds ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedCreds ? (isFrench ? "Copié !" : "Copied!") : (isFrench ? "Copier" : "Copy")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCreatedCredentials(null)}
+                  className="py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition cursor-pointer"
+                >
+                  {isFrench ? "Terminer" : "Done"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

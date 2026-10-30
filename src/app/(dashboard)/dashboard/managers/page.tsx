@@ -623,8 +623,16 @@ export default function LandlordManagersPage() {
       {/* ADD MANAGER MODAL                                                         */}
       {/* ========================================================================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) {
+              setShowAddModal(false);
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto my-auto select-text">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/20">
@@ -878,14 +886,23 @@ export default function LandlordManagersPage() {
             </form>
           </div>
         </div>
+      </div>
       )}
 
       {/* ========================================================================= */}
       {/* EDIT / REVOKE BUILDING ASSIGNMENTS MODAL                                   */}
       {/* ========================================================================= */}
       {editingManager && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !savingAssignments) {
+              setEditingManager(null);
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto my-auto select-text">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -1118,14 +1135,23 @@ export default function LandlordManagersPage() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* ========================================================================= */}
       {/* SUCCESS / ONBOARDING CREDENTIALS MODAL                                     */}
       {/* ========================================================================= */}
       {createdManagerData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setCreatedManagerData(null);
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto my-auto select-text">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
@@ -1219,6 +1245,7 @@ export default function LandlordManagersPage() {
             </div>
           </div>
         </div>
+      </div>
       )}
     </div>
   );

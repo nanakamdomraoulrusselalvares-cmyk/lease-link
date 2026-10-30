@@ -69,7 +69,7 @@ function TenantReceiptsContent() {
       }
 
       if (!sessionData) {
-        const stored = getTenantSession();
+        const stored = await getTenantSession();
         if (stored) {
           sessionData = stored.portalData;
         }
@@ -77,6 +77,15 @@ function TenantReceiptsContent() {
 
       if (sessionData) {
         setTenantData(sessionData);
+        const isExp = Boolean(
+          sessionData.is_landlord_plan_expired ||
+          (sessionData.landlord_plan_expires_at && new Date(sessionData.landlord_plan_expires_at).getTime() < Date.now()) ||
+          sessionData.landlord_plan_status === "expired"
+        );
+        if (isExp) {
+          router.replace("/tenant/portal");
+          return;
+        }
         const unitPayments = await getPaymentsForUnit(sessionData.unit_id);
         setPayments(unitPayments);
       }
@@ -85,7 +94,7 @@ function TenantReceiptsContent() {
     }
 
     init();
-  }, [tokenFromUrl]);
+  }, [tokenFromUrl, router]);
 
   const refreshPayments = async () => {
     if (tenantData) {
@@ -105,8 +114,8 @@ function TenantReceiptsContent() {
     setShowReceiptModal(true);
   };
 
-  const handleLogout = () => {
-    clearTenantSession();
+  const handleLogout = async () => {
+    await clearTenantSession();
     router.push("/tenant/login");
   };
 

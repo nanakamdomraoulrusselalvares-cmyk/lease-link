@@ -63,21 +63,22 @@ export default function HomePage() {
 
     async function checkAutoResume() {
       try {
+        // Clean up legacy localStorage if present
+        if (typeof localStorage !== "undefined") {
+          try {
+            localStorage.removeItem("leaselink_tenant_session");
+          } catch {
+            // ignore
+          }
+        }
+
         const hasSbCookie =
           typeof document !== "undefined" &&
           document.cookie.split(";").some((c) => c.trim().startsWith("sb-"));
-        const hasTenantLocal =
-          typeof localStorage !== "undefined" &&
-          !!localStorage.getItem("leaselink_tenant_session");
 
-        if (!hasSbCookie && !hasTenantLocal) {
-          return;
-        }
-
-        if (isMounted) setResumingSession(true);
-
-        // Check Supabase session (Landlord / Manager)
+        // 1. Check Supabase session (Landlord / Manager)
         if (hasSbCookie) {
+          if (isMounted) setResumingSession(true);
           const supabase = createClient();
           const {
             data: { user },
@@ -99,13 +100,12 @@ export default function HomePage() {
           }
         }
 
-        // Check Tenant session
-        if (hasTenantLocal) {
-          const tenantSession = getTenantSession();
-          if (tenantSession?.portalData?.unit_id && isMounted) {
-            router.replace("/tenant/portal");
-            return;
-          }
+        // 2. Check Tenant session via secure HttpOnly cookie
+        const tenantSession = await getTenantSession();
+        if (tenantSession?.portalData?.unit_id && isMounted) {
+          if (isMounted) setResumingSession(true);
+          router.replace("/tenant/portal");
+          return;
         }
 
         if (isMounted) setResumingSession(false);
@@ -303,6 +303,20 @@ export default function HomePage() {
               <Users className="w-3.5 h-3.5" />
               <span>{isFrench ? "Espace Locataire" : "Tenant Portal"}</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("leaselink:trigger_install"));
+                }
+              }}
+              className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition cursor-pointer"
+              title={isFrench ? "Installer l'application LeaseLink" : "Install LeaseLink App"}
+            >
+              <Download className="w-3.5 h-3.5 animate-bounce" />
+              <span>{isFrench ? "Installer l'App" : "Install App"}</span>
+            </button>
 
             <Link
               href="/login"

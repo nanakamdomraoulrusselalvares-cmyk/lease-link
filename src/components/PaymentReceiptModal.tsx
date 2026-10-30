@@ -7,6 +7,8 @@ import {
   buildPaymentConfirmationWhatsAppUrl,
 } from "@/lib/services/paymentService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { createClient } from "@/lib/supabase/client";
+import { uploadReceiptToStorage } from "@/lib/services/storageService";
 import {
   Download,
   X,
@@ -70,13 +72,19 @@ export default function PaymentReceiptModal({
   const receiptRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
     if (isOpen) {
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
       window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.documentElement.classList.remove("modal-open");
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     }
-    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen || !payment) return null;
@@ -509,6 +517,21 @@ Date: ${formattedDate}`;
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         setIsDownloading(false);
+
+        // Auto-archive rent receipt to private receipts bucket
+        uploadReceiptToStorage(blob, "rent", payment.landlord_id, payment.receipt_number, "png")
+          .then(async (uploadRes) => {
+            if (uploadRes.path) {
+              try {
+                const supabase = createClient();
+                await supabase
+                  .from("rent_payments")
+                  .update({ receipt_url: uploadRes.path })
+                  .eq("receipt_number", payment.receipt_number);
+              } catch (_) {}
+            }
+          })
+          .catch((err) => console.warn("Rent receipt auto-archive notice:", err));
       }, "image/png");
     } catch (err) {
       console.error("Receipt download error:", err);
@@ -539,11 +562,19 @@ Date: ${formattedDate}`;
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      {/* Modal Card */}
-      <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 flex flex-col">
-        {/* Modal Top Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        {/* Modal Card */}
+        <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] select-text">
+          {/* Modal Top Bar */}
+          <div className="sticky top-0 z-10 shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <Receipt className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span className="font-bold text-slate-900 dark:text-white text-sm">
@@ -596,7 +627,7 @@ Date: ${formattedDate}`;
         {/* Receipt Body */}
         <div
           ref={receiptRef}
-          className="p-6 sm:p-8 space-y-6 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+          className="p-6 sm:p-8 space-y-6 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 overflow-y-auto flex-1 min-h-0 overscroll-contain"
         >
           {/* Receipt Header */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
@@ -842,7 +873,7 @@ Date: ${formattedDate}`;
         </div>
 
         {/* Modal Bottom Actions */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-950/90 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="sticky bottom-0 z-10 shrink-0 p-4 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={handleCopyReceipt}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-transparent transition cursor-pointer"
@@ -889,6 +920,7 @@ Date: ${formattedDate}`;
             >
               {isFrench ? "Fermer" : "Close"}
             </button>
+            </div>
           </div>
         </div>
       </div>

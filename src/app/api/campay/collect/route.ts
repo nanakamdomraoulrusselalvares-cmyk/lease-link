@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       console.warn("Notice checking landlord profile active plan:", checkErr);
     }
 
-    const externalRef = `SUB-${Date.now()}-${landlordId.substring(0, 8)}`;
+    const externalRef = `SUB_${landlordId}_${planId}_${billingCycle}_${Date.now()}`;
     const description = `LeaseLink - Plan ${pricing.plan.name} (${billingCycle === "annual" ? "Annuel" : "Mensuel"})`;
 
     const collectResult = await requestCampayCollect({

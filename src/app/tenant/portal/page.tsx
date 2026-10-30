@@ -51,6 +51,7 @@ import {
   Calendar,
   DollarSign,
   ShieldCheck,
+  ShieldAlert,
   CheckCircle2,
   AlertCircle,
   Sofa,
@@ -179,7 +180,7 @@ function TenantPortalContent() {
           const res = await getTenantPortalDataByToken(tokenFromUrl);
           if (res.success && res.data) {
             setData(res.data);
-            setTenantSession(res.data);
+            await setTenantSession(res.data);
             loadRequests(res.data.unit_id);
             loadPayments(res.data.unit_id);
             // Clean token from URL quietly for aesthetics
@@ -197,8 +198,8 @@ function TenantPortalContent() {
         }
       }
 
-      // 2. Check local stored session
-      const existingSession = getTenantSession();
+      // 2. Check secure HttpOnly cookie session
+      const existingSession = await getTenantSession();
       if (existingSession && existingSession.portalData) {
         setData(existingSession.portalData);
         loadRequests(existingSession.portalData.unit_id);
@@ -229,8 +230,8 @@ function TenantPortalContent() {
     };
   }, [showRequestModal, previewImage, showPayModal, showReceiptModal]);
 
-  const handleLogout = () => {
-    clearTenantSession();
+  const handleLogout = async () => {
+    await clearTenantSession();
     router.push("/tenant/login?loggedOut=true");
   };
 
@@ -300,16 +301,31 @@ function TenantPortalContent() {
 
       if (formPhoto) {
         const photoUpload = await uploadMediaToStorage(formPhoto, "photos");
+        if (photoUpload.error && !photoUpload.url) {
+          setSubmitError(photoUpload.error);
+          setSubmittingRequest(false);
+          return;
+        }
         if (photoUpload.url) finalPhotoUrl = photoUpload.url;
       }
 
       if (formVideo) {
         const videoUpload = await uploadMediaToStorage(formVideo, "videos");
+        if (videoUpload.error && !videoUpload.url) {
+          setSubmitError(videoUpload.error);
+          setSubmittingRequest(false);
+          return;
+        }
         if (videoUpload.url) finalVideoUrl = videoUpload.url;
       }
 
       if (formVoice) {
         const voiceUpload = await uploadMediaToStorage(formVoice, "voices");
+        if (voiceUpload.error && !voiceUpload.url) {
+          setSubmitError(voiceUpload.error);
+          setSubmittingRequest(false);
+          return;
+        }
         if (voiceUpload.url) finalVoiceUrl = voiceUpload.url;
       }
 
@@ -409,6 +425,92 @@ function TenantPortalContent() {
           : `Hello, this is ${data.tenant_name} from unit ${data.unit_number} (${data.building_name}).`
       )}`
     : "#";
+
+  // Check if the landlord's subscription days limit has been reached
+  const isLandlordPlanExpired = Boolean(
+    data.is_landlord_plan_expired ||
+    (data.landlord_plan_expires_at && new Date(data.landlord_plan_expires_at).getTime() < Date.now()) ||
+    data.landlord_plan_status === "expired"
+  );
+
+  if (isLandlordPlanExpired) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 selection:bg-purple-600 selection:text-white">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 border-2 border-amber-300 dark:border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6 animate-in fade-in zoom-in-95">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-200 dark:border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>{isFrench ? "Accès Espace Locataire en Pause" : "Tenant Portal On Hold"}</span>
+            </div>
+
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">
+              {isFrench
+                ? "Abonnement du Bailleur en Attente de Renouvellement"
+                : "Landlord Plan Pending Renewal"}
+            </h2>
+            <p className="text-xs text-slate-500 font-semibold">
+              {data.building_name} • Lot {data.unit_number}
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-3">
+            <p>
+              {isFrench
+                ? "Votre bailleur n'a pas encore procédé au renouvellement de son forfait LeaseLink."
+                : "Your landlord has not yet renewed their LeaseLink platform subscription."}
+            </p>
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200 text-xs font-medium flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>
+                {isFrench
+                  ? "Soyez pleinement rassuré(e) : l'ensemble de vos données locatives, quittances et historiques de paiement sont précieusement et en toute sécurité conservées. L'accès à votre espace sera automatiquement rétabli dès que votre bailleur aura régularisé son abonnement."
+                  : "Rest assured: all your tenancy records, leases, receipts, and payment history are securely saved. Access will be automatically restored once your landlord renews their subscription."}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            {landlordWhatsAppUrl !== "#" && (
+              <a
+                href={`https://wa.me/${landlordCleanPhone}?text=${encodeURIComponent(
+                  isFrench
+                    ? `Bonjour ${data.landlord_name}, mon espace locataire LeaseLink (${data.building_name} Lot ${data.unit_number}) indique que votre abonnement est en attente de renouvellement. Merci de bien vouloir le régulariser pour réactiver nos accès.`
+                    : `Hello ${data.landlord_name}, my LeaseLink tenant portal (${data.building_name} Unit ${data.unit_number}) indicates your subscription is pending renewal. Please renew to restore our portal access.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>{isFrench ? "Informer mon Bailleur via WhatsApp" : "Notify Landlord via WhatsApp"}</span>
+              </a>
+            )}
+
+            <div className="flex items-center justify-center gap-4 text-xs pt-1">
+              <button
+                onClick={() => window.location.reload()}
+                className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 inline-flex items-center gap-1 transition cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Actualiser" : "Refresh"}</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-rose-500 hover:text-rose-600 inline-flex items-center gap-1 font-semibold transition cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{isFrench ? "Déconnexion" : "Sign Out"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Financial calculations for Rent Ledger and Metric Cards
   const currentMonth = getCurrentRentMonth();
@@ -1313,46 +1415,47 @@ function TenantPortalContent() {
       {/* MODAL: Submit Reparation Request */}
       {showRequestModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-hidden select-none"
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
           onClick={(e) => {
             if (e.target === e.currentTarget && !submittingRequest) {
               setShowRequestModal(false);
             }
           }}
         >
-          <div
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] h-auto min-h-0 select-text"
-          >
-            {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-600/20 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                  <Wrench className="w-5 h-5" />
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div
+              className="relative w-full max-w-xl my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] h-auto min-h-0 select-text"
+            >
+              {/* Modal Header */}
+              <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 sticky top-0 z-10 backdrop-blur-md">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-600/20 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Wrench className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      {isFrench ? "Signaler une Réparation / Panne" : "Send Reparation Request"}
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      {isFrench ? "Logement :" : "Apartment:"} <strong className="text-slate-900 dark:text-slate-200">{data.unit_number}</strong> • {data.building_name}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    {isFrench ? "Signaler une Réparation / Panne" : "Send Reparation Request"}
-                  </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    {isFrench ? "Logement :" : "Apartment:"} <strong className="text-slate-900 dark:text-slate-200">{data.unit_number}</strong> • {data.building_name}
-                  </p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRequestModal(false)}
+                  disabled={submittingRequest}
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  title={isFrench ? "Fermer" : "Close"}
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowRequestModal(false)}
-                disabled={submittingRequest}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                title={isFrench ? "Fermer" : "Close"}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Success State */}
-            {lastSubmittedRequest ? (
-              <div className="p-6 space-y-5 overflow-y-auto">
+              {/* Success State */}
+              {lastSubmittedRequest ? (
+                <div className="p-5 sm:p-6 space-y-4 overflow-y-auto max-h-[calc(100dvh-8rem)] overscroll-contain">
                 <div className="text-center space-y-2 p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
                   <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-500/30">
                     <CheckCircle2 className="w-6 h-6" />
@@ -1629,7 +1732,7 @@ function TenantPortalContent() {
                 </div>
 
                 {/* Actions Footer */}
-                <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-50/95 dark:bg-slate-900/95">
+                <div className="p-3.5 sm:p-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-50/95 dark:bg-slate-900/95 sticky bottom-0 z-10 backdrop-blur-md">
                   <button
                     type="button"
                     onClick={() => setShowRequestModal(false)}
@@ -1661,6 +1764,7 @@ function TenantPortalContent() {
             )}
           </div>
         </div>
+      </div>
       )}
 
       {/* Lightbox Modal for Photo Preview */}

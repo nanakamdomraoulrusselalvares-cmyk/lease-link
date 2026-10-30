@@ -957,26 +957,27 @@ function PaymentsContent() {
         const balanceAfterPayment = Math.max(0, totalPeriodExpected - numericAmount);
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    {isFrench
-                      ? "Enregistrer un Paiement en Espèces"
-                      : "Record Physical Cash Payment"}
-                  </h3>
+          <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none">
+            <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+              <div className="relative w-full max-w-lg my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col select-text">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 shrink-0 sticky top-0 z-10 backdrop-blur-md">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {isFrench
+                        ? "Enregistrer un Paiement en Espèces"
+                        : "Record Physical Cash Payment"}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setRecordTarget(null)}
+                    className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setRecordTarget(null)}
-                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              <form onSubmit={handleRecordPayment} className="p-6 space-y-4 text-xs">
+                <form onSubmit={handleRecordPayment} className="p-6 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
                 {/* Tenant & Property Overview Strip */}
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -1230,6 +1231,7 @@ function PaymentsContent() {
               </form>
             </div>
           </div>
+        </div>
         );
       })()}
 
@@ -1253,10 +1255,18 @@ function PaymentsContent() {
         const isCompletelyPaid = cashConfirmedPayment.balance_remaining === 0;
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-3xl shadow-2xl overflow-hidden my-6">
-              {/* Glow Accent Top Strip */}
-              <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
+          <div
+            className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/85 backdrop-blur-md select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setCashConfirmedPayment(null);
+              }
+            }}
+          >
+            <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+              <div className="relative w-full max-w-lg my-auto bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-3xl shadow-2xl overflow-hidden max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto select-text">
+                {/* Glow Accent Top Strip */}
+                <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
 
               <div className="p-6 sm:p-7 space-y-5">
                 {/* Header */}
@@ -1463,13 +1473,22 @@ function PaymentsContent() {
               </div>
             </div>
           </div>
+        </div>
         );
       })()}
 
       {/* Inspect All Tenant Receipts Drawer */}
       {inspectTenantReceipts && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 max-h-[85vh] flex flex-col">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setInspectTenantReceipts(null);
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            <div className="relative w-full max-w-lg my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col select-text">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1528,6 +1547,7 @@ function PaymentsContent() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* Payment Receipt Modal */}

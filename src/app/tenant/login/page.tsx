@@ -56,10 +56,18 @@ function TenantLoginForm() {
       return;
     }
 
-    const session = getTenantSession();
-    if (session?.portalData?.unit_id) {
-      router.replace("/tenant/portal");
+    let isMounted = true;
+    async function checkExisting() {
+      const session = await getTenantSession();
+      if (session?.portalData?.unit_id && isMounted) {
+        router.replace("/tenant/portal");
+      }
     }
+    checkExisting();
+
+    return () => {
+      isMounted = false;
+    };
   }, [wasLoggedOut, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,8 +89,8 @@ function TenantLoginForm() {
         return;
       }
 
-      // Save tenant session
-      setTenantSession(res.data);
+      // Save tenant session in HttpOnly cookie
+      await setTenantSession(res.data);
 
       // Save or remove remembered identifier
       if (rememberMe) {

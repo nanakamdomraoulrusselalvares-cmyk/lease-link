@@ -9,6 +9,9 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import NotificationBell from "@/components/NotificationBell";
 import AttachPhoneModal, { isMissingPhone } from "@/components/AttachPhoneModal";
+import SubscriptionExpirationBanner from "@/components/SubscriptionExpirationBanner";
+import SubscriptionLockBarrier from "@/components/SubscriptionLockBarrier";
+import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { LandlordProfile, AVAILABLE_PLANS, resolvePlanConfig } from "@/types/database";
 import {
@@ -34,6 +37,7 @@ import {
   Moon,
   Smartphone,
   Phone,
+  Download,
 } from "lucide-react";
 
 interface DashboardNavProps {
@@ -57,11 +61,23 @@ export default function DashboardNav({
   const [user, setUser] = useState<SupabaseUser | null>(initialUser || null);
   const [profile, setProfile] = useState<LandlordProfile | null>(initialProfile || null);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check if running in installed PWA standalone window
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isStandaloneMQ = window.matchMedia("(display-mode: standalone)").matches;
+      const isIosStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      const isPwaUrl = window.location.search.includes("source=pwa");
+      setIsStandalone(isStandaloneMQ || isIosStandalone || isPwaUrl);
+    }
+  }, []);
 
   // Sync profile when initialProfile prop changes
   useEffect(() => {
@@ -80,6 +96,7 @@ export default function DashboardNav({
     }
 
     const handleOpenModal = () => setShowPhoneModal(true);
+    const handleOpenSubModal = () => setShowSubscriptionModal(true);
     const handlePhoneUpdated = (e: any) => {
       const newPhone = e.detail?.phone;
       if (newPhone) {
@@ -88,10 +105,12 @@ export default function DashboardNav({
     };
 
     window.addEventListener("leaselink:open_phone_modal", handleOpenModal);
+    window.addEventListener("leaselink:open_subscription_modal", handleOpenSubModal);
     window.addEventListener("leaselink:phone_updated", handlePhoneUpdated);
 
     return () => {
       window.removeEventListener("leaselink:open_phone_modal", handleOpenModal);
+      window.removeEventListener("leaselink:open_subscription_modal", handleOpenSubModal);
       window.removeEventListener("leaselink:phone_updated", handlePhoneUpdated);
     };
   }, []);
@@ -164,6 +183,23 @@ export default function DashboardNav({
       });
     }
   }, [initialUser]);
+
+  // Lock body scroll and handle escape key for logout modal
+  useEffect(() => {
+    if (showLogoutModal) {
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && !loggingOut) setShowLogoutModal(false);
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.documentElement.classList.remove("modal-open");
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [showLogoutModal, loggingOut]);
 
   // Handle Logout
   const handleLogout = async () => {
@@ -446,6 +482,23 @@ export default function DashboardNav({
 
           {/* Right: User Profile Menu (With Language & Theme Switchers) & Quick Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Quick Install App Button (When not running in installed standalone window) */}
+            {!isStandalone && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("leaselink:trigger_install"));
+                  }
+                }}
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 via-sky-500 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition cursor-pointer"
+                title={isFrench ? "Installer l'application LeaseLink" : "Install LeaseLink App"}
+              >
+                <Download className="w-3.5 h-3.5 animate-bounce" />
+                <span className="hidden xl:inline">{isFrench ? "Installer l'App" : "Install App"}</span>
+              </button>
+            )}
+
             {/* User Profile Pill with Interactive Dropdown */}
             <div className="relative" ref={profileDropdownRef}>
               <button
@@ -584,6 +637,30 @@ export default function DashboardNav({
                     </div>
                   </div>
 
+                  {/* Install App Option in Dropdown */}
+                  {!isStandalone && (
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(new CustomEvent("leaselink:trigger_install"));
+                          }
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Download className="w-3.5 h-3.5 animate-bounce" />
+                          <span>{isFrench ? "Installer l'Application" : "Install App"}</span>
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300">
+                          PWA
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Divider & Actions */}
                   <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-1">
                     <button
@@ -619,6 +696,12 @@ export default function DashboardNav({
           </div>
         </div>
       </header>
+
+      {/* Subscription Expiration Alert Banner (7 Days, 4 Days, 3 Days countdown) */}
+      <SubscriptionExpirationBanner
+        profile={profile}
+        onRenewClick={() => setShowSubscriptionModal(true)}
+      />
 
       {/* Missing Phone Number Alert Banner for Landlords */}
       {profile?.role === "landlord" && isMissingPhone(profile?.phone) && (
@@ -704,15 +787,17 @@ export default function DashboardNav({
       {/* 3. LOGOUT CONFIRMATION MODAL                                              */}
       {/* ========================================================================= */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop overlay */}
-          <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
-            onClick={() => !loggingOut && setShowLogoutModal(false)}
-          />
-
-          {/* Modal Card */}
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 z-10 animate-in zoom-in-95 duration-150">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/60 backdrop-blur-sm select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !loggingOut) {
+              setShowLogoutModal(false);
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+            {/* Modal Card */}
+            <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain select-text">
             {/* Modal Icon & Header */}
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs">
@@ -782,6 +867,7 @@ export default function DashboardNav({
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* 4. FLOATING NOTIFICATION BUTTON (Fixed at Bottom-Right of Screen) */}
@@ -805,6 +891,38 @@ export default function DashboardNav({
         }}
         onClose={() => setShowPhoneModal(false)}
       />
+
+      {/* 6. SUBSCRIPTION LOCK BARRIER (Account Expired Hard Blocking) */}
+      <SubscriptionLockBarrier
+        profile={profile}
+        onRenewClick={() => setShowSubscriptionModal(true)}
+      />
+
+      {/* 7. SUBSCRIPTION PAYMENT & UPGRADE MODAL */}
+      {showSubscriptionModal && (
+        <SubscriptionPaymentModal
+          isOpen={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+          profile={profile}
+          onSubscriptionUpdated={(rec) => {
+            setProfile((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    plan: rec.plan_id,
+                    plan_name: rec.plan_name,
+                    plan_unit_limit: rec.plan_unit_limit || rec.unit_limit || 30,
+                    unit_limit: rec.plan_unit_limit || rec.unit_limit || 30,
+                    plan_expires_at: rec.expires_at,
+                    plan_status: "active",
+                    subscription_status: "active",
+                  }
+                : prev
+            );
+            setShowSubscriptionModal(false);
+          }}
+        />
+      )}
     </>
   );
 }

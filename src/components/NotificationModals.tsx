@@ -253,8 +253,16 @@ export function FullNotificationModal({
   );
 
   return (
-    <div className="fixed inset-0 z-[100000] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div
+      className="fixed inset-0 z-[100000] bg-black/75 backdrop-blur-sm overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 animate-in fade-in duration-200 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        <div className="relative w-full max-w-lg my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] select-text">
         {/* Top Header */}
         <div className="p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white relative">
           <button
@@ -419,6 +427,7 @@ export function FullNotificationModal({
         </div>
       </div>
     </div>
+  </div>
   );
 }
 
@@ -485,8 +494,16 @@ export function AllNotificationsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100000] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+    <div
+      className="fixed inset-0 z-[100000] bg-black/75 backdrop-blur-sm overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 animate-in fade-in duration-200 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
+        <div className="relative w-full max-w-2xl my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] select-text">
         {/* Header */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -726,5 +743,6 @@ export function AllNotificationsModal({
         </div>
       </div>
     </div>
+  </div>
   );
 }
