@@ -192,7 +192,7 @@ function TenantReceiptsContent() {
         paymentsCount={payments.length}
         tokenFromUrl={tokenFromUrl}
         onLogout={handleLogout}
-        onPayRentClick={() => setShowPayModal(true)}
+        onPayRentClick={() => setShowUnderWorkModal(true)}
       />
 
       {/* Main Container */}
@@ -228,11 +228,15 @@ function TenantReceiptsContent() {
             </div>
 
             <button
-              onClick={() => setShowPayModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition cursor-pointer self-start sm:self-auto"
+              onClick={() => setShowUnderWorkModal(true)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 shadow-md transition cursor-pointer self-start sm:self-auto"
+              title={isFrench ? "Paiement en ligne temporairement en travaux" : "Online payment under work"}
             >
-              <DollarSign className="w-4 h-4" />
-              <span>{isFrench ? "Payer le Loyer" : "Pay Rent"}</span>
+              <Lock className="w-4 h-4 text-amber-400" />
+              <span>{isFrench ? "Payer le Loyer 🔒 (En travaux)" : "Pay Rent 🔒 (Work in Progress)"}</span>
+              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold ml-1">
+                {isFrench ? "En travaux" : "Under work"}
+              </span>
             </button>
           </div>
         </div>
@@ -344,11 +348,12 @@ function TenantReceiptsContent() {
                   : "You have not recorded any rent payments for this unit yet. Once a payment is recorded, your official receipt will be downloadable here."}
               </p>
               <button
-                onClick={() => setShowPayModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md transition cursor-pointer"
+                onClick={() => setShowUnderWorkModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 dark:bg-slate-800 text-white text-xs font-semibold border border-slate-700 shadow-md transition cursor-pointer"
+                title={isFrench ? "Paiement en travaux" : "Payment under development"}
               >
-                <DollarSign className="w-3.5 h-3.5" />
-                <span>{isFrench ? "Payer le Loyer" : "Pay Rent"}</span>
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isFrench ? "Payer le Loyer 🔒 (En travaux)" : "Pay Rent 🔒 (Under Work)"}</span>
               </button>
             </div>
           ) : (
