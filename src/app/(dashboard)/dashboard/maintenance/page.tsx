@@ -104,6 +104,15 @@ export default function LandlordMaintenancePage() {
       const list = await getMaintenanceRequestsForLandlord(effectiveLandlordId, assignedBuildingIds);
       setRequests(list);
 
+      // Cache for offline viewing
+      try {
+        if (typeof window !== "undefined" && Array.isArray(list)) {
+          localStorage.setItem("leaselink_cached_maintenance", JSON.stringify(list));
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
+
       // Initialize notes state
       const notesMap: Record<string, string> = {};
       list.forEach((r) => {
@@ -112,6 +121,19 @@ export default function LandlordMaintenancePage() {
       setEditingNotes(notesMap);
     } catch (err) {
       console.error("Error loading maintenance tickets:", err);
+      try {
+        if (typeof window !== "undefined") {
+          const localM = localStorage.getItem("leaselink_local_maintenance_requests");
+          if (localM) {
+            const parsed = JSON.parse(localM);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setRequests(parsed);
+            }
+          }
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -119,6 +141,31 @@ export default function LandlordMaintenancePage() {
   };
 
   useEffect(() => {
+    // Fast Stale-While-Revalidate: load immediately from local cache if available
+    try {
+      if (typeof window !== "undefined") {
+        const cachedM = localStorage.getItem("leaselink_cached_maintenance");
+        if (cachedM) {
+          const parsed = JSON.parse(cachedM);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setRequests(parsed);
+            setLoading(false);
+          }
+        } else {
+          const cachedDash = localStorage.getItem("leaselink_cached_dashboard");
+          if (cachedDash) {
+            const parsed = JSON.parse(cachedDash);
+            if (Array.isArray(parsed.maintenanceRequests) && parsed.maintenanceRequests.length > 0) {
+              setRequests(parsed.maintenanceRequests);
+              setLoading(false);
+            }
+          }
+        }
+      }
+    } catch {
+      // Storage unavailable fallback
+    }
+
     loadData();
   }, []);
 

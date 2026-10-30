@@ -1,18 +1,22 @@
-// LeaseLink PWA Service Worker v2.0
-const CACHE_NAME = "leaselink-cache-v2";
+// LeaseLink PWA Service Worker v3.0 - Offline Certified
+const CACHE_NAME = "leaselink-cache-v3";
+
 const PRECACHE_ASSETS = [
   "/",
   "/?source=pwa",
   "/manifest.json",
+  "/offline",
   "/brand/leaselink-logo.png",
   "/brand/leaselink-symbol.png",
   "/icons/icon-192x192.png",
+  "/icons/icon-384x384.png",
   "/icons/icon-512x512.png",
   "/icons/apple-touch-icon.png",
+  "/icons/favicon-32x32.png",
   "/favicon.ico"
 ];
 
-// Install: Pre-cache core branding & app shell assets
+// 1. Install Event: Pre-cache app shell, offline page, and core branding
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -26,7 +30,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// Activate: Clean up stale caches
+// 2. Activate Event: Clean up stale legacy caches and claim active clients immediately
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -35,6 +39,7 @@ self.addEventListener("activate", (event) => {
         return Promise.all(
           cacheNames.map((name) => {
             if (name !== CACHE_NAME) {
+              console.log("[SW] Removing outdated cache:", name);
               return caches.delete(name);
             }
           })
@@ -44,30 +49,60 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch: Network first with cache fallback (required for PWA installability)
+// 3. Fetch Event: Multi-tiered caching strategy tailored for offline resilience
 self.addEventListener("fetch", (event) => {
+  // Only handle standard HTTP/HTTPS GET requests
   if (event.request.method !== "GET") return;
 
   const url = new URL(event.request.url);
-
-  // Only handle standard http and https requests (ignore chrome-extension, moz-extension, data, blob, etc.)
   if (!url.protocol.startsWith("http")) return;
 
-  // Bypass API and external database calls so we don't hold stale state
+  // Bypass dynamic external backend databases and live mutation endpoints
   if (
-    url.pathname.startsWith("/api/") ||
-    url.hostname.includes("supabase.co")
+    url.hostname.includes("supabase.co") ||
+    url.pathname.startsWith("/api/campay/") ||
+    url.pathname.startsWith("/api/auth/")
   ) {
     return;
   }
 
-  // Static assets (images, fonts, icons) -> Stale-While-Revalidate
+  // Strategy A: Next.js Static Chunks & Styles (/_next/static/...)
+  // These are immutable content-hashed assets -> Cache-First
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const clone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return networkResponse;
+          })
+          .catch(() => {
+            // Cannot serve chunk offline if not yet cached
+            return new Response("", { status: 408, statusText: "Offline Chunk Unavailable" });
+          });
+      })
+    );
+    return;
+  }
+
+  // Strategy B: Media, Images, Fonts, Branding Assets -> Stale-While-Revalidate
   if (
     url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/brand/") ||
     url.pathname.endsWith(".png") ||
+    url.pathname.endsWith(".jpg") ||
+    url.pathname.endsWith(".jpeg") ||
+    url.pathname.endsWith(".webp") ||
     url.pathname.endsWith(".ico") ||
-    url.pathname.endsWith(".svg")
+    url.pathname.endsWith(".svg") ||
+    url.pathname.endsWith(".woff2") ||
+    url.pathname.endsWith(".woff")
   ) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
@@ -86,7 +121,36 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML and dynamic routes -> Network first, cache on success, fallback to cache when offline
+  // Strategy C: Page Navigation Requests (HTML Documents)
+  // Network-First with cache fallback -> Fallback to /offline page
+  if (event.request.mode === "navigate" || event.request.destination === "document") {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          // 1. Try matching the exact requested page from cache
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+
+          // 2. Try the dedicated offline fallback page
+          const offlineFallback = await caches.match("/offline");
+          if (offlineFallback) return offlineFallback;
+
+          // 3. Fallback to cached root shell
+          return caches.match("/");
+        })
+    );
+    return;
+  }
+
+  // Strategy D: Data & Generic GET Requests
+  // Network-First with Cache Fallback (Never serve HTML to non-HTML requests)
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -96,18 +160,13 @@ self.addEventListener("fetch", (event) => {
         }
         return networkResponse;
       })
-      .catch(async () => {
-        const cached = await caches.match(event.request);
-        if (cached) return cached;
-        // Offline fallback to root shell
-        return caches.match("/");
-      })
+      .catch(() => caches.match(event.request))
   );
 });
 
-// Push event: Handles Web Push notifications even when the app is closed
+// 4. Push Event: System Web Push Notifications
 self.addEventListener("push", (event) => {
-  let data = { title: "LeaseLink", body: "Nouvelle notification", url: "/" };
+  let data = { title: "LeaseLink", body: "Nouvelle mise à jour", url: "/" };
   try {
     if (event.data) {
       data = event.data.json();
@@ -118,7 +177,7 @@ self.addEventListener("push", (event) => {
 
   const title = data.title || "LeaseLink";
   const options = {
-    body: data.body || "Vous avez reçu une nouvelle mise à jour.",
+    body: data.body || "Vous avez reçu une notification LeaseLink.",
     icon: "/icons/icon-192x192.png",
     badge: "/icons/icon-192x192.png",
     vibrate: [200, 100, 200],
@@ -131,7 +190,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Message event: Allows in-app and background tabs to request native system notifications
+// 5. Message Event: In-app system alerts trigger
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SHOW_NOTIFICATION") {
     const title = event.data.title || "LeaseLink";
@@ -149,7 +208,7 @@ self.addEventListener("message", (event) => {
   }
 });
 
-// Notification click: Focus existing LeaseLink window or open target URL
+// 6. Notification Click: Focus existing window or open target URL
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || "/";

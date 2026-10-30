@@ -254,6 +254,20 @@ export default function BuildingsManagementPage() {
       }
     } catch (err) {
       console.error("Error loading buildings data:", err);
+      // If network failed (e.g. offline), ensure local cache is loaded
+      try {
+        if (typeof window !== "undefined") {
+          const localB = localStorage.getItem("leaselink_local_buildings");
+          if (localB) {
+            const parsedB = JSON.parse(localB);
+            if (Array.isArray(parsedB) && parsedB.length > 0) {
+              setBuildings(parsedB);
+            }
+          }
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -261,6 +275,32 @@ export default function BuildingsManagementPage() {
   };
 
   useEffect(() => {
+    // Fast Stale-While-Revalidate: load immediately from local cache if offline or available
+    try {
+      if (typeof window !== "undefined") {
+        const cachedDash = localStorage.getItem("leaselink_cached_dashboard");
+        if (cachedDash) {
+          const parsed = JSON.parse(cachedDash);
+          if (parsed.profile) setProfile(parsed.profile);
+          if (Array.isArray(parsed.buildings) && parsed.buildings.length > 0) {
+            setBuildings(parsed.buildings);
+            setLoading(false);
+          }
+        } else {
+          const localB = localStorage.getItem("leaselink_local_buildings");
+          if (localB) {
+            const parsedB = JSON.parse(localB);
+            if (Array.isArray(parsedB) && parsedB.length > 0) {
+              setBuildings(parsedB);
+              setLoading(false);
+            }
+          }
+        }
+      }
+    } catch {
+      // Storage unavailable fallback
+    }
+
     loadData();
 
     // Listen for subscription upgrades across the platform to refresh capacity limits

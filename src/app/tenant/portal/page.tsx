@@ -128,8 +128,23 @@ function TenantPortalContent() {
     try {
       const list = await getMaintenanceRequestsForUnit(unitId);
       setRequests(list);
+      try {
+        if (typeof window !== "undefined" && Array.isArray(list)) {
+          localStorage.setItem("leaselink_cached_tenant_requests", JSON.stringify(list));
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     } catch (err) {
       console.warn("Could not load maintenance requests:", err);
+      try {
+        if (typeof window !== "undefined") {
+          const cachedR = localStorage.getItem("leaselink_cached_tenant_requests");
+          if (cachedR) setRequests(JSON.parse(cachedR));
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     } finally {
       setLoadingRequests(false);
     }
@@ -139,8 +154,23 @@ function TenantPortalContent() {
     try {
       const list = await getPaymentsForUnit(unitId);
       setPayments(list);
+      try {
+        if (typeof window !== "undefined" && Array.isArray(list)) {
+          localStorage.setItem("leaselink_cached_tenant_payments", JSON.stringify(list));
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     } catch (err) {
       console.warn("Could not load rent payments:", err);
+      try {
+        if (typeof window !== "undefined") {
+          const cachedP = localStorage.getItem("leaselink_cached_tenant_payments");
+          if (cachedP) setPayments(JSON.parse(cachedP));
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     }
   };
 
@@ -170,6 +200,26 @@ function TenantPortalContent() {
   };
 
   useEffect(() => {
+    // Fast Stale-While-Revalidate: load immediately from local cache if offline or available
+    try {
+      if (typeof window !== "undefined") {
+        const cached = localStorage.getItem("leaselink_cached_tenant_portal");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.portalData) {
+            setData(parsed.portalData);
+            setLoading(false);
+            const cachedP = localStorage.getItem("leaselink_cached_tenant_payments");
+            if (cachedP) setPayments(JSON.parse(cachedP));
+            const cachedR = localStorage.getItem("leaselink_cached_tenant_requests");
+            if (cachedR) setRequests(JSON.parse(cachedR));
+          }
+        }
+      }
+    } catch {
+      // Storage unavailable fallback
+    }
+
     async function initSession() {
       setLoading(true);
       setErrorMsg(null);
@@ -180,6 +230,16 @@ function TenantPortalContent() {
           const res = await getTenantPortalDataByToken(tokenFromUrl);
           if (res.success && res.data) {
             setData(res.data);
+            try {
+              if (typeof window !== "undefined") {
+                localStorage.setItem(
+                  "leaselink_cached_tenant_portal",
+                  JSON.stringify({ portalData: res.data, cachedAt: Date.now() })
+                );
+              }
+            } catch {
+              // Storage unavailable fallback
+            }
             await setTenantSession(res.data);
             loadRequests(res.data.unit_id);
             loadPayments(res.data.unit_id);
@@ -202,13 +262,31 @@ function TenantPortalContent() {
       const existingSession = await getTenantSession();
       if (existingSession && existingSession.portalData) {
         setData(existingSession.portalData);
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.setItem(
+              "leaselink_cached_tenant_portal",
+              JSON.stringify({ portalData: existingSession.portalData, cachedAt: Date.now() })
+            );
+          }
+        } catch {
+          // Storage unavailable fallback
+        }
         loadRequests(existingSession.portalData.unit_id);
         loadPayments(existingSession.portalData.unit_id);
         setLoading(false);
         return;
       }
 
-      // 3. Not authenticated -> Redirect to tenant login
+      // 3. Not authenticated -> Redirect to tenant login only if not offline with cached data
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const hasCached = typeof window !== "undefined" && localStorage.getItem("leaselink_cached_tenant_portal");
+        if (hasCached) {
+          setLoading(false);
+          return;
+        }
+      }
+
       router.push("/tenant/login");
     }
 
@@ -231,6 +309,15 @@ function TenantPortalContent() {
   }, [showRequestModal, previewImage, showPayModal, showReceiptModal]);
 
   const handleLogout = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("leaselink_cached_tenant_portal");
+        localStorage.removeItem("leaselink_cached_tenant_payments");
+        localStorage.removeItem("leaselink_cached_tenant_requests");
+      }
+    } catch {
+      // Storage unavailable fallback
+    }
     await clearTenantSession();
     router.push("/tenant/login?loggedOut=true");
   };

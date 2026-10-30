@@ -57,6 +57,29 @@ function TenantReceiptsContent() {
   const [showUnderWorkModal, setShowUnderWorkModal] = useState(false);
 
   useEffect(() => {
+    // Fast Stale-While-Revalidate: load immediately from local cache if offline or available
+    try {
+      if (typeof window !== "undefined") {
+        const cachedPortal = localStorage.getItem("leaselink_cached_tenant_portal");
+        if (cachedPortal) {
+          const parsed = JSON.parse(cachedPortal);
+          if (parsed.portalData) setTenantData(parsed.portalData);
+        }
+        const cachedReceipts =
+          localStorage.getItem("leaselink_cached_tenant_receipts") ||
+          localStorage.getItem("leaselink_cached_tenant_payments");
+        if (cachedReceipts) {
+          const parsedR = JSON.parse(cachedReceipts);
+          if (Array.isArray(parsedR) && parsedR.length > 0) {
+            setPayments(parsedR);
+            setLoading(false);
+          }
+        }
+      }
+    } catch {
+      // Storage unavailable fallback
+    }
+
     async function init() {
       setLoading(true);
       let sessionData: TenantPortalData | null = null;
@@ -75,6 +98,19 @@ function TenantReceiptsContent() {
         }
       }
 
+      // Fallback to local cache if offline
+      if (!sessionData && typeof window !== "undefined") {
+        try {
+          const cachedPortal = localStorage.getItem("leaselink_cached_tenant_portal");
+          if (cachedPortal) {
+            const parsed = JSON.parse(cachedPortal);
+            if (parsed.portalData) sessionData = parsed.portalData;
+          }
+        } catch {
+          // Ignore
+        }
+      }
+
       if (sessionData) {
         setTenantData(sessionData);
         const isExp = Boolean(
@@ -86,8 +122,19 @@ function TenantReceiptsContent() {
           router.replace("/tenant/portal");
           return;
         }
-        const unitPayments = await getPaymentsForUnit(sessionData.unit_id);
-        setPayments(unitPayments);
+        try {
+          const unitPayments = await getPaymentsForUnit(sessionData.unit_id);
+          setPayments(unitPayments);
+          try {
+            if (typeof window !== "undefined" && Array.isArray(unitPayments)) {
+              localStorage.setItem("leaselink_cached_tenant_receipts", JSON.stringify(unitPayments));
+            }
+          } catch {
+            // Storage unavailable fallback
+          }
+        } catch (fetchErr) {
+          console.warn("Could not fetch remote receipts, using local cache:", fetchErr);
+        }
       }
 
       setLoading(false);
@@ -98,8 +145,19 @@ function TenantReceiptsContent() {
 
   const refreshPayments = async () => {
     if (tenantData) {
-      const unitPayments = await getPaymentsForUnit(tenantData.unit_id);
-      setPayments(unitPayments);
+      try {
+        const unitPayments = await getPaymentsForUnit(tenantData.unit_id);
+        setPayments(unitPayments);
+        try {
+          if (typeof window !== "undefined" && Array.isArray(unitPayments)) {
+            localStorage.setItem("leaselink_cached_tenant_receipts", JSON.stringify(unitPayments));
+          }
+        } catch {
+          // Storage unavailable fallback
+        }
+      } catch (err) {
+        console.warn("Could not refresh receipts:", err);
+      }
     }
   };
 
@@ -115,6 +173,13 @@ function TenantReceiptsContent() {
   };
 
   const handleLogout = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("leaselink_cached_tenant_receipts");
+      }
+    } catch {
+      // Storage unavailable fallback
+    }
     await clearTenantSession();
     router.push("/tenant/login");
   };

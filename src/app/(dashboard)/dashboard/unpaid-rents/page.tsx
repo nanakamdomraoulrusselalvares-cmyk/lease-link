@@ -122,8 +122,30 @@ export default function UnpaidRentsPage() {
 
       // We focus strictly on tenants who owe rent (is_owing = true)
       setStatuses(statusSummary);
+
+      // Cache for offline viewing
+      try {
+        if (typeof window !== "undefined" && Array.isArray(statusSummary)) {
+          localStorage.setItem("leaselink_cached_unpaid_rents", JSON.stringify(statusSummary));
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     } catch (err) {
       console.error("Error loading unpaid rents:", err);
+      try {
+        if (typeof window !== "undefined") {
+          const cachedUnpaid = localStorage.getItem("leaselink_cached_unpaid_rents");
+          if (cachedUnpaid) {
+            const parsed = JSON.parse(cachedUnpaid);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setStatuses(parsed);
+            }
+          }
+        }
+      } catch {
+        // Storage unavailable fallback
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -131,6 +153,22 @@ export default function UnpaidRentsPage() {
   };
 
   useEffect(() => {
+    // Fast Stale-While-Revalidate: load immediately from local cache if offline or available
+    try {
+      if (typeof window !== "undefined") {
+        const cachedUnpaid = localStorage.getItem("leaselink_cached_unpaid_rents");
+        if (cachedUnpaid) {
+          const parsed = JSON.parse(cachedUnpaid);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setStatuses(parsed);
+            setLoading(false);
+          }
+        }
+      }
+    } catch {
+      // Storage unavailable fallback
+    }
+
     loadData();
   }, []);
 
