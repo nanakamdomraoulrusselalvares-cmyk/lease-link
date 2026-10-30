@@ -197,6 +197,10 @@ create policy "Units delete policy"
     using (auth.uid() = landlord_id or public.is_admin());
 
 -- 4. Atomic Building Creation with Vacant Units RPC Function (Security Definer)
+-- Drop previous overloaded signatures to avoid PostgreSQL 42725 function ambiguity
+drop function if exists public.create_building_with_vacant_units(text, text, text, text, text, integer, text, text);
+drop function if exists public.create_building_with_vacant_units(text, text, text, text, text, integer, text, text, uuid);
+
 create or replace function public.create_building_with_vacant_units(
     p_name text,
     p_address text,
@@ -327,7 +331,7 @@ end;
 $$ language plpgsql security definer set search_path = public, auth;
 
 -- 5. Grant permissions to authenticated, anon, and service_role
-grant execute on function public.create_building_with_vacant_units to authenticated, anon, service_role;
+grant execute on function public.create_building_with_vacant_units(text, text, text, text, text, integer, text, text, uuid) to authenticated, anon, service_role;
 grant select, insert, update, delete on table public.buildings to authenticated, anon, service_role;
 grant select, insert, update, delete on table public.units to authenticated, anon, service_role;
 

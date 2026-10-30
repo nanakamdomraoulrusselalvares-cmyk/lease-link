@@ -1333,6 +1333,9 @@ end;
 $$ language plpgsql security definer set search_path = public, auth;
 
 -- 8.3 Atomic Building Creation with Pre-Provisioned Vacant Units
+drop function if exists public.create_building_with_vacant_units(text, text, text, text, text, integer, text, text);
+drop function if exists public.create_building_with_vacant_units(text, text, text, text, text, integer, text, text, uuid);
+
 create or replace function public.create_building_with_vacant_units(
     p_name text,
     p_address text,
