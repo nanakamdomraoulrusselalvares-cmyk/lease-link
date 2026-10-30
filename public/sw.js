@@ -1,5 +1,5 @@
-// LeaseLink PWA Service Worker v3.0 - Offline Certified
-const CACHE_NAME = "leaselink-cache-v3";
+// LeaseLink PWA Service Worker v4.0 - Cache Invalidation & Full Offline Suite
+const CACHE_NAME = "leaselink-cache-v4";
 
 const PRECACHE_ASSETS = [
   "/",
