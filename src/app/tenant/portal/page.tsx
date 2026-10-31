@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   TenantPortalData,
-  TenantSession,
   MaintenanceRequest,
-  MaintenanceCategory,
-  MaintenanceUrgency,
   RentPayment,
 } from "@/types/database";
 import {
@@ -18,31 +15,19 @@ import {
   clearTenantSession,
   formatWhatsAppPhoneNumber,
 } from "@/lib/services/tenantService";
-import {
-  submitMaintenanceRequest,
-  getMaintenanceRequestsForUnit,
-  resolveMaintenanceRequestByTenant,
-  buildMaintenanceWhatsAppUrl,
-  CATEGORY_LABELS,
-  URGENCY_LABELS,
-  STATUS_LABELS,
-} from "@/lib/services/maintenanceService";
+import { getMaintenanceRequestsForUnit } from "@/lib/services/maintenanceService";
 import {
   getPaymentsForUnit,
   getCurrentRentMonth,
   PAYMENT_METHOD_LABELS,
 } from "@/lib/services/paymentService";
-import VoiceRecorder from "@/components/VoiceRecorder";
-import AudioPlayer from "@/components/AudioPlayer";
 import PayRentModal from "@/components/PayRentModal";
 import RentPaymentUnderWorkModal from "@/components/RentPaymentUnderWorkModal";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
 import TenantNav from "@/components/TenantNav";
 import SmartDataLoader from "@/components/SmartDataLoader";
-import { uploadMediaToStorage } from "@/lib/services/storageService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import {
-  Building2,
   Home,
   LogOut,
   Phone,
@@ -60,32 +45,15 @@ import {
   Utensils,
   MessageCircle,
   Receipt,
-  Wrench,
   Sparkles,
   RefreshCw,
   MapPin,
-  ExternalLink,
-  Plus,
-  X,
-  Droplets,
-  Zap,
-  Flame,
-  AlertOctagon,
-  Image as ImageIcon,
-  Video,
-  Mic,
-  Camera,
-  Trash2,
   Clock,
-  Eye,
-  Check,
-  Info,
-  Loader2,
   Lock,
 } from "lucide-react";
 
 function TenantPortalContent() {
-  const { isFrench, t } = useLanguage();
+  const { isFrench } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tokenFromUrl = searchParams.get("token");
@@ -94,27 +62,8 @@ function TenantPortalContent() {
   const [data, setData] = useState<TenantPortalData | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Maintenance Requests State
+  // Maintenance Requests State (kept solely for navbar pending badge count)
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
-  const [loadingRequests, setLoadingRequests] = useState(false);
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [submittingRequest, setSubmittingRequest] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [lastSubmittedRequest, setLastSubmittedRequest] = useState<MaintenanceRequest | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  // Form State
-  const [formCategory, setFormCategory] = useState<MaintenanceCategory>("plumbing");
-  const [formUrgency, setFormUrgency] = useState<MaintenanceUrgency>("medium");
-  const [formTitle, setFormTitle] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formPhoto, setFormPhoto] = useState<string | null>(null);
-  const [formVideo, setFormVideo] = useState<string | null>(null);
-  const [formVoice, setFormVoice] = useState<string | null>(null);
-  const [formVoiceDuration, setFormVoiceDuration] = useState<number | null>(null);
-
-  const fileInputPhotoRef = useRef<HTMLInputElement | null>(null);
-  const fileInputVideoRef = useRef<HTMLInputElement | null>(null);
 
   // Rent Payments State
   const [payments, setPayments] = useState<RentPayment[]>([]);
@@ -124,7 +73,6 @@ function TenantPortalContent() {
   const [selectedReceipt, setSelectedReceipt] = useState<RentPayment | null>(null);
 
   const loadRequests = async (unitId: string) => {
-    setLoadingRequests(true);
     try {
       const list = await getMaintenanceRequestsForUnit(unitId);
       setRequests(list);
@@ -145,8 +93,6 @@ function TenantPortalContent() {
       } catch {
         // Storage unavailable fallback
       }
-    } finally {
-      setLoadingRequests(false);
     }
   };
 
@@ -171,31 +117,6 @@ function TenantPortalContent() {
       } catch {
         // Storage unavailable fallback
       }
-    }
-  };
-
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [resolvedSuccessId, setResolvedSuccessId] = useState<string | null>(null);
-
-  const handleResolveRequest = async (requestId: string) => {
-    setResolvingId(requestId);
-    try {
-      const activeToken = data?.access_token || tokenFromUrl || "";
-      const res = await resolveMaintenanceRequestByTenant(requestId, activeToken);
-      if (res.success) {
-        setRequests((prev) =>
-          prev.map((r) => (r.id === requestId ? { ...r, status: "resolved" } : r))
-        );
-        setResolvedSuccessId(requestId);
-        setTimeout(() => setResolvedSuccessId(null), 4000);
-      } else if (res.error) {
-        alert(res.error);
-      }
-    } catch (err: any) {
-      console.error("Error resolving request:", err);
-      alert(err?.message || "Failed to mark as resolved.");
-    } finally {
-      setResolvingId(null);
     }
   };
 
@@ -295,7 +216,7 @@ function TenantPortalContent() {
 
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (showRequestModal || previewImage || showPayModal || showReceiptModal) {
+    if (showPayModal || showReceiptModal) {
       document.documentElement.classList.add("modal-open");
       document.body.classList.add("modal-open");
     } else {
@@ -306,7 +227,7 @@ function TenantPortalContent() {
       document.documentElement.classList.remove("modal-open");
       document.body.classList.remove("modal-open");
     };
-  }, [showRequestModal, previewImage, showPayModal, showReceiptModal]);
+  }, [showPayModal, showReceiptModal]);
 
   const handleLogout = async () => {
     try {
@@ -320,135 +241,6 @@ function TenantPortalContent() {
     }
     await clearTenantSession();
     router.push("/tenant/login?loggedOut=true");
-  };
-
-  const handleOpenModal = () => {
-    setSubmitError(null);
-    setLastSubmittedRequest(null);
-    setFormCategory("plumbing");
-    setFormUrgency("medium");
-    setFormTitle("");
-    setFormDescription("");
-    setFormPhoto(null);
-    setFormVideo(null);
-    setFormVoice(null);
-    setFormVoiceDuration(null);
-    setShowRequestModal(true);
-  };
-
-  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      setSubmitError("Photo size must be less than 10MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormPhoto(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 25 * 1024 * 1024) {
-      setSubmitError("Video size must be less than 25MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormVideo(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSubmitMaintenance = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!data) return;
-
-    if (!formTitle.trim()) {
-      setSubmitError("Please enter a short title for the problem.");
-      return;
-    }
-
-    setSubmittingRequest(true);
-    setSubmitError(null);
-
-    try {
-      // Upload media files to Supabase Storage bucket if present
-      let finalPhotoUrl = formPhoto;
-      let finalVideoUrl = formVideo;
-      let finalVoiceUrl = formVoice;
-
-      if (formPhoto) {
-        const photoUpload = await uploadMediaToStorage(formPhoto, "photos");
-        if (photoUpload.error && !photoUpload.url) {
-          setSubmitError(photoUpload.error);
-          setSubmittingRequest(false);
-          return;
-        }
-        if (photoUpload.url) finalPhotoUrl = photoUpload.url;
-      }
-
-      if (formVideo) {
-        const videoUpload = await uploadMediaToStorage(formVideo, "videos");
-        if (videoUpload.error && !videoUpload.url) {
-          setSubmitError(videoUpload.error);
-          setSubmittingRequest(false);
-          return;
-        }
-        if (videoUpload.url) finalVideoUrl = videoUpload.url;
-      }
-
-      if (formVoice) {
-        const voiceUpload = await uploadMediaToStorage(formVoice, "voices");
-        if (voiceUpload.error && !voiceUpload.url) {
-          setSubmitError(voiceUpload.error);
-          setSubmittingRequest(false);
-          return;
-        }
-        if (voiceUpload.url) finalVoiceUrl = voiceUpload.url;
-      }
-
-      const res = await submitMaintenanceRequest({
-        unit_id: data.unit_id,
-        building_id: data.building_id,
-        landlord_id: data.landlord_id,
-        tenant_name: data.tenant_name,
-        tenant_phone: data.tenant_phone,
-        tenant_email: data.tenant_email,
-        unit_number: data.unit_number,
-        building_name: data.building_name,
-        category: formCategory,
-        urgency: formUrgency,
-        title: formTitle.trim(),
-        description: formDescription.trim(),
-        photo_url: finalPhotoUrl,
-        video_url: finalVideoUrl,
-        voice_url: finalVoiceUrl,
-        voice_duration_seconds: formVoiceDuration,
-      });
-
-      if (!res.success || !res.request) {
-        setSubmitError(res.error || "Failed to submit request. Please try again.");
-        setSubmittingRequest(false);
-        return;
-      }
-
-      setLastSubmittedRequest(res.request);
-      await loadRequests(data.unit_id);
-      setSubmittingRequest(false);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error submitting request";
-      setSubmitError(msg);
-      setSubmittingRequest(false);
-    }
   };
 
   if (loading) {
@@ -628,6 +420,10 @@ function TenantPortalContent() {
       )
     )
   );
+  const totalPaidAllTime = payments.reduce(
+    (sum, p) => sum + Number(p.amount_paid || 0),
+    0
+  );
   const pendingRequestsCount = requests.filter(
     (r) => r.status === "pending" || r.status === "in_progress"
   ).length;
@@ -642,7 +438,6 @@ function TenantPortalContent() {
         tokenFromUrl={tokenFromUrl}
         onLogout={handleLogout}
         onPayRentClick={() => setShowUnderWorkModal(true)}
-        onRequestRepairClick={handleOpenModal}
       />
 
       {/* Main Container */}
@@ -696,15 +491,6 @@ function TenantPortalContent() {
                 <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   {isFrench ? "En travaux" : "Under work"}
                 </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenModal}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition cursor-pointer"
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                <span>{isFrench ? "Signaler une Réparation" : "Report Maintenance"}</span>
               </button>
 
               <Link
@@ -809,37 +595,35 @@ function TenantPortalContent() {
             </div>
           </div>
 
-          {/* Metric 4: Technical Assistance & Repairs */}
+          {/* Metric 4: Cumulative Rent Paid */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {isFrench ? "Assistance Technique" : "Maintenance Support"}
+                {isFrench ? "Total Réglé" : "Total Paid"}
               </span>
               <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-500/20">
-                <Wrench className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-              {requests.length}{" "}
-              <span className="text-xs font-normal text-slate-500">
-                {isFrench ? "Demandes" : "Tickets"}
-              </span>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono truncate">
+              {totalPaidAllTime.toLocaleString()}{" "}
+              <span className="text-xs font-normal text-slate-500">XAF</span>
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400">
-              {pendingRequestsCount > 0
+              {payments.length > 0
                 ? isFrench
-                  ? `${pendingRequestsCount} en cours de traitement`
-                  : `${pendingRequestsCount} under review`
+                  ? `${payments.length} quittance${payments.length > 1 ? "s" : ""} officielle${payments.length > 1 ? "s" : ""}`
+                  : `${payments.length} official receipt${payments.length > 1 ? "s" : ""}`
                 : isFrench
-                ? "Aucune panne en attente"
-                : "All tickets resolved"}
+                ? "Aucun paiement enregistré"
+                : "No payments recorded yet"}
             </div>
           </div>
         </div>
 
         {/* 2-Column Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Left 2 Cols: Rent Ledger, Unit Specs, Repairs */}
+          {/* Left 2 Cols: Rent Ledger & Unit Specs */}
           <div className="lg:col-span-2 space-y-6 sm:space-y-8">
             {/* CARD 1: Rent Ledger & Receipts (Core Financial Priority) */}
             <div id="rent" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 scroll-mt-24">
@@ -1103,245 +887,6 @@ function TenantPortalContent() {
                 </div>
               )}
             </div>
-
-            {/* CARD 3: Reparation & Maintenance Requests */}
-            <div id="maintenance" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 scroll-mt-24">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                    <Wrench className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      <span>{isFrench ? "Demandes de Réparations & Travaux" : "Repairs & Maintenance Requests"}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">
-                        {requests.length}
-                      </span>
-                    </h2>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      {isFrench
-                        ? "Signalez les pannes de plomberie, électricité ou structure directement à votre bailleur"
-                        : "Report plumbing, electrical, or structural issues directly to your landlord"}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleOpenModal}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-md shadow-amber-600/20 transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{isFrench ? "Demander une Réparation" : "Request Reparation"}</span>
-                </button>
-              </div>
-
-              {/* Requests List */}
-              {loadingRequests ? (
-                <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
-                  <span>{isFrench ? "Chargement des tickets d'intervention..." : "Loading reparation tickets..."}</span>
-                </div>
-              ) : requests.length === 0 ? (
-                <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 text-center space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    {isFrench ? "Aucun Problème Signalé" : "No Maintenance Issues Reported"}
-                  </h4>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                    {isFrench
-                      ? "Tout est en ordre ! En cas de fuite, panne d'électricité ou dégât, cliquez sur le bouton ci-dessus pour avertir votre bailleur avec photo, vidéo ou message vocal."
-                      : "Everything is in order! If a pipe leaks, a light fails, or something breaks, click the button above to alert your landlord with a photo, video, or voice message."}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3.5">
-                  {requests.map((req) => {
-                    const statusMeta = STATUS_LABELS[req.status] || STATUS_LABELS.pending;
-                    const categoryMeta = CATEGORY_LABELS[req.category] || CATEGORY_LABELS.other;
-                    const urgencyMeta = URGENCY_LABELS[req.urgency] || URGENCY_LABELS.medium;
-
-                    return (
-                      <div
-                        key={req.id}
-                        className="bg-slate-50/90 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 transition hover:border-slate-300 dark:hover:border-slate-700/90"
-                      >
-                        {/* Header: Title + Badges */}
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusMeta.badgeClass}`}
-                              >
-                                {isFrench ? statusMeta.fr : statusMeta.label}
-                              </span>
-                              <span
-                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${urgencyMeta.badgeClass}`}
-                              >
-                                {isFrench ? urgencyMeta.fr : urgencyMeta.label}
-                              </span>
-                              <span className="text-[10px] text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-800">
-                                {isFrench ? categoryMeta.fr : categoryMeta.label}
-                              </span>
-                            </div>
-
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">{req.title}</h3>
-                          </div>
-
-                          <span className="text-[10px] text-slate-500 flex items-center gap-1 shrink-0 font-mono">
-                            <Clock className="w-3 h-3" />
-                            {new Date(req.created_at).toLocaleDateString(isFrench ? "fr-FR" : "en-US")}
-                          </span>
-                        </div>
-
-                        {/* Description */}
-                        {req.description && (
-                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60">
-                            {req.description}
-                          </p>
-                        )}
-
-                        {/* Attachments (Photo, Video, Voice) */}
-                        {(req.photo_url || req.video_url || req.voice_url) && (
-                          <div className="pt-1 space-y-2.5">
-                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                              {isFrench ? "Pièces Jointes :" : "Attached Media:"}
-                            </span>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                              {/* Attached Photo */}
-                              {req.photo_url && (
-                                <div className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 max-h-48">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={req.photo_url}
-                                    alt="Issue attachment"
-                                    className="w-full h-36 object-cover cursor-pointer hover:opacity-90 transition"
-                                    onClick={() => setPreviewImage(req.photo_url || null)}
-                                  />
-                                  <div className="p-1.5 bg-white/90 dark:bg-slate-900/90 text-[10px] text-slate-700 dark:text-slate-300 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
-                                    <span className="flex items-center gap-1">
-                                      <ImageIcon className="w-3 h-3 text-blue-500 dark:text-blue-400" />{" "}
-                                      {isFrench ? "Photo jointe" : "Photo attached"}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => setPreviewImage(req.photo_url || null)}
-                                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold"
-                                    >
-                                      {isFrench ? "Agrandir" : "Zoom"}
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Attached Video */}
-                              {req.video_url && (
-                                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900">
-                                  <video
-                                    src={req.video_url}
-                                    controls
-                                    className="w-full h-36 object-cover bg-black"
-                                  />
-                                  <div className="p-1.5 bg-white/90 dark:bg-slate-900/90 text-[10px] text-slate-700 dark:text-slate-300 flex items-center gap-1 border-t border-slate-200 dark:border-slate-800">
-                                    <Video className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />{" "}
-                                    {isFrench ? "Vidéo jointe" : "Video attached"}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Attached Voice Note */}
-                            {req.voice_url && (
-                              <AudioPlayer
-                                src={req.voice_url}
-                                durationSeconds={req.voice_duration_seconds}
-                                label={
-                                  isFrench
-                                    ? "Message Vocal du Locataire"
-                                    : "Tenant Voice Message"
-                                }
-                              />
-                            )}
-                          </div>
-                        )}
-
-                        {/* Landlord Response Notes */}
-                        {req.landlord_notes && (
-                          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 space-y-1">
-                            <span className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
-                              <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                              <span>{isFrench ? "Mise à jour du Bailleur / Technicien :" : "Landlord / Technician Update:"}</span>
-                            </span>
-                            <p className="text-slate-700 dark:text-slate-200 italic pl-5">{req.landlord_notes}</p>
-                          </div>
-                        )}
-
-                        {/* Tenant Resolution Action Bar */}
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80">
-                          {req.status === "resolved" ? (
-                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              <span>
-                                {isFrench
-                                  ? "Cette réparation a été confirmée comme résolue par vous."
-                                  : "This repair has been confirmed as resolved by you."}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50">
-                              <div className="space-y-0.5">
-                                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                  <span>
-                                    {isFrench
-                                      ? "Le problème est-il réglé ?"
-                                      : "Has the issue been fixed?"}
-                                  </span>
-                                </span>
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
-                                  {isFrench
-                                    ? "Vous êtes le seul habilité à valider la fin des travaux dans votre logement."
-                                    : "You are the only person who can confirm that repairs in your unit are complete."}
-                                </p>
-                              </div>
-
-                              <button
-                                type="button"
-                                disabled={resolvingId === req.id}
-                                onClick={() => handleResolveRequest(req.id)}
-                                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition cursor-pointer shrink-0 disabled:opacity-50"
-                              >
-                                {resolvingId === req.id ? (
-                                  <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    <span>{isFrench ? "Validation..." : "Confirming..."}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    <span>{isFrench ? "Marquer comme Résolu" : "Mark as Resolved"}</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          )}
-
-                          {resolvedSuccessId === req.id && (
-                            <div className="mt-2 p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 animate-in fade-in">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                              <span>{isFrench ? "Statut mis à jour : Résolu avec succès !" : "Status updated: Resolved successfully!"}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Right Col: Landlord Contact & Security Checklist */}
@@ -1430,15 +975,6 @@ function TenantPortalContent() {
                     <span>{isFrench ? "Appel Téléphonique Direct" : "Direct Phone Call"}</span>
                   </a>
                 )}
-
-                <button
-                  type="button"
-                  onClick={handleOpenModal}
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-600/20 dark:hover:bg-amber-600/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 font-semibold text-xs transition cursor-pointer"
-                >
-                  <Wrench className="w-3.5 h-3.5" />
-                  <span>{isFrench ? "Signaler une Réparation" : "Report Maintenance Issue"}</span>
-                </button>
               </div>
             </div>
 
@@ -1488,8 +1024,8 @@ function TenantPortalContent() {
                     </span>
                     <span className="text-slate-600 dark:text-slate-400 text-[11px]">
                       {isFrench
-                        ? "Contact direct et notifications en temps réel des réparations."
-                        : "Instant contact and real-time repair status updates."}
+                        ? "Ligne directe WhatsApp et téléphone avec votre bailleur."
+                        : "Direct WhatsApp and phone communication with your landlord."}
                     </span>
                   </div>
                 </div>
@@ -1498,384 +1034,6 @@ function TenantPortalContent() {
           </div>
         </div>
       </main>
-
-      {/* MODAL: Submit Reparation Request */}
-      {showRequestModal && (
-        <div
-          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm select-none"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !submittingRequest) {
-              setShowRequestModal(false);
-            }
-          }}
-        >
-          <div className="min-h-full flex items-start sm:items-center justify-center py-2 sm:py-6">
-            <div
-              className="relative w-full max-w-xl my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] h-auto min-h-0 select-text"
-            >
-              {/* Modal Header */}
-              <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 sticky top-0 z-10 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-600/20 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                    <Wrench className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      {isFrench ? "Signaler une Réparation / Panne" : "Send Reparation Request"}
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      {isFrench ? "Logement :" : "Apartment:"} <strong className="text-slate-900 dark:text-slate-200">{data.unit_number}</strong> • {data.building_name}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowRequestModal(false)}
-                  disabled={submittingRequest}
-                  className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                  title={isFrench ? "Fermer" : "Close"}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Success State */}
-              {lastSubmittedRequest ? (
-                <div className="p-5 sm:p-6 space-y-4 overflow-y-auto max-h-[calc(100dvh-8rem)] overscroll-contain">
-                <div className="text-center space-y-2 p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-500/30">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                    {isFrench ? "Demande Envoyée avec Succès !" : "Request Sent Successfully!"}
-                  </h4>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
-                    {isFrench
-                      ? `Votre ticket de réparation pour "${lastSubmittedRequest.title}" a bien été enregistré. Votre bailleur a été notifié.`
-                      : `Your reparation ticket for "${lastSubmittedRequest.title}" has been logged. Your landlord has been notified.`}
-                  </p>
-                </div>
-
-                {/* WhatsApp Direct Share Button */}
-                {landlordCleanPhone && (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
-                    <div className="flex items-start gap-2.5">
-                      <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <div className="text-xs">
-                        <span className="font-semibold text-slate-900 dark:text-white block">
-                          {isFrench ? "Accélérer l'intervention via WhatsApp" : "Speed Up Intervention via WhatsApp"}
-                        </span>
-                        <span className="text-slate-600 dark:text-slate-400">
-                          {isFrench
-                            ? "Cliquez ci-dessous pour transmettre un récapitulatif pré-rempli directement à votre bailleur sur WhatsApp."
-                            : "Click below to send a pre-filled summary directly to your landlord on WhatsApp."}
-                        </span>
-                      </div>
-                    </div>
-
-                    <a
-                      href={buildMaintenanceWhatsAppUrl(lastSubmittedRequest, data.landlord_phone, isFrench ? "fr" : "en").url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition cursor-pointer"
-                    >
-                      <MessageCircle className="w-4 h-4 fill-white" />
-                      <span>{isFrench ? "Aviser le Bailleur sur WhatsApp" : "Notify Landlord on WhatsApp"}</span>
-                    </a>
-                  </div>
-                )}
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowRequestModal(false)}
-                    className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 transition"
-                  >
-                    {isFrench ? "Fermer la Fenêtre" : "Close Window"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Request Form */
-              <form onSubmit={handleSubmitMaintenance} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 min-h-0 overscroll-contain">
-                  {submitError && (
-                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{submitError}</span>
-                    </div>
-                  )}
-
-                  {/* 1. Category Picker */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      {isFrench ? "Catégorie du Problème" : "Problem Category"} <span className="text-rose-500 dark:text-rose-400">*</span>
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {(Object.keys(CATEGORY_LABELS) as MaintenanceCategory[]).map((cat) => {
-                        const meta = CATEGORY_LABELS[cat];
-                        const isSelected = formCategory === cat;
-                        return (
-                          <button
-                            type="button"
-                            key={cat}
-                            onClick={() => setFormCategory(cat)}
-                            className={`p-2.5 rounded-xl text-left border transition text-xs flex items-center gap-2 cursor-pointer ${
-                              isSelected
-                                ? "bg-amber-500/20 border-amber-500 text-amber-900 dark:text-white font-bold"
-                                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
-                            }`}
-                          >
-                            <span className="text-amber-500 dark:text-amber-400 shrink-0">
-                              {cat === "plumbing" && <Droplets className="w-4 h-4" />}
-                              {cat === "electrical" && <Zap className="w-4 h-4" />}
-                              {cat === "structural" && <Home className="w-4 h-4" />}
-                              {cat === "appliances" && <Utensils className="w-4 h-4" />}
-                              {cat === "carpentry_locks" && <Wrench className="w-4 h-4" />}
-                              {cat === "other" && <AlertCircle className="w-4 h-4" />}
-                            </span>
-                            <span className="truncate">{isFrench ? meta.fr : meta.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 2. Urgency Selector */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      {isFrench ? "Niveau d'Urgence" : "Urgency Level"} <span className="text-rose-500 dark:text-rose-400">*</span>
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {(Object.keys(URGENCY_LABELS) as MaintenanceUrgency[]).map((urg) => {
-                        const meta = URGENCY_LABELS[urg];
-                        const isSelected = formUrgency === urg;
-                        return (
-                          <button
-                            type="button"
-                            key={urg}
-                            onClick={() => setFormUrgency(urg)}
-                            className={`p-2 rounded-xl text-center border transition text-xs font-semibold cursor-pointer ${
-                              isSelected
-                                ? `${meta.badgeClass} ring-2 ring-amber-500/50`
-                                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
-                            }`}
-                          >
-                            {isFrench ? meta.fr : meta.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 3. Title */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      {isFrench ? "Titre / Objet Court du Problème" : "Issue Summary / Short Title"}{" "}
-                      <span className="text-rose-500 dark:text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder={
-                        isFrench
-                          ? "ex. Fuite d'eau sous l'évier, Disjoncteur qui saute..."
-                          : "e.g. Water leak under sink, Breaker tripping..."
-                      }
-                      value={formTitle}
-                      onChange={(e) => setFormTitle(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-amber-500 transition"
-                    />
-                  </div>
-
-                  {/* 4. Description */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      {isFrench ? "Description Détaillée du Problème" : "Detailed Description"}
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder={
-                        isFrench
-                          ? "Décrivez quand le problème a commencé, où il se situe et ce qu'il empêche d'utiliser..."
-                          : "Describe when the issue started, where it is located, and how it impacts your apartment..."
-                      }
-                      value={formDescription}
-                      onChange={(e) => setFormDescription(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-amber-500 transition"
-                    />
-                  </div>
-
-                  {/* 5. Voice Recording Module */}
-                  <VoiceRecorder
-                    onAudioReady={(dataUrl, duration) => {
-                      setFormVoice(dataUrl);
-                      setFormVoiceDuration(duration);
-                    }}
-                    onAudioCleared={() => {
-                      setFormVoice(null);
-                      setFormVoiceDuration(null);
-                    }}
-                    existingAudioUrl={formVoice}
-                    existingDuration={formVoiceDuration}
-                  />
-
-                  {/* 6. Media Uploads (Photo & Video) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    {/* Photo Upload */}
-                    <div className="bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                          <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                          <span>{isFrench ? "Joindre une Photo" : "Attach Photo"}</span>
-                        </span>
-                        {formPhoto && (
-                          <button
-                            type="button"
-                            onClick={() => setFormPhoto(null)}
-                            className="text-[10px] text-rose-500 dark:text-rose-400 hover:underline"
-                          >
-                            {isFrench ? "Supprimer" : "Remove"}
-                          </button>
-                        )}
-                      </div>
-
-                      {formPhoto ? (
-                        <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={formPhoto}
-                            alt="Preview"
-                            className="w-full h-24 object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => fileInputPhotoRef.current?.click()}
-                          className="w-full py-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/80 hover:border-blue-500/50 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer"
-                        >
-                          <ImageIcon className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                          <span>{isFrench ? "Prendre une photo ou importer" : "Take Photo or Upload"}</span>
-                        </button>
-                      )}
-
-                      <input
-                        ref={fileInputPhotoRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handlePhotoFileChange}
-                      />
-                    </div>
-
-                    {/* Video Upload */}
-                    <div className="bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                          <Video className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>{isFrench ? "Joindre une Vidéo" : "Attach Video Clip"}</span>
-                        </span>
-                        {formVideo && (
-                          <button
-                            type="button"
-                            onClick={() => setFormVideo(null)}
-                            className="text-[10px] text-rose-500 dark:text-rose-400 hover:underline"
-                          >
-                            {isFrench ? "Supprimer" : "Remove"}
-                          </button>
-                        )}
-                      </div>
-
-                      {formVideo ? (
-                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                          <video
-                            src={formVideo}
-                            controls
-                            className="w-full h-24 object-cover bg-black"
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => fileInputVideoRef.current?.click()}
-                          className="w-full py-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700/80 hover:border-emerald-500/50 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer"
-                        >
-                          <Video className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                          <span>{isFrench ? "Filmer ou importer une vidéo" : "Record or Upload Video"}</span>
-                        </button>
-                      )}
-
-                      <input
-                        ref={fileInputVideoRef}
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={handleVideoFileChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions Footer */}
-                <div className="p-3.5 sm:p-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-50/95 dark:bg-slate-900/95 sticky bottom-0 z-10 backdrop-blur-md">
-                  <button
-                    type="button"
-                    onClick={() => setShowRequestModal(false)}
-                    disabled={submittingRequest}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition cursor-pointer"
-                  >
-                    {isFrench ? "Annuler" : "Cancel"}
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={submittingRequest}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-lg shadow-amber-600/30 transition disabled:opacity-50 cursor-pointer"
-                  >
-                    {submittingRequest ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>{isFrench ? "Envoi en cours..." : "Sending Request..."}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Wrench className="w-3.5 h-3.5" />
-                        <span>{isFrench ? "Soumettre la Demande" : "Submit Reparation Request"}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-      )}
-
-      {/* Lightbox Modal for Photo Preview */}
-      {previewImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
-          onClick={() => setPreviewImage(null)}
-        >
-          <div className="relative max-w-3xl max-h-[90vh]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewImage}
-              alt="Full preview"
-              className="max-w-full max-h-[85vh] object-contain rounded-xl"
-            />
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="absolute -top-3 -right-3 p-2 rounded-full bg-white dark:bg-slate-800 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-md"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Pay Rent Modal */}
       {data && (

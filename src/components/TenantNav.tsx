@@ -42,11 +42,10 @@ interface TenantNavProps {
 export default function TenantNav({
   data,
   paymentsCount = 0,
-  pendingRepairsCount = 0,
+  pendingRepairsCount,
   tokenFromUrl,
   onLogout,
   onPayRentClick,
-  onRequestRepairClick,
 }: TenantNavProps) {
   const pathname = usePathname();
   const { language, setLanguage, isFrench } = useLanguage();
@@ -56,18 +55,37 @@ export default function TenantNav({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [cachedPendingRepairs, setCachedPendingRepairs] = useState(0);
 
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Check if running in installed PWA standalone window
+  // Check if running in installed PWA standalone window & hydrate cached pending repairs count
   useEffect(() => {
     if (typeof window !== "undefined") {
       const isStandaloneMQ = window.matchMedia("(display-mode: standalone)").matches;
       const isIosStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
       const isPwaUrl = window.location.search.includes("source=pwa");
       setIsStandalone(isStandaloneMQ || isIosStandalone || isPwaUrl);
+
+      try {
+        const cachedReqs = localStorage.getItem("leaselink_cached_tenant_requests");
+        if (cachedReqs) {
+          const parsed = JSON.parse(cachedReqs);
+          if (Array.isArray(parsed)) {
+            const count = parsed.filter(
+              (r: { status?: string }) => r.status === "pending" || r.status === "in_progress"
+            ).length;
+            setCachedPendingRepairs(count);
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
-  }, []);
+  }, [pathname]);
+
+  const effectivePendingRepairs =
+    typeof pendingRepairsCount === "number" ? pendingRepairsCount : cachedPendingRepairs;
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -112,6 +130,7 @@ export default function TenantNav({
 
   const portalBase = tokenFromUrl ? `/tenant/portal?token=${tokenFromUrl}` : `/tenant/portal`;
   const receiptsUrl = tokenFromUrl ? `/tenant/receipts?token=${tokenFromUrl}` : `/tenant/receipts`;
+  const repairsUrl = tokenFromUrl ? `/tenant/repairs?token=${tokenFromUrl}` : `/tenant/repairs`;
 
   // Desktop navigation items (matching Landlord Dashboard segmented tabs)
   const navItems = [
@@ -119,14 +138,14 @@ export default function TenantNav({
       href: `${portalBase}#overview`,
       label: isFrench ? "Vue d'ensemble" : "Overview",
       icon: LayoutDashboard,
-      active: pathname === "/tenant/portal" && !pathname.includes("receipts"),
+      active: pathname === "/tenant/portal",
       badge: null,
     },
     {
       href: receiptsUrl,
       label: isFrench ? "Loyers & Quittances" : "Rent & Receipts",
       icon: Receipt,
-      active: pathname.includes("receipts"),
+      active: pathname.startsWith("/tenant/receipts"),
       badge: paymentsCount > 0 ? `${paymentsCount}` : null,
     },
     {
@@ -137,12 +156,12 @@ export default function TenantNav({
       badge: null,
     },
     {
-      href: `${portalBase}#maintenance`,
+      href: repairsUrl,
       label: isFrench ? "Réparations" : "Repairs",
       icon: Wrench,
-      active: false,
-      badge: pendingRepairsCount > 0 ? `${pendingRepairsCount}` : null,
-      badgePulse: pendingRepairsCount > 0,
+      active: pathname.startsWith("/tenant/repairs"),
+      badge: effectivePendingRepairs > 0 ? `${effectivePendingRepairs}` : null,
+      badgePulse: effectivePendingRepairs > 0,
     },
     {
       href: `${portalBase}#landlord`,
@@ -159,7 +178,7 @@ export default function TenantNav({
       href: `${portalBase}#overview`,
       label: isFrench ? "Accueil" : "Home",
       icon: LayoutDashboard,
-      active: pathname === "/tenant/portal" && !pathname.includes("receipts"),
+      active: pathname === "/tenant/portal",
     },
     {
       href: `${portalBase}#rent`,
@@ -173,17 +192,16 @@ export default function TenantNav({
       href: receiptsUrl,
       label: isFrench ? "Quittances" : "Receipts",
       icon: Receipt,
-      active: pathname.includes("receipts"),
+      active: pathname.startsWith("/tenant/receipts"),
       badge: paymentsCount > 0 ? `${paymentsCount}` : null,
     },
     {
-      href: `${portalBase}#maintenance`,
+      href: repairsUrl,
       label: isFrench ? "Pannes" : "Repairs",
       icon: Wrench,
-      active: false,
-      badge: pendingRepairsCount > 0 ? `${pendingRepairsCount}` : null,
-      badgePulse: pendingRepairsCount > 0,
-      onClick: onRequestRepairClick,
+      active: pathname.startsWith("/tenant/repairs"),
+      badge: effectivePendingRepairs > 0 ? `${effectivePendingRepairs}` : null,
+      badgePulse: effectivePendingRepairs > 0,
     },
     {
       href: `${portalBase}#landlord`,

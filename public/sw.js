@@ -1,5 +1,5 @@
-// LeaseLink PWA Service Worker v7.0 - Smooth Scroll & Full Offline Suite
-const CACHE_NAME = "leaselink-cache-v7";
+// LeaseLink PWA Service Worker v8.0 - Dedicated Repairs Hub & Offline Suite
+const CACHE_NAME = "leaselink-cache-v8";
 
 const PRECACHE_ASSETS = [
   "/",

@@ -6,21 +6,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   LandlordProfile,
-  AVAILABLE_PLANS,
-  SubscriptionPlanId,
   Building,
   MaintenanceRequest,
   resolvePlanConfig,
 } from "@/types/database";
 import { getBuildingsWithUnits } from "@/lib/services/buildingService";
-import {
-  getMaintenanceRequestsForLandlord,
-  CATEGORY_LABELS,
-  URGENCY_LABELS,
-  STATUS_LABELS,
-  buildLandlordReplyWhatsAppUrl,
-} from "@/lib/services/maintenanceService";
-import AudioPlayer from "@/components/AudioPlayer";
+import { getMaintenanceRequestsForLandlord } from "@/lib/services/maintenanceService";
 import DashboardNav from "@/components/DashboardNav";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
 import SmartDataLoader from "@/components/SmartDataLoader";
@@ -32,7 +23,6 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
-  Clock,
   Layers,
   LogOut,
   Phone,
@@ -44,32 +34,21 @@ import {
   Users,
   Home,
   Receipt,
-  Wrench,
   Sparkles,
   ShieldCheck,
   ShieldAlert,
-  ArrowRight,
   DoorOpen,
   UserCheck,
-  Camera,
-  Video,
-  Mic,
-  Eye,
-  X,
-  Flame,
-  MessageCircle,
-  ExternalLink,
   Loader2,
 } from "lucide-react";
 
 export default function LandlordHomePage() {
-  const { isFrench, language, t } = useLanguage();
+  const { isFrench } = useLanguage();
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<LandlordProfile | null>(null);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
-  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -321,21 +300,9 @@ export default function LandlordHomePage() {
   const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
   const vacancyRate = totalUnits > 0 ? Math.round((vacantUnits / totalUnits) * 100) : 0;
 
-  // Maintenance metrics calculations
+  // Pending repairs count (kept solely for navbar badge)
   const pendingRequests = useMemo(
     () => maintenanceRequests.filter((r) => r.status === "pending"),
-    [maintenanceRequests]
-  );
-  const inProgressRequests = useMemo(
-    () => maintenanceRequests.filter((r) => r.status === "in_progress"),
-    [maintenanceRequests]
-  );
-  const resolvedRequests = useMemo(
-    () => maintenanceRequests.filter((r) => r.status === "resolved"),
-    [maintenanceRequests]
-  );
-  const emergencyRequests = useMemo(
-    () => maintenanceRequests.filter((r) => r.urgency === "emergency" && r.status !== "resolved"),
     [maintenanceRequests]
   );
 
@@ -408,12 +375,12 @@ export default function LandlordHomePage() {
               <p className="mt-1.5 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
                 {profile?.role === "admin"
                   ? isFrench
-                    ? "Votre compte dispose des pleins privilèges administrateur. Vous supervisez tous les bailleurs, immeubles, transactions et tickets de maintenance de la plateforme."
-                    : "Your account has full administrative privileges. You can supervise all landlords, properties, transactions, and maintenance requests across LeaseLink."
+                    ? "Votre compte dispose des pleins privilèges administrateur. Vous supervisez tous les bailleurs, immeubles, locataires et transactions de la plateforme."
+                    : "Your account has full administrative privileges. You can supervise all landlords, properties, tenants, and transactions across LeaseLink."
                   : profile?.role === "manager"
                   ? isFrench
-                    ? "Votre compte gestionnaire est opérationnel. Vous disposez des accès délégués pour la gestion des immeubles, locataires, pannes et impayés."
-                    : "Your manager account is active. You have operational access to manage buildings, tenants, repairs, and unpaid rent tracking."
+                    ? "Votre compte gestionnaire est opérationnel. Vous disposez des accès délégués pour la gestion des immeubles, locataires et impayés."
+                    : "Your manager account is active. You have operational access to manage buildings, tenants, and unpaid rent tracking."
                   : isFrench
                   ? "Votre compte propriétaire est opérationnel. Vous êtes connecté à l'espace de gestion LeaseLink. Voici le récapitulatif de votre portefeuille."
                   : "Welcome to your LeaseLink landlord portal. Here is a live overview of your properties, rental collection, and tenants."}
@@ -685,7 +652,7 @@ export default function LandlordHomePage() {
             </p>
           </div>
 
-          <div className={`grid grid-cols-2 sm:grid-cols-3 ${profile?.role === "manager" ? "lg:grid-cols-5" : "lg:grid-cols-3 xl:grid-cols-6"} gap-3 sm:gap-4`}>
+          <div className={`grid grid-cols-2 sm:grid-cols-3 ${profile?.role === "manager" ? "lg:grid-cols-4" : profile?.role === "admin" ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-5"} gap-3 sm:gap-4`}>
             <Link
               href="/dashboard/buildings"
               className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
@@ -814,43 +781,6 @@ export default function LandlordHomePage() {
               </>
             )}
 
-            <Link
-              href="/dashboard/maintenance"
-              id="dashboard-repairs-card"
-              className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500/50 hover:shadow-md rounded-xl p-4 transition group cursor-pointer"
-            >
-              <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-600/10 group-hover:bg-amber-600 border border-amber-200 dark:border-amber-500/20 group-hover:border-amber-500 text-amber-600 dark:text-amber-400 group-hover:text-white flex items-center justify-center mb-2.5 transition">
-                <Wrench className="w-4 h-4" />
-              </div>
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
-                  {isFrench ? "Réparations" : "Repairs"}
-                </h3>
-                {pendingRequests.length > 0 ? (
-                  <span className="text-[10px] text-amber-900 dark:text-amber-300 font-bold bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 px-2 py-0.5 rounded-full animate-pulse">
-                    {pendingRequests.length} {isFrench ? "En Attente" : "Pending"}
-                  </span>
-                ) : maintenanceRequests.length > 0 ? (
-                  <span className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 px-2 py-0.5 rounded-full">
-                    {maintenanceRequests.length} {isFrench ? "Total" : "Total"}
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-slate-600 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                    0 {isFrench ? "Ticket" : "Tickets"}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                {pendingRequests.length > 0
-                  ? isFrench
-                    ? `${pendingRequests.length} panne${pendingRequests.length > 1 ? "s" : ""} à traiter →`
-                    : `${pendingRequests.length} issue${pendingRequests.length > 1 ? "s" : ""} need attention →`
-                  : isFrench
-                  ? "Tickets & notes vocales →"
-                  : "Tickets & voice notes →"}
-              </p>
-            </Link>
-
             {profile?.role === "admin" && (
               <Link
                 href="/dashboard/admin"
@@ -875,289 +805,7 @@ export default function LandlordHomePage() {
             )}
           </div>
         </div>
-
-        {/* Active Maintenance & Repair Requests Section */}
-        <div className="space-y-4 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <Wrench className="w-4 h-4" />
-                </div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>{isFrench ? "Demandes de maintenance & réparations" : "Maintenance & Repair Requests"}</span>
-                  {pendingRequests.length > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs font-bold animate-pulse">
-                      {pendingRequests.length} {isFrench ? "En attente" : "Pending"}
-                    </span>
-                  )}
-                </h2>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                {isFrench
-                  ? "Pannes signalées par vos locataires. Inspectez photos, notes vocales et mettez à jour le statut."
-                  : "Issues reported by your tenants. Inspect photos, voice recordings, and update status."}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                href="/dashboard/maintenance"
-                id="view-all-repairs-btn"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-600/15 dark:hover:bg-amber-600/25 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold transition cursor-pointer shadow-xs"
-              >
-                <span>{isFrench ? "Centre de réparations" : "Repairs Hub"} ({maintenanceRequests.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
-
-          {/* KPI Summary Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
-              <div>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">{isFrench ? "Total Demandes" : "Total Requests"}</span>
-                <span className="text-xl font-bold text-slate-900 dark:text-white">{maintenanceRequests.length}</span>
-              </div>
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
-                <Wrench className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
-              <div>
-                <span className="text-[11px] text-amber-700 dark:text-amber-400/90 block font-medium">{isFrench ? "En Attente" : "Pending Review"}</span>
-                <span className="text-xl font-bold text-amber-800 dark:text-amber-300">{pendingRequests.length}</span>
-              </div>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <Clock className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
-              <div>
-                <span className="text-[11px] text-blue-700 dark:text-blue-400/90 block font-medium">{isFrench ? "En Cours" : "In Progress"}</span>
-                <span className="text-xl font-bold text-blue-800 dark:text-blue-300">{inProgressRequests.length}</span>
-              </div>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <RefreshCw className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-xs">
-              <div>
-                <span className="text-[11px] text-emerald-700 dark:text-emerald-400/90 block font-medium">{isFrench ? "Résolu" : "Resolved"}</span>
-                <span className="text-xl font-bold text-emerald-800 dark:text-emerald-300">{resolvedRequests.length}</span>
-              </div>
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-
-          {/* Requests List */}
-          {maintenanceRequests.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-8 text-center space-y-3 shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 text-slate-500 flex items-center justify-center mx-auto">
-                <Wrench className="w-6 h-6" />
-              </div>
-              <div className="max-w-md mx-auto space-y-1">
-                <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                  {isFrench ? "Aucune demande de maintenance pour le moment" : "No Maintenance Requests Yet"}
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  {isFrench
-                    ? "Lorsqu'un locataire signale une fuite de plomberie, un problème électrique ou un défaut avec des photos et des notes vocales, sa demande apparaîtra directement sur ce tableau de bord."
-                    : "When a tenant reports a plumbing leak, electrical problem, or defect with photos and voice notes, their request will appear directly on this dashboard."}
-                </p>
-              </div>
-              <Link
-                href="/dashboard/maintenance"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold border border-slate-300 dark:border-slate-700 transition"
-              >
-                <span>{isFrench ? "Consulter le centre de réparations" : "Visit Maintenance Center"}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {maintenanceRequests.slice(0, 4).map((req) => {
-                  const urgencyConfig = URGENCY_LABELS[req.urgency] || URGENCY_LABELS.medium;
-                  const statusConfig = STATUS_LABELS[req.status] || STATUS_LABELS.pending;
-                  const categoryConfig = CATEGORY_LABELS[req.category] || CATEGORY_LABELS.other;
-                  const whatsappReply = buildLandlordReplyWhatsAppUrl(req, language);
-
-                  return (
-                    <div
-                      key={req.id}
-                      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-2xl p-5 shadow-sm dark:shadow-lg space-y-4 transition flex flex-col justify-between"
-                    >
-                      <div className="space-y-3">
-                        {/* Header: Location & Status */}
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white">
-                              <Home className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                              <span>{req.building_name} • {req.unit_number}</span>
-                            </span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                              {isFrench ? categoryConfig.fr : categoryConfig.label}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${urgencyConfig.badgeClass}`}>
-                              {isFrench ? urgencyConfig.fr : urgencyConfig.label}
-                            </span>
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${statusConfig.badgeClass}`}>
-                              {isFrench ? statusConfig.fr : statusConfig.label}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Title & Description */}
-                        <div>
-                          <h4 className="font-bold text-slate-900 dark:text-white text-base tracking-tight capitalize">
-                            {req.title}
-                          </h4>
-                          {req.description && (
-                            <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-slate-950/40 p-2 rounded-lg border border-slate-200 dark:border-slate-800/60 italic">
-                              "{req.description}"
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Attachments (Photo, Voice, Video) */}
-                        {(req.photo_url || req.voice_url || req.video_url) && (
-                          <div className="space-y-2 pt-1">
-                            {req.photo_url && (
-                              <div className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 max-w-xs">
-                                <img
-                                  src={req.photo_url}
-                                  alt={isFrench ? "Photo de la panne" : "Tenant damage photo"}
-                                  className="w-full h-36 object-cover cursor-pointer hover:scale-105 transition duration-300"
-                                  onClick={() => setPreviewPhoto(req.photo_url || null)}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewPhoto(req.photo_url || null)}
-                                  className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/80 backdrop-blur text-slate-900 dark:text-white text-[11px] font-medium flex items-center gap-1.5 border border-slate-200 dark:border-slate-700/80 hover:bg-white dark:hover:bg-slate-900 transition cursor-pointer shadow-xs"
-                                >
-                                  <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                                  <span>{isFrench ? "Inspecter la photo" : "Inspect Photo"}</span>
-                                </button>
-                              </div>
-                            )}
-
-                            {req.voice_url && (
-                              <div className="space-y-1">
-                                <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
-                                  <Mic className="w-3.5 h-3.5" />
-                                  <span>
-                                    {isFrench ? "Note vocale" : "Voice Note"} ({req.voice_duration_seconds ? `${req.voice_duration_seconds}s` : isFrench ? "Enregistrée" : "Recorded"})
-                                  </span>
-                                </span>
-                                <AudioPlayer
-                                  src={req.voice_url}
-                                  durationSeconds={req.voice_duration_seconds}
-                                  label={`${isFrench ? "Note vocale" : "Voice Note"} - ${req.tenant_name}`}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Footer: Tenant Details & Actions */}
-                      <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                          <UserIcon className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-slate-900 dark:text-slate-200 font-semibold">{req.tenant_name}</span>
-                          <span className="text-slate-300 dark:text-slate-500">•</span>
-                          <span>{req.tenant_phone}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {req.tenant_phone && (
-                            <a
-                              href={whatsappReply.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-600/15 dark:hover:bg-emerald-600/25 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold transition cursor-pointer shadow-xs"
-                              title={isFrench ? "Discuter sur WhatsApp" : "Chat on WhatsApp"}
-                            >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                              <span>WhatsApp</span>
-                            </a>
-                          )}
-
-                          <Link
-                            href="/dashboard/maintenance"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-semibold border border-slate-300 dark:border-slate-700 transition cursor-pointer shadow-xs"
-                          >
-                            <span>{isFrench ? "Gérer" : "Manage"}</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {maintenanceRequests.length > 4 && (
-                <div className="text-center pt-2">
-                  <Link
-                    href="/dashboard/maintenance"
-                    className="inline-flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition"
-                  >
-                    <span>
-                      {isFrench
-                        ? `Voir toutes les ${maintenanceRequests.length} demandes dans le centre de réparations →`
-                        : `View all ${maintenanceRequests.length} requests in Repairs Hub →`}
-                    </span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </main>
-
-      {/* Lightbox Modal for Photo Inspection */}
-      {previewPhoto && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setPreviewPhoto(null)}
-        >
-          <div
-            className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-300 flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                <span>{isFrench ? "Inspection de la photo de la panne" : "Damage Photo Inspection"}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setPreviewPhoto(null)}
-                className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-2 flex items-center justify-center">
-              <img
-                src={previewPhoto}
-                alt={isFrench ? "Photo agrandie" : "Enlarged photo"}
-                className="max-h-[75vh] w-auto object-contain rounded-lg"
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
