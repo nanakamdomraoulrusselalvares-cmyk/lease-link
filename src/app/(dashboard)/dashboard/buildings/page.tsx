@@ -91,6 +91,7 @@ export default function BuildingsManagementPage() {
   // Building creation form state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const creatingBuildingRef = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
@@ -253,16 +254,26 @@ export default function BuildingsManagementPage() {
           const parsed = JSON.parse(cachedDash);
           if (parsed.profile) setProfile(parsed.profile);
           if (Array.isArray(parsed.buildings) && parsed.buildings.length > 0) {
-            setBuildings(parsed.buildings);
-            setLoading(false);
+            const cleanCached = parsed.buildings.filter(
+              (b: Building) => !(typeof b?.id === "string" && b.id.startsWith("bld_"))
+            );
+            if (cleanCached.length > 0) {
+              setBuildings(cleanCached);
+              setLoading(false);
+            }
           }
         } else {
           const localB = localStorage.getItem("leaselink_local_buildings");
           if (localB) {
             const parsedB = JSON.parse(localB);
             if (Array.isArray(parsedB) && parsedB.length > 0) {
-              setBuildings(parsedB);
-              setLoading(false);
+              const cleanLocal = parsedB.filter(
+                (b: Building) => !(typeof b?.id === "string" && b.id.startsWith("bld_"))
+              );
+              if (cleanLocal.length > 0) {
+                setBuildings(cleanLocal);
+                setLoading(false);
+              }
             }
           }
         }
@@ -297,6 +308,7 @@ export default function BuildingsManagementPage() {
       loadData(true);
     };
     const handleBuildingsUpdated = () => {
+      if (creatingBuildingRef.current) return;
       loadData(true);
     };
     if (typeof window !== "undefined") {
@@ -389,6 +401,7 @@ export default function BuildingsManagementPage() {
   // Handle building creation form submission
   const handleCreateBuilding = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || creatingBuildingRef.current) return;
     setFormError(null);
     setFormSuccess(null);
 
@@ -449,6 +462,7 @@ export default function BuildingsManagementPage() {
       return;
     }
 
+    creatingBuildingRef.current = true;
     setSubmitting(true);
 
     try {
@@ -463,7 +477,6 @@ export default function BuildingsManagementPage() {
               ? "Échec de création du bâtiment. Veuillez réessayer."
               : "Failed to create building. Please try again.")
         );
-        setSubmitting(false);
         return;
       }
 
@@ -503,6 +516,7 @@ export default function BuildingsManagementPage() {
       const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
       setFormError(msg);
     } finally {
+      creatingBuildingRef.current = false;
       setSubmitting(false);
     }
   };

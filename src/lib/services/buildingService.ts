@@ -136,86 +136,64 @@ export async function createBuildingWithUnits(
   const totalUnits = Math.max(1, Number(input.total_units) || 1);
   const cleanPrefix = (input.unit_prefix || "Unit").trim();
 
-  // If not mock, attempt Supabase insertion
+  // Real Supabase environment: strictly atomic server-backed creation (never mix fake local `bld_*` duplicates)
   if (!isMockConfig && landlordId) {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return {
+        success: false,
+        error:
+          "You are currently offline. Please reconnect to the internet to create a new building.",
+      };
+    }
+
+    // 1. Primary path: Atomic server endpoint `/api/buildings` (idempotent + automatic rollback on unit failure)
     try {
-      // 1. Try atomic RPC function first
-      let rpcData: any = null;
-      let rpcError: any = null;
+      const apiRes = await fetch("/api/buildings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          landlordId,
+          name: input.name.trim(),
+          address: input.address.trim(),
+          city: input.city.trim() || null,
+          state_region: input.state_region.trim() || null,
+          property_type: input.property_type || "commercial",
+          total_units: totalUnits,
+          unit_prefix: cleanPrefix,
+          description: input.description.trim() || null,
+          planUnitLimit,
+        }),
+      });
 
-      try {
-        const res = await supabase.rpc("create_building_with_vacant_units", {
-          p_name: input.name.trim(),
-          p_address: input.address.trim(),
-          p_city: input.city.trim() || null,
-          p_state_region: input.state_region.trim() || null,
-          p_property_type: input.property_type || "commercial",
-          p_total_units: totalUnits,
-          p_unit_prefix: cleanPrefix,
-          p_description: input.description.trim() || null,
-          p_landlord_id: landlordId,
-        });
-        rpcData = res.data;
-        rpcError = res.error;
-      } catch (e: any) {
-        rpcError = e;
+      const apiJson = await apiRes.json().catch(() => null);
+      if (apiRes.ok && apiJson?.success && apiJson?.building) {
+        const finalUnits = (apiJson.units || apiJson.building.units || []) as Unit[];
+        const finalBuilding: Building = {
+          ...(apiJson.building as Building),
+          units: finalUnits,
+        };
+        saveBuildingToLocal(finalBuilding, finalUnits);
+        return {
+          success: true,
+          building: finalBuilding,
+          units: finalUnits,
+        };
       }
 
-      // If RPC failed due to parameter mismatch (older migration signature), retry without p_landlord_id
-      if (rpcError && rpcError.message && (rpcError.message.includes("p_landlord_id") || rpcError.message.includes("argument"))) {
-        try {
-          const res = await supabase.rpc("create_building_with_vacant_units", {
-            p_name: input.name.trim(),
-            p_address: input.address.trim(),
-            p_city: input.city.trim() || null,
-            p_state_region: input.state_region.trim() || null,
-            p_property_type: input.property_type || "commercial",
-            p_total_units: totalUnits,
-            p_unit_prefix: cleanPrefix,
-            p_description: input.description.trim() || null,
-          });
-          rpcData = res.data;
-          rpcError = res.error;
-        } catch (e2: any) {
-          rpcError = e2;
-        }
+      if (apiJson && apiJson.success === false && apiJson.error) {
+        return {
+          success: false,
+          error: apiJson.error,
+        };
       }
+    } catch (apiErr) {
+      console.warn("Server /api/buildings fallback to client Supabase:", apiErr);
+    }
 
-      if (!rpcError && rpcData && rpcData.success && rpcData.building_id) {
-        // Fetch the created building and units separately to avoid nested join failures
-        const { data: createdBuilding } = await supabase
-          .from("buildings")
-          .select("*")
-          .eq("id", rpcData.building_id)
-          .maybeSingle();
-
-        const { data: createdUnits } = await supabase
-          .from("units")
-          .select("*")
-          .eq("building_id", rpcData.building_id);
-
-        if (createdBuilding) {
-          const finalBuilding: Building = {
-            ...(createdBuilding as Building),
-            units: (createdUnits || []) as Unit[],
-          };
-
-          saveBuildingToLocal(finalBuilding, (createdUnits || []) as Unit[]);
-
-          return {
-            success: true,
-            building: finalBuilding,
-            units: (createdUnits || []) as Unit[],
-          };
-        }
-      }
-
-      // If RPC failed due to quota validation, return that error directly
-      if (rpcData && !rpcData.success && rpcData.error) {
-        return { success: false, error: rpcData.error };
-      }
-
-      // 2. Direct client insert fallback (if RPC function is not yet installed in Supabase)
+    // 2. Secondary path: Client Supabase with strict atomic rollback if units fail
+    let createdBuildingIdForRollback: string | null = null;
+    try {
       const { count: currentUnitsCount } = await supabase
         .from("units")
         .select("id", { count: "exact", head: true })
@@ -229,10 +207,6 @@ export async function createBuildingWithUnits(
         };
       }
 
-      // Insert building (with fallback retry for schemas missing optional columns)
-      let newBuilding: any = null;
-      let buildingError: any = null;
-
       const fullBuildingPayload = {
         landlord_id: landlordId,
         name: input.name.trim(),
@@ -245,17 +219,16 @@ export async function createBuildingWithUnits(
         description: input.description.trim() || null,
       };
 
+      let newBuilding: Building | null = null;
       const resBuilding = await supabase
         .from("buildings")
         .insert(fullBuildingPayload)
         .select()
         .single();
 
-      newBuilding = resBuilding.data;
-      buildingError = resBuilding.error;
-
-      if (buildingError) {
-        console.warn("Direct building insert with full payload failed, trying base columns:", buildingError.message);
+      if (!resBuilding.error && resBuilding.data) {
+        newBuilding = resBuilding.data as Building;
+      } else {
         const baseBuildingPayload = {
           landlord_id: landlordId,
           name: input.name.trim(),
@@ -268,24 +241,28 @@ export async function createBuildingWithUnits(
           .insert(baseBuildingPayload)
           .select()
           .single();
+
         if (!retryBuilding.error && retryBuilding.data) {
-          newBuilding = retryBuilding.data;
-          buildingError = null;
+          newBuilding = retryBuilding.data as Building;
         } else {
-          throw buildingError;
+          return {
+            success: false,
+            error:
+              retryBuilding.error?.message ||
+              resBuilding.error?.message ||
+              "Failed to create building.",
+          };
         }
       }
 
-      // Generate all units with status = 'vacant' and 0 default specs
+      createdBuildingIdForRollback = newBuilding.id;
+
       const unitsToInsert = [];
-
       for (let i = 1; i <= totalUnits; i++) {
-        const unitNumber = `${cleanPrefix} ${i}`;
-
         unitsToInsert.push({
           building_id: newBuilding.id,
           landlord_id: landlordId,
-          unit_number: unitNumber,
+          unit_number: `${cleanPrefix} ${i}`,
           status: "vacant" as const,
           rent_amount: 0,
           deposit_amount: 0,
@@ -297,54 +274,61 @@ export async function createBuildingWithUnits(
         });
       }
 
-      let insertedUnits: any = null;
-      let unitsError: any = null;
-
-      const resUnits = await supabase
-        .from("units")
-        .insert(unitsToInsert)
-        .select();
-
-      insertedUnits = resUnits.data;
-      unitsError = resUnits.error;
-
-      if (unitsError) {
-        console.warn("Units batch insert with full columns failed, retrying base columns:", unitsError.message);
+      let insertedUnits: Unit[] | null = null;
+      const resUnits = await supabase.from("units").insert(unitsToInsert).select();
+      if (!resUnits.error && resUnits.data && resUnits.data.length > 0) {
+        insertedUnits = resUnits.data as Unit[];
+      } else {
         const minimalUnits = unitsToInsert.map((u) => ({
           building_id: u.building_id,
           landlord_id: u.landlord_id,
           unit_number: u.unit_number,
           status: u.status,
           rent_amount: 0,
-          deposit_amount: 0,
         }));
-        const retryUnits = await supabase
-          .from("units")
-          .insert(minimalUnits)
-          .select();
-        if (!retryUnits.error && retryUnits.data) {
-          insertedUnits = retryUnits.data;
-          unitsError = null;
+        const retryUnits = await supabase.from("units").insert(minimalUnits).select();
+        if (!retryUnits.error && retryUnits.data && retryUnits.data.length > 0) {
+          insertedUnits = retryUnits.data as Unit[];
         } else {
-          throw unitsError;
+          // Roll back orphan building immediately so 0-unit buildings never persist
+          await supabase.from("buildings").delete().eq("id", newBuilding.id);
+          createdBuildingIdForRollback = null;
+          return {
+            success: false,
+            error:
+              retryUnits.error?.message ||
+              resUnits.error?.message ||
+              "Failed to generate units for building.",
+          };
         }
       }
 
       const finalBuilding: Building = {
         ...newBuilding,
-        units: (insertedUnits || []) as Unit[],
+        units: insertedUnits,
       };
 
-      saveBuildingToLocal(finalBuilding, (insertedUnits || []) as Unit[]);
+      saveBuildingToLocal(finalBuilding, insertedUnits);
 
       return {
         success: true,
         building: finalBuilding,
-        units: (insertedUnits || []) as Unit[],
+        units: insertedUnits,
       };
     } catch (err: unknown) {
-      console.warn("Supabase database insert error, falling back to local session store:", err);
-      // Fall through to local fallback
+      if (createdBuildingIdForRollback) {
+        await supabase
+          .from("buildings")
+          .delete()
+          .eq("id", createdBuildingIdForRollback)
+          .then(
+            () => {},
+            () => {}
+          );
+      }
+      const msg =
+        err instanceof Error ? err.message : "Failed to create building.";
+      return { success: false, error: msg };
     }
   }
 
@@ -715,66 +699,106 @@ export async function getBuildingsWithUnits(
   let remoteUnits: Unit[] = [];
   let fetchedRemoteSuccessfully = false;
 
-  if (!isMockConfig) {
+  if (!isMockConfig && (typeof navigator === "undefined" || navigator.onLine !== false)) {
+    // 1. Primary path: Server `/api/buildings` (fetches portfolio & auto-heals any 0-unit orphans)
     try {
-      // 1. Fetch remote buildings separately to avoid fragile nested join failures
-      const { data: bData, error: bError } = await supabase
-        .from("buildings")
-        .select("*")
-        .eq("landlord_id", landlordId)
-        .order("created_at", { ascending: false });
-
-      if (!bError && bData) {
-        remoteBuildings = bData as Building[];
-        fetchedRemoteSuccessfully = true;
-
-        // 2. Fetch remote units for this landlord
-        const { data: uData, error: uError } = await supabase
-          .from("units")
-          .select("*")
-          .eq("landlord_id", landlordId);
-
-        if (!uError && uData) {
-          remoteUnits = uData as Unit[];
-        } else if (remoteBuildings.length > 0) {
-          // Fallback: fetch units by building IDs
-          const bIds = remoteBuildings.map((b) => b.id);
-          const { data: uData2 } = await supabase
-            .from("units")
-            .select("*")
-            .in("building_id", bIds);
-          if (uData2) {
-            remoteUnits = uData2 as Unit[];
-          }
+      const apiRes = await fetch(
+        `/api/buildings?landlordId=${encodeURIComponent(landlordId)}`,
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+      if (apiRes.ok) {
+        const apiJson = await apiRes.json();
+        if (apiJson?.success && Array.isArray(apiJson.buildings)) {
+          remoteBuildings = apiJson.buildings as Building[];
+          remoteUnits = remoteBuildings.flatMap((b) => b.units || []);
+          fetchedRemoteSuccessfully = true;
         }
       }
-    } catch (err) {
-      console.warn("Could not fetch remote buildings from Supabase:", err);
+    } catch {
+      // Fall through to direct Supabase client fetch
+    }
+
+    // 2. Fallback path: Direct Supabase client query
+    if (!fetchedRemoteSuccessfully) {
+      try {
+        const { data: bData, error: bError } = await supabase
+          .from("buildings")
+          .select("*")
+          .eq("landlord_id", landlordId)
+          .order("created_at", { ascending: false });
+
+        if (!bError && bData) {
+          remoteBuildings = bData as Building[];
+          fetchedRemoteSuccessfully = true;
+
+          const { data: uData, error: uError } = await supabase
+            .from("units")
+            .select("*")
+            .eq("landlord_id", landlordId);
+
+          if (!uError && uData) {
+            remoteUnits = uData as Unit[];
+          } else if (remoteBuildings.length > 0) {
+            const bIds = remoteBuildings.map((b) => b.id);
+            const { data: uData2 } = await supabase
+              .from("units")
+              .select("*")
+              .in("building_id", bIds);
+            if (uData2) {
+              remoteUnits = uData2 as Unit[];
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch remote buildings from Supabase:", err);
+      }
     }
   }
 
-  // 3. Resilient Merge: Combine remote and local storage so no buildings or units disappear
+  // 3. Build portfolio dataset:
+  //    - When online & Supabase responded (`fetchedRemoteSuccessfully`), Supabase is the single source of truth
+  //      (prevents stale `bld_*` local fallback ghosts from duplicating real buildings!).
+  //    - When offline (or mock environment), fall back to cached local buildings (excluding fake `bld_*` IDs in non-mock mode).
   const buildingMap = new Map<string, Building>();
-
-  // Add local buildings for this landlord first
-  for (const lb of localBuildings.filter((b) => b.landlord_id === landlordId)) {
-    buildingMap.set(lb.id, lb);
-  }
-
-  // Overlay remote buildings (they take precedence for shared IDs)
-  for (const rb of remoteBuildings) {
-    buildingMap.set(rb.id, rb);
-  }
-
-  // Merge units by ID
   const unitMap = new Map<string, Unit>();
-  for (const lu of localUnits.filter((u) => u.landlord_id === landlordId)) {
-    unitMap.set(lu.id, lu);
-  }
-  for (const ru of remoteUnits) {
-    const localOverride = unitMap.get(ru.id);
-    // Preserve local modifications if present
-    unitMap.set(ru.id, localOverride ? { ...ru, ...localOverride } : ru);
+
+  if (fetchedRemoteSuccessfully) {
+    for (const rb of remoteBuildings) {
+      buildingMap.set(rb.id, rb);
+    }
+    for (const ru of remoteUnits) {
+      unitMap.set(ru.id, ru);
+    }
+  } else {
+    for (const lb of localBuildings.filter((b) => {
+      if (b.landlord_id !== landlordId) return false;
+      if (!isMockConfig && typeof b.id === "string" && b.id.startsWith("bld_")) {
+        return false;
+      }
+      return true;
+    })) {
+      buildingMap.set(lb.id, lb);
+      if (Array.isArray(lb.units)) {
+        for (const u of lb.units) {
+          if (isMockConfig || !(typeof u.id === "string" && u.id.startsWith("unt_"))) {
+            unitMap.set(u.id, u);
+          }
+        }
+      }
+    }
+    for (const lu of localUnits.filter((u) => {
+      if (u.landlord_id !== landlordId) return false;
+      if (!isMockConfig && typeof u.id === "string" && u.id.startsWith("unt_")) {
+        return false;
+      }
+      return true;
+    })) {
+      unitMap.set(lu.id, lu);
+    }
   }
 
   // Associate units with buildings
@@ -792,17 +816,33 @@ export async function getBuildingsWithUnits(
     };
   });
 
-  // 4. Update local cache with merged dataset so other pages stay in sync
+  // 4. Sync local offline cache strictly with authoritative dataset (purging any stale `bld_*` duplicates)
   if (fetchedRemoteSuccessfully && typeof window !== "undefined") {
     try {
-      const otherBuildings = localBuildings.filter((b) => b.landlord_id !== landlordId);
+      const otherBuildings = localBuildings.filter(
+        (b) =>
+          b.landlord_id !== landlordId &&
+          !(typeof b.id === "string" && b.id.startsWith("bld_"))
+      );
       setLocalData(LOCAL_STORAGE_KEY_BUILDINGS, [...allBuildings, ...otherBuildings]);
 
-      const otherUnits = localUnits.filter((u) => u.landlord_id !== landlordId);
+      const otherUnits = localUnits.filter(
+        (u) =>
+          u.landlord_id !== landlordId &&
+          !(typeof u.id === "string" && u.id.startsWith("unt_"))
+      );
       const currentUnits = Array.from(unitMap.values());
       setLocalData(LOCAL_STORAGE_KEY_UNITS, [...currentUnits, ...otherUnits]);
+
+      const rawDash = localStorage.getItem("leaselink_cached_dashboard");
+      if (rawDash) {
+        const parsedDash = JSON.parse(rawDash);
+        parsedDash.buildings = allBuildings;
+        parsedDash.cachedAt = Date.now();
+        localStorage.setItem("leaselink_cached_dashboard", JSON.stringify(parsedDash));
+      }
     } catch (syncErr) {
-      console.warn("Could not sync merged buildings to local storage:", syncErr);
+      console.warn("Could not sync buildings to local storage:", syncErr);
     }
   }
 

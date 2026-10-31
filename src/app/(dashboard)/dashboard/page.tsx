@@ -177,8 +177,13 @@ export default function LandlordHomePage() {
           const parsed = JSON.parse(cached);
           if (parsed.profile) setProfile(parsed.profile);
           if (Array.isArray(parsed.buildings) && parsed.buildings.length > 0) {
-            setBuildings(parsed.buildings);
-            setLoading(false); // Instant display!
+            const cleanBuildings = parsed.buildings.filter(
+              (b: Building) => !(typeof b?.id === "string" && b.id.startsWith("bld_"))
+            );
+            if (cleanBuildings.length > 0) {
+              setBuildings(cleanBuildings);
+              setLoading(false); // Instant display!
+            }
           }
           if (Array.isArray(parsed.maintenanceRequests)) {
             setMaintenanceRequests(parsed.maintenanceRequests);
