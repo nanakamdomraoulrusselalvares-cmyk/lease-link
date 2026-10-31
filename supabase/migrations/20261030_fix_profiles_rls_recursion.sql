@@ -1,18 +1,80 @@
 -- ==============================================================================
--- MIGRATION: Fix Infinite Recursion in public.profiles RLS Policies (ERROR 42P17)
+-- MIGRATION: Backfill Missing Columns & Fix public.profiles RLS Recursion (42P17 / 42703)
 -- ==============================================================================
 -- Run this script directly in your Supabase SQL Editor:
 -- (Supabase Dashboard -> SQL Editor -> New Query -> Paste & Run)
 --
--- Root cause fixed:
---   "Profiles select policy" previously contained an inline SQL subquery against
---   public.profiles:
---     `or id = (select p.landlord_id from public.profiles p where p.id = auth.uid())`
---   Because inline subqueries run under the caller's role rather than a
---   SECURITY DEFINER function, PostgreSQL recursively re-applied RLS on
---   public.profiles and aborted SELECT & UPDATE queries with HTTP 500:
---     `infinite recursion detected in policy for relation "profiles"`
+-- 100% IDEMPOTENT & SAFE ON EXISTING DATABASES:
+--   1. Adds any missing columns (including `landlord_id`, `role`, `assigned_building_ids`,
+--      `phone`, and subscription plan columns) on `public.profiles` and related tables
+--      BEFORE creating functions or RLS policies (fixes ERROR 42703).
+--   2. Dynamically drops all recursive policies on `public.profiles` and replaces them
+--      with non-recursive SECURITY DEFINER helpers (fixes ERROR 42P17).
 -- ==============================================================================
+
+set check_function_bodies = false;
+
+-- 0. Ensure public.profiles exists and has ALL required columns (including landlord_id)
+create table if not exists public.profiles (
+    id uuid primary key references auth.users(id) on delete cascade
+);
+
+alter table public.profiles add column if not exists full_name text not null default '';
+alter table public.profiles add column if not exists phone text not null default '';
+alter table public.profiles add column if not exists email text not null default '';
+alter table public.profiles add column if not exists role text not null default 'landlord';
+alter table public.profiles add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+alter table public.profiles add column if not exists assigned_building_ids uuid[] default null;
+alter table public.profiles add column if not exists plan text not null default 'free';
+alter table public.profiles add column if not exists plan_name text not null default 'Free Trial (30 Days)';
+alter table public.profiles add column if not exists billing_cycle text not null default 'monthly';
+alter table public.profiles add column if not exists plan_unit_limit integer not null default 5;
+alter table public.profiles add column if not exists unit_limit integer not null default 5;
+alter table public.profiles add column if not exists plan_duration_days integer not null default 30;
+alter table public.profiles add column if not exists plan_starts_at timestamptz not null default now();
+alter table public.profiles add column if not exists plan_expires_at timestamptz not null default (now() + interval '30 days');
+alter table public.profiles add column if not exists trial_expires_at timestamptz not null default (now() + interval '30 days');
+alter table public.profiles add column if not exists subscription_expires_at timestamptz not null default (now() + interval '30 days');
+alter table public.profiles add column if not exists plan_status text not null default 'active';
+alter table public.profiles add column if not exists subscription_status text not null default 'active';
+alter table public.profiles add column if not exists has_used_free_trial boolean not null default false;
+alter table public.profiles add column if not exists has_used_trial boolean not null default false;
+alter table public.profiles add column if not exists created_at timestamptz not null default now();
+alter table public.profiles add column if not exists updated_at timestamptz not null default now();
+
+-- Safely ensure landlord_id also exists on any pre-existing portfolio tables
+do $$
+begin
+    if to_regclass('public.buildings') is not null then
+        alter table public.buildings add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+    end if;
+    if to_regclass('public.units') is not null then
+        alter table public.units add column if not exists building_id uuid references public.buildings(id) on delete cascade;
+        alter table public.units add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+    end if;
+    if to_regclass('public.maintenance_requests') is not null then
+        alter table public.maintenance_requests add column if not exists unit_id uuid references public.units(id) on delete cascade;
+        alter table public.maintenance_requests add column if not exists building_id uuid references public.buildings(id) on delete cascade;
+        alter table public.maintenance_requests add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+    end if;
+    if to_regclass('public.rent_payments') is not null then
+        alter table public.rent_payments add column if not exists unit_id uuid references public.units(id) on delete cascade;
+        alter table public.rent_payments add column if not exists building_id uuid references public.buildings(id) on delete cascade;
+        alter table public.rent_payments add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+    end if;
+    if to_regclass('public.notifications') is not null then
+        alter table public.notifications add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+        alter table public.notifications add column if not exists building_id uuid references public.buildings(id) on delete cascade;
+        alter table public.notifications add column if not exists unit_id uuid references public.units(id) on delete cascade;
+    end if;
+    if to_regclass('public.subscriptions') is not null then
+        alter table public.subscriptions add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+    end if;
+end;
+$$;
+
+create index if not exists idx_profiles_role on public.profiles(role);
+create index if not exists idx_profiles_landlord_id on public.profiles(landlord_id);
 
 -- 1. Ensure SECURITY DEFINER helper functions bypass RLS cleanly (owned by postgres)
 alter table public.profiles no force row level security;
@@ -132,134 +194,7 @@ create policy "Profiles delete policy"
         public.is_admin()
     );
 
--- 4. Ensure multi-tenant isolation triggers execute as SECURITY DEFINER
-create or replace function public.enforce_unit_tenant_isolation()
-returns trigger as $$
-begin
-    if new.building_id is not null and new.landlord_id is not null then
-        if not exists (
-            select 1 from public.buildings b
-            where b.id = new.building_id
-              and (
-                  b.landlord_id = new.landlord_id
-                  or exists (
-                      select 1 from public.profiles p
-                      where p.id = new.landlord_id and p.landlord_id = b.landlord_id
-                  )
-              )
-        ) then
-            raise exception 'Multi-tenant isolation violation: Building does not belong to the specified landlord.';
-        end if;
-    end if;
-    return new;
-end;
-$$ language plpgsql security definer set search_path = public, auth;
-
-create or replace function public.enforce_maintenance_tenant_isolation()
-returns trigger as $$
-begin
-    if new.unit_id is not null and new.building_id is not null and new.landlord_id is not null then
-        if not exists (
-            select 1 from public.units u
-            join public.buildings b on b.id = u.building_id
-            where u.id = new.unit_id
-              and u.building_id = new.building_id
-              and (
-                  (u.landlord_id = new.landlord_id and b.landlord_id = new.landlord_id)
-                  or exists (
-                      select 1 from public.profiles p
-                      where p.id = new.landlord_id and p.landlord_id = u.landlord_id
-                  )
-              )
-        ) then
-            raise exception 'Multi-tenant isolation violation: Maintenance request property ownership mismatch.';
-        end if;
-    end if;
-    return new;
-end;
-$$ language plpgsql security definer set search_path = public, auth;
-
-create or replace function public.enforce_maintenance_status_rules()
-returns trigger as $$
-declare
-    v_updater_role text;
-begin
-    if new.status = 'resolved' and (old.status is null or old.status <> 'resolved') then
-        if auth.uid() is not null then
-            select role into v_updater_role from public.profiles where id = auth.uid();
-            if v_updater_role in ('landlord', 'manager') and not public.is_admin() then
-                raise exception 'Only the tenant can mark a reparation request as resolved (Seul le locataire peut marquer sa demande de réparation comme résolue).';
-            end if;
-        end if;
-    end if;
-    return new;
-end;
-$$ language plpgsql security definer set search_path = public, auth;
-
-create or replace function public.enforce_payment_tenant_isolation()
-returns trigger as $$
-begin
-    if new.unit_id is not null and new.building_id is not null and new.landlord_id is not null then
-        if not exists (
-            select 1 from public.units u
-            join public.buildings b on b.id = u.building_id
-            where u.id = new.unit_id
-              and u.building_id = new.building_id
-              and (
-                  (u.landlord_id = new.landlord_id and b.landlord_id = new.landlord_id)
-                  or exists (
-                      select 1 from public.profiles p
-                      where p.id = new.landlord_id and p.landlord_id = u.landlord_id
-                  )
-              )
-        ) then
-            raise exception 'Multi-tenant isolation violation: Rent payment property ownership mismatch.';
-        end if;
-    end if;
-    return new;
-end;
-$$ language plpgsql security definer set search_path = public, auth;
-
-create or replace function public.enforce_notification_tenant_isolation()
-returns trigger as $$
-begin
-    if new.building_id is not null and new.landlord_id is not null then
-        if not exists (
-            select 1 from public.buildings b
-            where b.id = new.building_id
-              and (
-                  b.landlord_id = new.landlord_id
-                  or exists (
-                      select 1 from public.profiles p
-                      where p.id = new.landlord_id and p.landlord_id = b.landlord_id
-                  )
-              )
-        ) then
-            raise exception 'Multi-tenant isolation violation: Notification building does not belong to specified landlord.';
-        end if;
-    end if;
-
-    if new.unit_id is not null and new.landlord_id is not null then
-        if not exists (
-            select 1 from public.units u
-            where u.id = new.unit_id
-              and (
-                  u.landlord_id = new.landlord_id
-                  or exists (
-                      select 1 from public.profiles p
-                      where p.id = new.landlord_id and p.landlord_id = u.landlord_id
-                  )
-              )
-        ) then
-            raise exception 'Multi-tenant isolation violation: Notification unit does not belong to specified landlord.';
-        end if;
-    end if;
-
-    return new;
-end;
-$$ language plpgsql security definer set search_path = public, auth;
-
--- 5. SECURITY DEFINER Profile RPCs (RLS-immune self-profile read & phone update)
+-- 4. SECURITY DEFINER Profile RPCs (RLS-immune self-profile read & phone update)
 create or replace function public.get_my_profile()
 returns json as $$
 declare
@@ -356,8 +291,12 @@ begin
 end;
 $$ language plpgsql security definer set search_path = public, auth;
 
+grant usage on schema public to anon, authenticated, service_role;
+grant select, insert, update, delete on table public.profiles to anon, authenticated, service_role;
+grant execute on function public.is_admin() to anon, authenticated, service_role;
+grant execute on function public.get_auth_landlord_id() to anon, authenticated, service_role;
+grant execute on function public.can_access_landlord_portfolio(uuid) to anon, authenticated, service_role;
 grant execute on function public.get_my_profile() to authenticated, service_role;
 grant execute on function public.update_my_profile_phone(text) to authenticated, service_role;
 
 notify pgrst, 'reload schema';
-

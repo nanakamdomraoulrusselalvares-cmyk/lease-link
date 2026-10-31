@@ -171,9 +171,9 @@ export async function GET() {
 
         profile = resolvedRow;
       } else if (!rowErr && !row) {
-        // Auto-provision missing profile row
+        // Auto-provision missing profile row (with minimal-column fallback if DB lacks newer columns)
         const synthesized = synthesizeProfileFromUser(user);
-        const { data: created } = await adminClient
+        const { data: created, error: createErr } = await adminClient
           .from("profiles")
           .upsert({
             ...synthesized,
@@ -181,7 +181,24 @@ export async function GET() {
           })
           .select("*")
           .maybeSingle();
-        profile = (created as LandlordProfile) || synthesized;
+
+        if (!createErr && created) {
+          profile = created as LandlordProfile;
+        } else {
+          const { data: minCreated } = await adminClient
+            .from("profiles")
+            .upsert({
+              id: synthesized.id,
+              email: synthesized.email,
+              full_name: synthesized.full_name,
+              phone: synthesized.phone,
+            })
+            .select("*")
+            .maybeSingle();
+          profile = minCreated
+            ? ({ ...synthesized, ...(minCreated as Partial<LandlordProfile>) } as LandlordProfile)
+            : synthesized;
+        }
       }
     }
 
@@ -330,6 +347,24 @@ export async function PATCH(request: Request) {
         if (!insertErr && insertedRow) {
           updatedProfile = insertedRow as LandlordProfile;
           persistedToDb = true;
+        } else {
+          const { data: minInserted, error: minErr } = await adminClient
+            .from("profiles")
+            .upsert({
+              id: synthesized.id,
+              email: synthesized.email,
+              full_name: synthesized.full_name,
+              phone: synthesized.phone,
+            })
+            .select("*")
+            .maybeSingle();
+          if (!minErr && minInserted) {
+            updatedProfile = {
+              ...synthesized,
+              ...(minInserted as Partial<LandlordProfile>),
+            } as LandlordProfile;
+            persistedToDb = true;
+          }
         }
       }
     }

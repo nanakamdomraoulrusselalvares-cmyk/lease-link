@@ -50,7 +50,13 @@ create table if not exists public.profiles (
     updated_at timestamptz not null default now()
 );
 
--- Idempotent column migrations for existing databases
+-- Idempotent column migrations for existing databases (ensures all columns exist immediately)
+alter table public.profiles add column if not exists full_name text not null default '';
+alter table public.profiles add column if not exists phone text not null default '';
+alter table public.profiles add column if not exists email text not null default '';
+alter table public.profiles add column if not exists role text not null default 'landlord';
+alter table public.profiles add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+alter table public.profiles add column if not exists assigned_building_ids uuid[] default null;
 alter table public.profiles add column if not exists plan text not null default 'free';
 alter table public.profiles add column if not exists plan_name text not null default 'Free Trial (30 Days)';
 alter table public.profiles add column if not exists billing_cycle text not null default 'monthly';
@@ -65,10 +71,8 @@ alter table public.profiles add column if not exists plan_status text not null d
 alter table public.profiles add column if not exists subscription_status text not null default 'active';
 alter table public.profiles add column if not exists has_used_free_trial boolean not null default false;
 alter table public.profiles add column if not exists has_used_trial boolean not null default false;
-
--- Idempotent column migrations for financial receipts storage
-alter table public.rent_payments add column if not exists receipt_url text;
-alter table public.subscriptions add column if not exists receipt_url text;
+alter table public.profiles add column if not exists created_at timestamptz not null default now();
+alter table public.profiles add column if not exists updated_at timestamptz not null default now();
 
 -- 1.2 Buildings Table (Properties, Complexes & Residences)
 create table if not exists public.buildings (
@@ -356,7 +360,7 @@ alter table public.profiles add column if not exists updated_at timestamptz not 
 do $$
 begin
     update public.profiles set role = 'landlord' where role is null or role not in ('landlord', 'manager', 'admin', 'tenant');
-    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate');
+    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate', 'tier_300_plus', 'custom');
     update public.profiles set billing_cycle = 'monthly' where billing_cycle is null or billing_cycle not in ('monthly', 'annual');
     update public.profiles set plan_status = 'active' where plan_status is null or plan_status not in ('active', 'expired', 'renewed', 'suspended');
     update public.profiles set subscription_status = plan_status where subscription_status is null;
@@ -369,7 +373,7 @@ begin
     alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin', 'tenant'));
 
     alter table public.profiles drop constraint if exists profiles_plan_check;
-    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate'));
+    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate', 'tier_300_plus', 'custom'));
 
     alter table public.profiles drop constraint if exists profiles_billing_cycle_check;
     alter table public.profiles add constraint profiles_billing_cycle_check check (billing_cycle in ('monthly', 'annual'));
@@ -594,6 +598,7 @@ alter table public.subscriptions add column if not exists expires_at timestamptz
 alter table public.subscriptions add column if not exists status text not null default 'completed';
 alter table public.subscriptions add column if not exists payer_phone text;
 alter table public.subscriptions add column if not exists notes text;
+alter table public.subscriptions add column if not exists receipt_url text;
 alter table public.subscriptions add column if not exists created_at timestamptz not null default now();
 
 do $$
