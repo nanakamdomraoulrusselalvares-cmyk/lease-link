@@ -676,12 +676,15 @@ $$;
 
 create index if not exists idx_profiles_role on public.profiles(role);
 create index if not exists idx_profiles_landlord_id on public.profiles(landlord_id);
+create index if not exists idx_profiles_account_status on public.profiles(account_status);
 
 create index if not exists idx_buildings_landlord_id on public.buildings(landlord_id);
 
 create index if not exists idx_units_building_id on public.units(building_id);
 create index if not exists idx_units_landlord_id on public.units(landlord_id);
 create index if not exists idx_units_status on public.units(status);
+create index if not exists idx_units_account_status on public.units(account_status);
+create index if not exists idx_units_next_due_date on public.units(next_due_date);
 create index if not exists idx_units_tenant_access_token on public.units(tenant_access_token);
 create index if not exists idx_units_tenant_phone on public.units(tenant_phone);
 create index if not exists idx_units_tenant_email on public.units(lower(trim(tenant_email)));
@@ -690,6 +693,7 @@ create index if not exists idx_units_rent_due_day on public.units(rent_due_day);
 create index if not exists idx_maintenance_unit_id on public.maintenance_requests(unit_id);
 create index if not exists idx_maintenance_building_id on public.maintenance_requests(building_id);
 create index if not exists idx_maintenance_landlord_id on public.maintenance_requests(landlord_id);
+create index if not exists idx_maintenance_assigned_manager on public.maintenance_requests(assigned_manager_id);
 create index if not exists idx_maintenance_status on public.maintenance_requests(status);
 
 create index if not exists idx_rent_payments_unit_id on public.rent_payments(unit_id);
@@ -699,6 +703,7 @@ create index if not exists idx_rent_payments_rent_month on public.rent_payments(
 create index if not exists idx_rent_payments_status on public.rent_payments(status);
 
 create index if not exists idx_notifications_recipient_role on public.notifications(recipient_role);
+create index if not exists idx_notifications_recipient_id on public.notifications(recipient_id);
 create index if not exists idx_notifications_landlord_id on public.notifications(landlord_id);
 create index if not exists idx_notifications_building_id on public.notifications(building_id);
 create index if not exists idx_notifications_unit_id on public.notifications(unit_id);
@@ -1220,21 +1225,25 @@ begin
         v_plan_name := 'Free Trial (30 Days)';
         v_unit_limit := 5;
         v_has_trial := true;
-    elsif v_plan = 'tier_1_30' then
-        v_plan_name := 'Starter (1 to 30 Units)';
-        v_unit_limit := 30;
+    elsif v_plan in ('tier_1_50', 'tier_1_30', 'starter') then
+        v_plan := 'tier_1_50';
+        v_plan_name := 'Pack Sérénité (1 à 50 lots)';
+        v_unit_limit := 50;
         v_has_trial := false;
-    elsif v_plan = 'tier_31_60' then
-        v_plan_name := 'Growth (31 to 60 Units)';
-        v_unit_limit := 60;
+    elsif v_plan in ('tier_51_150', 'tier_31_60', 'growth') then
+        v_plan := 'tier_51_150';
+        v_plan_name := 'Pack Confort (51 à 150 lots)';
+        v_unit_limit := 150;
         v_has_trial := false;
-    elsif v_plan = 'tier_61_100' then
-        v_plan_name := 'Pro (61 to 100 Units)';
-        v_unit_limit := 100;
-        v_has_trial := false;
-    elsif v_plan in ('tier_100_plus', 'ultimate') then
-        v_plan_name := 'Ultimate (101 to 300 Units)';
+    elsif v_plan in ('tier_151_300', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate') then
+        v_plan := 'tier_151_300';
+        v_plan_name := 'Pack Prestige (151 à 300 lots)';
         v_unit_limit := 300;
+        v_has_trial := false;
+    elsif v_plan in ('tier_300_plus', 'custom') then
+        v_plan := 'tier_300_plus';
+        v_plan_name := 'Pack Entreprise (+ de 300 lots)';
+        v_unit_limit := 9999;
         v_has_trial := false;
     else
         v_plan := 'free';
@@ -1243,7 +1252,8 @@ begin
         v_has_trial := true;
     end if;
 
-    if v_billing_cycle = 'annual' and not v_has_trial then
+    -- All paid monthly and annual subscriptions enforce exact 12-month (365 days) duration
+    if not v_has_trial then
         v_duration_days := 365;
         v_expires_at := now() + interval '365 days';
     else
@@ -1341,6 +1351,7 @@ declare
     v_user_id uuid;
     v_plan_name text;
     v_unit_limit integer;
+    v_duration_days integer;
     v_has_used_trial boolean;
 begin
     v_user_id := auth.uid();
@@ -1359,18 +1370,23 @@ begin
     if p_plan in ('free', 'free_trial') then
         v_plan_name := 'Free Trial (30 Days)';
         v_unit_limit := 5;
-    elsif p_plan in ('tier_1_30', 'starter') then
-        v_plan_name := 'Starter (1 to 30 Units)';
-        v_unit_limit := 30;
-    elsif p_plan in ('tier_31_60', 'growth') then
-        v_plan_name := 'Growth (31 to 60 Units)';
-        v_unit_limit := 60;
-    elsif p_plan in ('tier_61_100', 'pro') then
-        v_plan_name := 'Pro (61 to 100 Units)';
-        v_unit_limit := 100;
-    elsif p_plan in ('tier_100_plus', 'ultimate') then
-        v_plan_name := 'Ultimate (101 to 300 Units)';
+        v_duration_days := 30;
+    elsif p_plan in ('tier_1_50', 'tier_1_30', 'starter') then
+        v_plan_name := 'Pack Sérénité (1 à 50 lots)';
+        v_unit_limit := 50;
+        v_duration_days := 365;
+    elsif p_plan in ('tier_51_150', 'tier_31_60', 'growth') then
+        v_plan_name := 'Pack Confort (51 à 150 lots)';
+        v_unit_limit := 150;
+        v_duration_days := 365;
+    elsif p_plan in ('tier_151_300', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate') then
+        v_plan_name := 'Pack Prestige (151 à 300 lots)';
         v_unit_limit := 300;
+        v_duration_days := 365;
+    elsif p_plan in ('tier_300_plus', 'custom') then
+        v_plan_name := 'Pack Entreprise (+ de 300 lots)';
+        v_unit_limit := 9999;
+        v_duration_days := 365;
     else
         return json_build_object('success', false, 'error', 'Invalid plan type');
     end if;
@@ -1381,18 +1397,20 @@ begin
         plan_name = v_plan_name,
         plan_unit_limit = v_unit_limit,
         unit_limit = v_unit_limit,
+        plan_duration_days = v_duration_days,
         plan_starts_at = now(),
-        plan_expires_at = now() + interval '30 days',
-        trial_expires_at = now() + interval '30 days',
-        subscription_expires_at = now() + interval '30 days',
+        plan_expires_at = now() + (v_duration_days || ' days')::interval,
+        trial_expires_at = now() + (v_duration_days || ' days')::interval,
+        subscription_expires_at = now() + (v_duration_days || ' days')::interval,
         plan_status = 'active',
         subscription_status = 'active',
+        account_status = 'active',
         has_used_free_trial = case when p_plan in ('free', 'free_trial') then true else v_has_used_trial end,
         has_used_trial = case when p_plan in ('free', 'free_trial') then true else v_has_used_trial end,
         updated_at = now()
     where id = v_user_id;
 
-    return json_build_object('success', true, 'message', 'Subscription renewed successfully for 30 days');
+    return json_build_object('success', true, 'message', format('Subscription renewed successfully for %s days', v_duration_days));
 end;
 $$ language plpgsql security definer set search_path = public, auth;
 
@@ -1940,16 +1958,17 @@ begin
                     v_notif_count := v_notif_count + 1;
                 end if;
 
-            -- Case 2: Due Soon (within 5 days before due_day)
-            elsif v_days_diff >= -5 and v_days_diff <= 0 then
+            -- Case 2: Due Soon (Automated 3-Day Rent Reminder for Tenant & Management)
+            elsif v_days_diff = -3 or (v_days_diff >= -3 and v_days_diff <= 0) then
                 select exists (
                     select 1 from public.notifications n
                     where n.unit_id = v_unit.unit_id
-                      and n.type = 'rent_due_reminder'
-                      and n.created_at >= (now() - interval '5 days')
+                      and n.type in ('rent_due_reminder', 'rent_due')
+                      and n.created_at >= (now() - interval '3 days')
                 ) into v_already_notified;
 
                 if not v_already_notified then
+                    -- Dispatch to tenant
                     insert into public.notifications (
                         type,
                         recipient_role,
@@ -1959,6 +1978,44 @@ begin
                         unit_id,
                         unit_number,
                         tenant_name,
+                        tenant_phone,
+                        amount,
+                        rent_month,
+                        title,
+                        title_fr,
+                        message,
+                        message_fr,
+                        metadata
+                    ) values (
+                        'rent_due',
+                        'tenant',
+                        v_unit.landlord_id,
+                        v_unit.building_id,
+                        v_unit.building_name,
+                        v_unit.unit_id,
+                        v_unit.unit_number,
+                        v_unit.tenant_name,
+                        v_unit.tenant_phone,
+                        v_unit.rent_amount,
+                        v_current_month,
+                        'Rent Due in 3 Days: Unit ' || v_unit.unit_number,
+                        'Rappel Échéance : Loyer dans 3 jours (' || v_unit.unit_number || ')',
+                        'Hello ' || v_unit.tenant_name || ', your rent of ' || to_char(v_unit.rent_amount, 'FM999,999,999') || ' XAF for unit ' || v_unit.unit_number || ' (' || v_unit.building_name || ') is due in 3 days on day ' || v_due_day || '.',
+                        'Bonjour ' || v_unit.tenant_name || ', votre loyer de ' || to_char(v_unit.rent_amount, 'FM999,999,999') || ' XAF pour le lot ' || v_unit.unit_number || ' (' || v_unit.building_name || ') arrive à échéance dans 3 jours (le ' || v_due_day || ' du mois).',
+                        jsonb_build_object('isOverdue', false, 'daysRemaining', abs(v_days_diff), 'dueDay', v_due_day)
+                    );
+
+                    -- Dispatch to management / landlord
+                    insert into public.notifications (
+                        type,
+                        recipient_role,
+                        landlord_id,
+                        building_id,
+                        building_name,
+                        unit_id,
+                        unit_number,
+                        tenant_name,
+                        tenant_phone,
                         amount,
                         rent_month,
                         title,
@@ -1975,15 +2032,16 @@ begin
                         v_unit.unit_id,
                         v_unit.unit_number,
                         v_unit.tenant_name,
+                        v_unit.tenant_phone,
                         v_unit.rent_amount,
                         v_current_month,
-                        'Rent Due Reminder: Unit ' || v_unit.unit_number,
-                        'Rappel d''échéance : Logement ' || v_unit.unit_number,
-                        'Rent for ' || v_unit.tenant_name || ' in Unit ' || v_unit.unit_number || ' is due on day ' || v_due_day || ' of this month.',
-                        'Le loyer de ' || v_unit.tenant_name || ' pour le logement ' || v_unit.unit_number || ' arrive à échéance le ' || v_due_day || ' du mois.',
+                        'Rent Due in 3 Days: ' || v_unit.tenant_name,
+                        'Échéance dans 3 jours : ' || v_unit.tenant_name,
+                        'Rent for ' || v_unit.tenant_name || ' in Unit ' || v_unit.unit_number || ' is due in 3 days (day ' || v_due_day || ').',
+                        'Le loyer de ' || v_unit.tenant_name || ' pour le logement ' || v_unit.unit_number || ' arrive à échéance dans 3 jours (le ' || v_due_day || ').',
                         jsonb_build_object('isOverdue', false, 'daysRemaining', abs(v_days_diff), 'dueDay', v_due_day)
                     );
-                    v_notif_count := v_notif_count + 1;
+                    v_notif_count := v_notif_count + 2;
                 end if;
             end if;
         end if;
@@ -2095,7 +2153,7 @@ returns json as $$
 declare
     v_expires_at timestamptz;
 begin
-    v_expires_at := now() + (greatest(coalesce(p_duration_days, 30), 1) || ' days')::interval;
+    v_expires_at := now() + (greatest(coalesce(p_duration_days, 365), 1) || ' days')::interval;
 
     -- 1. Update public.profiles with upgraded tier, max allowance, status and expiration
     update public.profiles
@@ -2104,9 +2162,10 @@ begin
         plan_name = p_plan_name,
         plan_unit_limit = p_max_units,
         unit_limit = p_max_units,
-        plan_duration_days = coalesce(p_duration_days, 30),
+        plan_duration_days = coalesce(p_duration_days, 365),
         plan_status = 'active',
         subscription_status = 'active',
+        account_status = 'active',
         has_used_free_trial = true,
         has_used_trial = true,
         plan_starts_at = now(),
