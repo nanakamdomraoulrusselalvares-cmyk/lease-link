@@ -151,34 +151,11 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     badge: 'Enterprise',
     badgeFr: 'Entreprise',
   },
-  {
-    id: 'tier_300_plus',
-    name: 'Enterprise VIP',
-    nameFr: 'Entreprise VIP (300+)',
-    tagline: 'Institutional portfolios (300+ units, personalized capacity)',
-    taglineFr: 'Grands patrimoines, foncières & institutionnels (300+ logements sur-mesure)',
-    target: 'Institutional portfolios & VIPs',
-    targetFr: 'Grands patrimoines & Institutionnels (300+ logements)',
-    unitRange: '300+ units',
-    unitRangeFr: '300+ logements',
-    maxUnits: 500,
-    monthlyPrice: 199900,
-    annualPrice: 2199000,
-    monthlyPriceDisplay: '199,900 FCFA',
-    annualPriceDisplay: '2,199,000 FCFA',
-    annualSavings: 'Save 199,800 FCFA / yr',
-    annualSavingsFr: 'Économisez 199 800 FCFA / an',
-    durationDays: 365,
-    durationDaysAnnual: 365,
-    isFreeTrial: false,
-    badge: 'VIP 300+',
-    badgeFr: 'VIP 300+',
-  },
 ];
 
 /**
  * Universal resolver to match any plan string (id, key, name, alias) to its PlanConfig.
- * Handles: 'starter' | 'tier_1_30', 'growth' | 'tier_31_60', 'pro' | 'tier_61_100', 'ultimate' | 'tier_100_plus', 'tier_300_plus' | 'custom', 'free' | 'trial'
+ * Handles: 'starter' | 'tier_1_30', 'growth' | 'tier_31_60', 'pro' | 'tier_61_100', 'ultimate' | 'tier_100_plus', 'custom', 'free' | 'trial'
  */
 export function resolvePlanConfig(rawPlanId?: string | null): PlanConfig {
   if (!rawPlanId) return AVAILABLE_PLANS[0];
@@ -199,7 +176,7 @@ export function resolvePlanConfig(rawPlanId?: string | null): PlanConfig {
     cleaned === 'custom' ||
     cleaned === 'enterprise_vip'
   ) {
-    return AVAILABLE_PLANS.find((p) => p.id === 'tier_300_plus') || AVAILABLE_PLANS[5];
+    return AVAILABLE_PLANS.find((p) => p.id === 'tier_100_plus') || AVAILABLE_PLANS[AVAILABLE_PLANS.length - 1];
   }
   if (
     cleaned === 'starter' ||

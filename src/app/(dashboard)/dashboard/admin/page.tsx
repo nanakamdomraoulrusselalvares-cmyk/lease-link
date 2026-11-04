@@ -156,7 +156,7 @@ export default function AdminDashboardPage() {
   const [createEmail, setCreateEmail] = useState("");
   const [createPhone, setCreatePhone] = useState("");
   const [createPassword, setCreatePassword] = useState("");
-  const [createPlan, setCreatePlan] = useState<SubscriptionPlanId>("tier_300_plus");
+  const [createPlan, setCreatePlan] = useState<SubscriptionPlanId>("custom");
   const [createCustomUnits, setCreateCustomUnits] = useState<number>(500);
   const [createDuration, setCreateDuration] = useState<number>(30);
   const [createCustomExpiryDate, setCreateCustomExpiryDate] = useState("");
@@ -275,7 +275,7 @@ export default function AdminDashboardPage() {
         selectedLandlordForPlan.id,
         newPlanSelection,
         newPlanDuration,
-        newPlanSelection === "tier_300_plus" ? editCustomUnits : undefined
+        newPlanSelection === "custom" || newPlanSelection === "tier_300_plus" ? editCustomUnits : undefined
       );
 
       if (success) {
@@ -306,7 +306,7 @@ export default function AdminDashboardPage() {
         phone: createPhone,
         password: createPassword.trim() || undefined,
         planId: createPlan,
-        customUnitLimit: createPlan === "tier_300_plus" ? createCustomUnits : undefined,
+        customUnitLimit: createPlan === "custom" || createPlan === "tier_300_plus" ? createCustomUnits : undefined,
         durationDays: createDuration,
         customExpiresAt: createCustomExpiryDate || undefined,
       });
@@ -323,7 +323,7 @@ export default function AdminDashboardPage() {
       setCreateEmail("");
       setCreatePhone("");
       setCreatePassword("");
-      setCreatePlan("tier_300_plus");
+      setCreatePlan("custom");
       setCreateCustomUnits(500);
       setCreateDuration(30);
       setCreateCustomExpiryDate("");
@@ -1313,7 +1313,7 @@ export default function AdminDashboardPage() {
                   <option value="tier_31_60">Growth (31-60)</option>
                   <option value="tier_61_100">Pro (61-100)</option>
                   <option value="tier_100_plus">Ultimate (101-300)</option>
-                  <option value="tier_300_plus">{isFrench ? "VIP (300+ Logements)" : "VIP (300+ Units)"}</option>
+                  <option value="custom">{isFrench ? "Sur-Mesure (> 300 Lots)" : "Custom (> 300 Units)"}</option>
                 </select>
 
                 {/* Sort Landlords */}
@@ -2417,10 +2417,22 @@ export default function AdminDashboardPage() {
                       <div className="text-[10px] text-slate-500">{plan.unitRange}</div>
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setNewPlanSelection("custom")}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                      newPlanSelection === "custom" || newPlanSelection === "tier_300_plus"
+                        ? "border-purple-600 bg-purple-50/60 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 font-bold"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    <div className="text-xs font-bold">{isFrench ? "Sur-Mesure (> 300)" : "Custom (> 300)"}</div>
+                    <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">300+ lots</div>
+                  </button>
                 </div>
               </div>
 
-              {newPlanSelection === "tier_300_plus" && (
+              {(newPlanSelection === "custom" || newPlanSelection === "tier_300_plus") && (
                 <div className="space-y-1.5 p-3 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
                   <label className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center justify-between">
                     <span>{isFrench ? "Capacité Personnalisée (Lots)" : "Custom Unit Capacity"}</span>
@@ -2633,11 +2645,25 @@ export default function AdminDashboardPage() {
                       <div className="text-[10px] text-slate-500">{plan.unitRange}</div>
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setCreatePlan("custom")}
+                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                      createPlan === "custom" || createPlan === "tier_300_plus"
+                        ? "border-purple-600 bg-purple-50/60 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 font-bold ring-2 ring-purple-500/20"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="text-xs font-bold truncate">
+                      {isFrench ? "Sur-Mesure (> 300)" : "Custom (> 300)"}
+                    </div>
+                    <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">300+ lots</div>
+                  </button>
                 </div>
               </div>
 
-              {/* If 300+ Units VIP selected: Custom capacity input */}
-              {createPlan === "tier_300_plus" && (
+              {/* If 300+ Units / Custom selected: Custom capacity input */}
+              {(createPlan === "custom" || createPlan === "tier_300_plus") && (
                 <div className="space-y-1.5 p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-purple-950 dark:text-purple-200 flex items-center gap-1.5">
