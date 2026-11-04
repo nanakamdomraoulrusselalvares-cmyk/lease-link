@@ -28,6 +28,8 @@ import {
   getAdminActivityStream,
   updateLandlordPlanAdmin,
   createLandlordAccountAdmin,
+  moderateUserAdmin,
+  ModerationAction,
   getSubscriptionExpirationMilestone,
   getWhatsAppReminderLink,
   AdminCreatedCredentials,
@@ -71,6 +73,8 @@ import {
   TrendingUp,
   DoorOpen,
   UserCheck,
+  Ban,
+  AlertOctagon,
   ShieldCheck,
   ArrowUpRight,
   Radio,
@@ -154,11 +158,27 @@ export default function AdminDashboardPage() {
   const [createPassword, setCreatePassword] = useState("");
   const [createPlan, setCreatePlan] = useState<SubscriptionPlanId>("tier_300_plus");
   const [createCustomUnits, setCreateCustomUnits] = useState<number>(500);
-  const [createDuration, setCreateDuration] = useState<30 | 365>(30);
+  const [createDuration, setCreateDuration] = useState<number>(30);
+  const [createCustomExpiryDate, setCreateCustomExpiryDate] = useState("");
   const [isCreatingLandlord, setIsCreatingLandlord] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createdCredentials, setCreatedCredentials] = useState<AdminCreatedCredentials | null>(null);
   const [copiedCreds, setCopiedCreds] = useState(false);
+
+  // Super-Admin Moderation Modal State (Warn, Block, Ban, Restore)
+  const [moderationTarget, setModerationTarget] = useState<{
+    id: string;
+    name: string;
+    role: "landlord" | "manager" | "tenant";
+    currentStatus?: string;
+    landlordId?: string;
+    buildingId?: string;
+    unitId?: string;
+  } | null>(null);
+  const [moderationAction, setModerationAction] = useState<ModerationAction>("warn");
+  const [moderationReason, setModerationReason] = useState("");
+  const [isSubmittingModeration, setIsSubmittingModeration] = useState(false);
+  const [moderationNotice, setModerationNotice] = useState<string | null>(null);
 
   // Quittance Receipt Modal State
   const [selectedReceipt, setSelectedReceipt] = useState<RentPayment | null>(null);
@@ -288,6 +308,7 @@ export default function AdminDashboardPage() {
         planId: createPlan,
         customUnitLimit: createPlan === "tier_300_plus" ? createCustomUnits : undefined,
         durationDays: createDuration,
+        customExpiresAt: createCustomExpiryDate || undefined,
       });
 
       if (!res.success || !res.credentials) {
@@ -305,6 +326,7 @@ export default function AdminDashboardPage() {
       setCreatePlan("tier_300_plus");
       setCreateCustomUnits(500);
       setCreateDuration(30);
+      setCreateCustomExpiryDate("");
 
       loadAdminData();
     } catch (err: unknown) {
@@ -312,6 +334,52 @@ export default function AdminDashboardPage() {
       setCreateError(msg);
     } finally {
       setIsCreatingLandlord(false);
+    }
+  };
+
+  // Super-Admin Moderation Submission (Warn, Block, Ban, Restore)
+  const handleModerationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!moderationTarget) return;
+
+    setIsSubmittingModeration(true);
+    try {
+      const res = await moderateUserAdmin({
+        targetId: moderationTarget.id,
+        targetRole: moderationTarget.role,
+        action: moderationAction,
+        reason:
+          moderationReason.trim() ||
+          (moderationAction === "activate"
+            ? "Account restored by super-admin."
+            : moderationAction === "warn"
+            ? "Official administrative warning issued."
+            : moderationAction === "block"
+            ? "Account temporarily blocked by administration."
+            : "Account permanently banned by administration."),
+        targetName: moderationTarget.name,
+        landlordId: moderationTarget.landlordId,
+        buildingId: moderationTarget.buildingId,
+        unitId: moderationTarget.unitId,
+      });
+
+      if (res.success) {
+        setModerationNotice(
+          isFrench
+            ? `Action [${moderationAction.toUpperCase()}] appliquée avec succès à ${moderationTarget.name}.`
+            : `Action [${moderationAction.toUpperCase()}] successfully applied to ${moderationTarget.name}.`
+        );
+        setTimeout(() => {
+          setModerationNotice(null);
+          setModerationTarget(null);
+          setModerationReason("");
+          loadAdminData();
+        }, 1200);
+      }
+    } catch (err) {
+      console.error("Moderation action failed:", err);
+    } finally {
+      setIsSubmittingModeration(false);
     }
   };
 
@@ -722,6 +790,22 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Moderation Notice Banner */}
+        {moderationNotice && (
+          <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center justify-between shadow-sm animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>{moderationNotice}</span>
+            </div>
+            <button
+              onClick={() => setModerationNotice(null)}
+              className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* ===================================================================== */}
         {/* NAVIGATION TABS: 7 CORE PLATFORM VIEWS                                */}
@@ -1378,18 +1462,40 @@ export default function AdminDashboardPage() {
                         )}
                       </div>
 
-                      <button
-                        onClick={() => {
-                          setSelectedLandlordForPlan(landlord);
-                          setNewPlanSelection(landlord.plan);
-                          setNewPlanDuration(landlord.plan_duration_days || 30);
-                          setEditCustomUnits(landlord.plan_unit_limit || 300);
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-600/20 dark:hover:bg-purple-600/30 border border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 font-semibold text-[11px] transition cursor-pointer"
-                      >
-                        <Edit3 className="w-3 h-3" />
-                        <span>{isFrench ? "Modifier" : "Edit Plan"}</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModerationTarget({
+                              id: landlord.id,
+                              name: landlord.full_name || landlord.email,
+                              role: "landlord",
+                              currentStatus: landlord.account_status,
+                              landlordId: landlord.id,
+                            });
+                            setModerationAction("warn");
+                            setModerationReason("");
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/20 dark:hover:bg-rose-600/30 border border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 font-semibold text-[11px] transition cursor-pointer"
+                          title={isFrench ? "Modérer ce propriétaire (Avertir / Bloquer / Bannir)" : "Moderate this landlord"}
+                        >
+                          <ShieldAlert className="w-3 h-3" />
+                          <span>{isFrench ? "Modérer" : "Moderate"}</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setSelectedLandlordForPlan(landlord);
+                            setNewPlanSelection(landlord.plan);
+                            setNewPlanDuration(landlord.plan_duration_days || 30);
+                            setEditCustomUnits(landlord.plan_unit_limit || 300);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-600/20 dark:hover:bg-purple-600/30 border border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 font-semibold text-[11px] transition cursor-pointer"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>{isFrench ? "Modifier" : "Edit Plan"}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1545,17 +1651,38 @@ export default function AdminDashboardPage() {
                       <span className="text-[11px] text-slate-500 font-mono">
                         {isFrench ? "Inscrit le " : "Created "} {new Date(m.created_at).toLocaleDateString()}
                       </span>
-                      {m.phone && m.phone !== "N/A" && (
-                        <a
-                          href={`https://wa.me/${m.phone.replace(/[^0-9]/g, "")}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:underline font-mono"
+                      <div className="flex items-center gap-2">
+                        {m.phone && m.phone !== "N/A" && (
+                          <a
+                            href={`https://wa.me/${m.phone.replace(/[^0-9]/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:underline font-mono text-[11px]"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>{m.phone}</span>
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModerationTarget({
+                              id: m.id,
+                              name: m.full_name || m.email,
+                              role: "manager",
+                              currentStatus: m.account_status,
+                              landlordId: m.landlord_id,
+                            });
+                            setModerationAction("warn");
+                            setModerationReason("");
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/20 dark:hover:bg-rose-600/30 border border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 font-semibold text-[10px] transition cursor-pointer"
+                          title={isFrench ? "Modérer ce gestionnaire (Avertir / Bloquer / Bannir)" : "Moderate manager"}
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>{m.phone}</span>
-                        </a>
-                      )}
+                          <ShieldAlert className="w-3 h-3" />
+                          <span>{isFrench ? "Modérer" : "Moderate"}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1685,13 +1812,14 @@ export default function AdminDashboardPage() {
                         </div>
                       </th>
                       <th className="px-4 py-3.5">{isFrench ? "Statut" : "Status"}</th>
-                      <th className="px-4 py-3.5 text-right">{isFrench ? "Contact" : "Contact"}</th>
+                      <th className="px-4 py-3.5 text-center">{isFrench ? "Contact" : "Contact"}</th>
+                      <th className="px-4 py-3.5 text-right">{isFrench ? "Modération" : "Moderation"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {filteredTenants.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                           {isFrench ? "Aucun locataire trouvé." : "No tenants found."}
                         </td>
                       </tr>
@@ -1732,7 +1860,7 @@ export default function AdminDashboardPage() {
                               {isFrench ? "Occupé" : "Occupied"}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-center">
                             {t.tenant_phone && t.tenant_phone !== "Non renseigné" ? (
                               <a
                                 href={`https://wa.me/${t.tenant_phone.replace(/[^0-9]/g, "")}`}
@@ -1746,6 +1874,29 @@ export default function AdminDashboardPage() {
                             ) : (
                               <span className="text-slate-400 text-[11px] italic">N/A</span>
                             )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModerationTarget({
+                                  id: t.id,
+                                  name: t.tenant_name,
+                                  role: "tenant",
+                                  currentStatus: t.account_status,
+                                  landlordId: t.landlord_id,
+                                  buildingId: t.building_id,
+                                  unitId: t.unit_id,
+                                });
+                                setModerationAction("warn");
+                                setModerationReason("");
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/20 dark:hover:bg-rose-600/30 border border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 font-semibold text-[10px] transition cursor-pointer"
+                              title={isFrench ? "Modérer ce locataire (Avertir / Bloquer / Bannir)" : "Moderate tenant"}
+                            >
+                              <ShieldAlert className="w-3 h-3" />
+                              <span>{isFrench ? "Modérer" : "Moderate"}</span>
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -2547,9 +2698,12 @@ export default function AdminDashboardPage() {
 
                   <button
                     type="button"
-                    onClick={() => setCreateDuration(365)}
+                    onClick={() => {
+                      setCreateDuration(365);
+                      setCreateCustomExpiryDate("");
+                    }}
                     className={`p-3 rounded-2xl border-2 text-left transition cursor-pointer ${
-                      createDuration === 365
+                      createDuration === 365 && !createCustomExpiryDate
                         ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 font-bold"
                         : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
                     }`}
@@ -2560,6 +2714,51 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="text-[10px] text-slate-500">{isFrench ? "Formule Annuelle (VIP)" : "Annual VIP Plan"}</div>
                   </button>
+                </div>
+
+                {/* Custom Deadline / Expiration Date Picker for Enterprise VIP Portfolios */}
+                <div className="pt-2 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      <span>{isFrench ? "Ou Choisir une Date d'Échéance Sur-Mesure :" : "Or Pick Custom Expiration Date / Deadline:"}</span>
+                    </label>
+                    {createCustomExpiryDate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreateCustomExpiryDate("");
+                          setCreateDuration(30);
+                        }}
+                        className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
+                      >
+                        {isFrench ? "Réinitialiser" : "Clear"}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split("T")[0]}
+                    value={createCustomExpiryDate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCreateCustomExpiryDate(val);
+                      if (val) {
+                        const targetMs = new Date(val).getTime();
+                        const nowMs = Date.now();
+                        const diffDays = Math.max(1, Math.ceil((targetMs - nowMs) / (24 * 3600 * 1000)));
+                        setCreateDuration(diffDays);
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  {createCustomExpiryDate && (
+                    <p className="text-[10px] font-semibold text-purple-700 dark:text-purple-300">
+                      {isFrench
+                        ? `Validité programmée : ${createDuration} jours (jusqu'au ${new Date(createCustomExpiryDate).toLocaleDateString()})`
+                        : `Scheduled validity: ${createDuration} days (until ${new Date(createCustomExpiryDate).toLocaleDateString()})`}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -2686,6 +2885,205 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================================= */}
+      {/* MODAL: SUPER-ADMIN USER MODERATION (WARN, BLOCK, BAN, RESTORE)          */}
+      {/* ======================================================================= */}
+      {moderationTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border-2 border-rose-300 dark:border-rose-500/40 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-5 animate-in zoom-in-95">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    {isFrench ? "Modération Administrateur" : "Admin Moderation Control"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {isFrench ? "Appliquer des mesures disciplinaires ou restaurer l'accès" : "Enforce disciplinary actions or restore access"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModerationTarget(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Target Profile Card */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{isFrench ? "Utilisateur visé :" : "Target User:"}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{moderationTarget.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{isFrench ? "Rôle système :" : "System Role:"}</span>
+                <span className="font-mono font-semibold uppercase text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  {moderationTarget.role}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{isFrench ? "Statut actuel :" : "Current Status:"}</span>
+                <span className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded ${
+                  moderationTarget.currentStatus === "banned"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"
+                    : moderationTarget.currentStatus === "blocked"
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
+                    : moderationTarget.currentStatus === "warned"
+                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
+                }`}>
+                  {moderationTarget.currentStatus || "active"}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Selector */}
+            <form onSubmit={handleModerationSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  {isFrench ? "Action de Modération :" : "Moderation Action:"}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Warn */}
+                  <button
+                    type="button"
+                    onClick={() => setModerationAction("warn")}
+                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                      moderationAction === "warn"
+                        ? "bg-amber-500/10 border-amber-500 text-amber-700 dark:text-amber-300 font-bold"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold">{isFrench ? "Avertir" : "Warn"}</div>
+                      <div className="text-[10px] opacity-75">{isFrench ? "Avertissement formel" : "Official warning"}</div>
+                    </div>
+                  </button>
+
+                  {/* Block */}
+                  <button
+                    type="button"
+                    onClick={() => setModerationAction("block")}
+                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                      moderationAction === "block"
+                        ? "bg-orange-500/10 border-orange-500 text-orange-700 dark:text-orange-300 font-bold"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Lock className="w-4 h-4 text-orange-600 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold">{isFrench ? "Bloquer" : "Block"}</div>
+                      <div className="text-[10px] opacity-75">{isFrench ? "Blocage temporaire" : "Temporary block"}</div>
+                    </div>
+                  </button>
+
+                  {/* Ban */}
+                  <button
+                    type="button"
+                    onClick={() => setModerationAction("ban")}
+                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                      moderationAction === "ban"
+                        ? "bg-rose-500/10 border-rose-500 text-rose-700 dark:text-rose-300 font-bold"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Ban className="w-4 h-4 text-rose-600 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold">{isFrench ? "Bannir" : "Ban"}</div>
+                      <div className="text-[10px] opacity-75">{isFrench ? "Exclusion définitive" : "Permanent exclusion"}</div>
+                    </div>
+                  </button>
+
+                  {/* Restore / Activate */}
+                  <button
+                    type="button"
+                    onClick={() => setModerationAction("activate")}
+                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                      moderationAction === "activate"
+                        ? "bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold">{isFrench ? "Restaurer" : "Restore"}</div>
+                      <div className="text-[10px] opacity-75">{isFrench ? "Rétablir l'accès" : "Activate account"}</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  {isFrench ? "Motif / Justification administrative :" : "Administrative Reason:"}
+                </label>
+                <textarea
+                  value={moderationReason}
+                  onChange={(e) => setModerationReason(e.target.value)}
+                  placeholder={
+                    isFrench
+                      ? "Précisez la raison (ex: Non-respect des conditions d'utilisation, litige grave...)"
+                      : "Provide justification (e.g., terms of service violation, repeated complaint...)"
+                  }
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModerationTarget(null)}
+                  disabled={isSubmittingModeration}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  {isFrench ? "Annuler" : "Cancel"}
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingModeration}
+                  className={`px-5 py-2.5 rounded-xl text-white text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-lg ${
+                    moderationAction === "ban"
+                      ? "bg-rose-600 hover:bg-rose-500 shadow-rose-600/25"
+                      : moderationAction === "block"
+                      ? "bg-orange-600 hover:bg-orange-500 shadow-orange-600/25"
+                      : moderationAction === "warn"
+                      ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/25"
+                      : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/25"
+                  }`}
+                >
+                  {isSubmittingModeration ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>{isFrench ? "Application..." : "Applying..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      <span>
+                        {isFrench
+                          ? `Confirmer [${moderationAction.toUpperCase()}]`
+                          : `Confirm [${moderationAction.toUpperCase()}]`}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

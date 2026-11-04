@@ -23,6 +23,13 @@ export default function SubscriptionLockBarrier({
   // Super-admin accounts are never locked
   if (profile.role === "admin") return null;
 
+  const isModerationBlocked = Boolean(
+    profile.account_status === "blocked" ||
+    profile.account_status === "banned" ||
+    profile.plan_status === "blocked" ||
+    profile.plan_status === "banned"
+  );
+
   const now = Date.now();
   const expTime = profile.plan_expires_at ? new Date(profile.plan_expires_at).getTime() : null;
   const isExpired = Boolean(
@@ -31,7 +38,7 @@ export default function SubscriptionLockBarrier({
     profile.subscription_status === "expired"
   );
 
-  if (!isExpired) return null;
+  if (!isExpired && !isModerationBlocked) return null;
 
   const expiryFormatted = profile.plan_expires_at
     ? new Date(profile.plan_expires_at).toLocaleDateString(isFrench ? "fr-FR" : "en-US", {
@@ -67,11 +74,15 @@ export default function SubscriptionLockBarrier({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
             <ShieldAlert className="w-3.5 h-3.5" />
-            <span>{isFrench ? "Compte en Pause" : "Account On Hold"}</span>
+            <span>{isModerationBlocked ? (isFrench ? "Compte Suspendu" : "Account Suspended") : isFrench ? "Compte en Pause" : "Account On Hold"}</span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-            {isManager
+            {isModerationBlocked
+              ? isFrench
+                ? "Accès Suspendu par l'Administration"
+                : "Account Suspended by Administration"
+              : isManager
               ? isFrench
                 ? "Abonnement du Bailleur en Attente de Renouvellement"
                 : "Landlord Plan Pending Renewal"
@@ -80,7 +91,13 @@ export default function SubscriptionLockBarrier({
               : "Subscription Plan Expired"}
           </h2>
 
-          {expiryFormatted && (
+          {isModerationBlocked && profile.moderation_reason && (
+            <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800">
+              {isFrench ? `Motif de modération : ${profile.moderation_reason}` : `Moderation reason: ${profile.moderation_reason}`}
+            </p>
+          )}
+
+          {!isModerationBlocked && expiryFormatted && (
             <p className="text-xs font-mono text-slate-500">
               {isFrench ? `Échéance dépassée le : ${expiryFormatted}` : `Plan expired on: ${expiryFormatted}`}
             </p>

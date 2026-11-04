@@ -6,7 +6,9 @@ import {
   AVAILABLE_PLANS,
   PaymentMethod,
   resolvePlanConfig,
+  LandlordProfile,
 } from "@/types/database";
+import { createNotification } from "@/lib/services/notificationService";
 
 const LOCAL_STORAGE_PROFILES_KEY = "leaselink_local_profiles";
 const LOCAL_STORAGE_SUBSCRIPTIONS_KEY = "leaselink_local_subscriptions";
@@ -91,7 +93,7 @@ export function getSubscriptionPlanPricing(
     plan,
     price: plan.monthlyPrice,
     priceDisplay: plan.monthlyPriceDisplay,
-    durationDays: 30,
+    durationDays: 365,
     savingsDisplay: null,
     savingsDisplayFr: null,
   };
@@ -518,5 +520,69 @@ export async function processSubscriptionPayment(
       success: false,
       error: err?.message || "An unexpected error occurred during subscription processing",
     };
+  }
+}
+
+/**
+ * Automated job that sends subscription renewal notifications to the landlord:
+ * - Exactly 3 days before expiry
+ * - Daily after the due date (when expired)
+ */
+export async function checkAndDispatchSubscriptionReminders(
+  profile: LandlordProfile | null
+): Promise<void> {
+  if (!profile || !profile.plan_expires_at || profile.role === "admin") return;
+
+  const expTime = new Date(profile.plan_expires_at).getTime();
+  const now = Date.now();
+  const msDiff = expTime - now;
+  const daysDiff = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  // 1. Exactly 3 days before expiry
+  if (daysDiff === 3) {
+    const key = `sub_reminder_3d_${profile.id}_${profile.plan_expires_at}`;
+    if (typeof window !== "undefined" && localStorage.getItem(key)) return;
+
+    await createNotification({
+      type: "subscription_reminder",
+      recipient_role: "landlord",
+      landlord_id: profile.id,
+      title: "Subscription Renewal Notice (3 Days Remaining)",
+      title_fr: "Rappel de Renouvellement : Échéance dans 3 Jours",
+      message: `Your LeaseLink ${profile.plan_name} plan expires in 3 days. Please renew promptly to ensure uninterrupted access.`,
+      message_fr: `Votre forfait LeaseLink ${profile.plan_name} arrive à échéance dans 3 jours. Pensez à renouveler pour conserver l'accès à vos outils.`,
+      metadata: { daysRemaining: 3, planExpiresAt: profile.plan_expires_at },
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(key, todayStr);
+      } catch (_) {}
+    }
+  }
+
+  // 2. Daily after the due date (when expired)
+  if (msDiff <= 0) {
+    const key = `sub_reminder_expired_daily_${profile.id}_${todayStr}`;
+    if (typeof window !== "undefined" && localStorage.getItem(key)) return;
+
+    const daysOverdue = Math.max(1, Math.floor((now - expTime) / (1000 * 60 * 60 * 24)));
+    await createNotification({
+      type: "subscription_reminder",
+      recipient_role: "landlord",
+      landlord_id: profile.id,
+      title: `Action Required: Subscription Expired (${daysOverdue} day${daysOverdue > 1 ? "s" : ""} overdue)`,
+      title_fr: `Abonnement Expiré depuis ${daysOverdue} jour(s) - Renouvellement Requis`,
+      message: `Your subscription expired ${daysOverdue} day(s) ago. Your landlord dashboard and manager access are on hold until renewal.`,
+      message_fr: `Votre abonnement est expiré depuis ${daysOverdue} jour(s). Vos accès et ceux de vos gestionnaires sont suspendus jusqu'à régularisation.`,
+      metadata: { isExpired: true, daysOverdue, planExpiresAt: profile.plan_expires_at },
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(key, todayStr);
+      } catch (_) {}
+    }
   }
 }

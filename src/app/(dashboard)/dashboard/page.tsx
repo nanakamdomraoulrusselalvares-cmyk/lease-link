@@ -14,6 +14,7 @@ import { getBuildingsWithUnits } from "@/lib/services/buildingService";
 import { getMaintenanceRequestsForLandlord } from "@/lib/services/maintenanceService";
 import DashboardNav from "@/components/DashboardNav";
 import SubscriptionPaymentModal from "@/components/SubscriptionPaymentModal";
+import { checkAndDispatchSubscriptionReminders } from "@/lib/services/subscriptionService";
 import SmartDataLoader from "@/components/SmartDataLoader";
 import { isMissingPhone } from "@/components/AttachPhoneModal";
 import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
@@ -40,6 +41,7 @@ import {
   DoorOpen,
   UserCheck,
   Loader2,
+  Clock,
 } from "lucide-react";
 
 export default function LandlordHomePage() {
@@ -55,6 +57,51 @@ export default function LandlordHomePage() {
   const [isConfigured, setIsConfigured] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  // Live Subscription Plan Countdown formatted as: Weeks, Days, Minutes, Seconds
+  const [subCountdown, setSubCountdown] = useState<{
+    weeks: number;
+    days: number;
+    minutes: number;
+    seconds: number;
+    isExpired: boolean;
+  }>({ weeks: 0, days: 0, minutes: 0, seconds: 0, isExpired: false });
+
+  useEffect(() => {
+    if (!profile?.plan_expires_at) {
+      setSubCountdown({ weeks: 0, days: 0, minutes: 0, seconds: 0, isExpired: false });
+      return;
+    }
+
+    const updateTimer = () => {
+      const expTime = new Date(profile.plan_expires_at).getTime();
+      const now = Date.now();
+      const diffMs = expTime - now;
+
+      if (diffMs <= 0) {
+        setSubCountdown({ weeks: 0, days: 0, minutes: 0, seconds: 0, isExpired: true });
+        return;
+      }
+
+      const totalSecs = Math.floor(diffMs / 1000);
+      const weeks = Math.floor(totalSecs / (7 * 86400));
+      const remAfterWeeks = totalSecs % (7 * 86400);
+      const days = Math.floor(remAfterWeeks / 86400);
+      const remAfterDays = remAfterWeeks % 86400;
+      const minutes = Math.floor(remAfterDays / 60);
+      const seconds = remAfterDays % 60;
+
+      setSubCountdown({ weeks, days, minutes, seconds, isExpired: false });
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    // Automated job check: sends renewal reminder exactly 3 days before expiry, and daily after due date
+    checkAndDispatchSubscriptionReminders(profile).catch(() => {});
+
+    return () => clearInterval(interval);
+  }, [profile?.plan_expires_at]);
 
   // Load authenticated user and profile
   const fetchSessionAndProfile = async () => {
@@ -603,6 +650,54 @@ export default function LandlordHomePage() {
                 <span className="text-slate-500">{Math.max(0, unitLimit - totalUnits)} {isFrench ? "Restants" : "Left"}</span>
               </div>
             </div>
+
+            {/* Live Countdown Timer: Weeks, Days, Minutes, Seconds */}
+            {profile?.plan_expires_at && (
+              <div className="pt-2">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>{isFrench ? "Compte à rebours forfait :" : "Plan time remaining:"}</span>
+                    </span>
+                    {subCountdown.isExpired ? (
+                      <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 animate-pulse">
+                        {isFrench ? "Expiré" : "Expired"}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                        ● {isFrench ? "Actif" : "Active"}
+                      </span>
+                    )}
+                  </div>
+
+                  {subCountdown.isExpired ? (
+                    <div className="text-xs font-bold text-rose-600 dark:text-rose-400 text-center py-1">
+                      {isFrench ? "Échéance dépassée — Veuillez renouveler" : "Plan overdue — Renewal required"}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1 text-center font-mono">
+                      <div className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <span className="block text-xs font-black text-blue-600 dark:text-blue-400">{subCountdown.weeks}</span>
+                        <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Sem" : "Weeks"}</span>
+                      </div>
+                      <div className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <span className="block text-xs font-black text-blue-600 dark:text-blue-400">{subCountdown.days}</span>
+                        <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Jours" : "Days"}</span>
+                      </div>
+                      <div className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <span className="block text-xs font-black text-blue-600 dark:text-blue-400">{subCountdown.minutes}</span>
+                        <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Min" : "Mins"}</span>
+                      </div>
+                      <div className="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <span className="block text-xs font-black text-blue-600 dark:text-blue-400">{subCountdown.seconds}</span>
+                        <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Sec" : "Secs"}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Billing Term & Upgrade / Renew Action */}
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">

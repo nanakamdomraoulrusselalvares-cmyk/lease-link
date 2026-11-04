@@ -8,6 +8,7 @@ import {
   MaintenanceStatus,
 } from "@/types/database";
 import { formatWhatsAppPhoneNumber } from "./tenantService";
+import { createNotification } from "./notificationService";
 
 const LOCAL_STORAGE_KEY_MAINTENANCE = "leaselink_local_maintenance_requests";
 
@@ -163,6 +164,7 @@ export async function submitMaintenanceRequest(
         // Also sync local storage
         const localList = getLocalData<MaintenanceRequest>(LOCAL_STORAGE_KEY_MAINTENANCE);
         setLocalData(LOCAL_STORAGE_KEY_MAINTENANCE, [savedRequest, ...localList]);
+        await dispatchDualMaintenanceAlerts(savedRequest);
         return { success: true, request: savedRequest };
       }
     } catch (err) {
@@ -173,7 +175,67 @@ export async function submitMaintenanceRequest(
   // Local fallback
   const localList = getLocalData<MaintenanceRequest>(LOCAL_STORAGE_KEY_MAINTENANCE);
   setLocalData(LOCAL_STORAGE_KEY_MAINTENANCE, [newRequest, ...localList]);
+  await dispatchDualMaintenanceAlerts(newRequest);
   return { success: true, request: newRequest };
+}
+
+/**
+ * Dual routing: Dispatches immediate alerts to BOTH Landlord and specifically assigned Manager
+ */
+async function dispatchDualMaintenanceAlerts(req: MaintenanceRequest): Promise<void> {
+  const urgencyLabel = req.urgency.toUpperCase();
+
+  // 1. Alert Landlord
+  try {
+    await createNotification({
+      type: "maintenance_update",
+      recipient_role: "landlord",
+      landlord_id: req.landlord_id,
+      building_id: req.building_id,
+      building_name: req.building_name,
+      unit_id: req.unit_id,
+      unit_number: req.unit_number,
+      tenant_name: req.tenant_name,
+      title: `New Maintenance Ticket: Unit ${req.unit_number} (${urgencyLabel})`,
+      title_fr: `Nouveau Signalement Réparation : Logement ${req.unit_number} (${urgencyLabel})`,
+      message: `${req.tenant_name} submitted a repair ticket for ${req.building_name} (Unit ${req.unit_number}): "${req.title}".`,
+      message_fr: `${req.tenant_name} a soumis un signalement pour la résidence ${req.building_name} (Logement ${req.unit_number}) : « ${req.title} ».`,
+      metadata: {
+        maintenanceId: req.id,
+        category: req.category,
+        urgency: req.urgency,
+        isNewTicket: true,
+      },
+    });
+  } catch (err) {
+    console.warn("Could not dispatch landlord maintenance alert:", err);
+  }
+
+  // 2. Alert specifically assigned Manager for this building
+  try {
+    await createNotification({
+      type: "maintenance_update",
+      recipient_role: "manager",
+      landlord_id: req.landlord_id,
+      building_id: req.building_id,
+      building_name: req.building_name,
+      unit_id: req.unit_id,
+      unit_number: req.unit_number,
+      tenant_name: req.tenant_name,
+      title: `Assigned Repair Ticket: Unit ${req.unit_number} (${urgencyLabel})`,
+      title_fr: `Demande Réparation Assignée : Logement ${req.unit_number} (${urgencyLabel})`,
+      message: `A new repair request was submitted by ${req.tenant_name} in your assigned building ${req.building_name}: "${req.title}".`,
+      message_fr: `Une nouvelle demande de réparation a été soumise par ${req.tenant_name} pour votre immeuble assigné ${req.building_name} : « ${req.title} ».`,
+      metadata: {
+        maintenanceId: req.id,
+        category: req.category,
+        urgency: req.urgency,
+        isNewTicket: true,
+      },
+    });
+  } catch (err) {
+    console.warn("Could not dispatch manager maintenance alert:", err);
+  }
 }
 
 /**

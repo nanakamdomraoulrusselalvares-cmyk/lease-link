@@ -76,7 +76,7 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     annualPriceDisplay: '150 FCFA',
     annualSavings: 'Save 30 FCFA / yr',
     annualSavingsFr: 'Économisez 30 FCFA / an',
-    durationDays: 30,
+    durationDays: 365,
     durationDaysAnnual: 365,
     isFreeTrial: false,
     badge: 'Popular',
@@ -99,7 +99,7 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     annualPriceDisplay: '200,800 FCFA',
     annualSavings: 'Save 26,000 FCFA / yr',
     annualSavingsFr: 'Économisez 26 000 FCFA / an',
-    durationDays: 30,
+    durationDays: 365,
     durationDaysAnnual: 365,
     isFreeTrial: false,
     badge: 'Best Value',
@@ -122,7 +122,7 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     annualPriceDisplay: '400,800 FCFA',
     annualSavings: 'Save 42,000 FCFA / yr',
     annualSavingsFr: 'Économisez 42 000 FCFA / an',
-    durationDays: 30,
+    durationDays: 365,
     durationDaysAnnual: 365,
     isFreeTrial: false,
     badge: 'High Scale',
@@ -145,7 +145,7 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     annualPriceDisplay: '1,110,800 FCFA',
     annualSavings: 'Save 100,000 FCFA / yr',
     annualSavingsFr: 'Économisez 100 000 FCFA / an',
-    durationDays: 30,
+    durationDays: 365,
     durationDaysAnnual: 365,
     isFreeTrial: false,
     badge: 'Enterprise',
@@ -168,7 +168,7 @@ export const AVAILABLE_PLANS: PlanConfig[] = [
     annualPriceDisplay: '2,199,000 FCFA',
     annualSavings: 'Save 199,800 FCFA / yr',
     annualSavingsFr: 'Économisez 199 800 FCFA / an',
-    durationDays: 30,
+    durationDays: 365,
     durationDaysAnnual: 365,
     isFreeTrial: false,
     badge: 'VIP 300+',
@@ -277,6 +277,8 @@ export interface AdminManagerSummary {
   landlord_name: string;
   assigned_building_ids: string[];
   assigned_building_names: string[];
+  account_status?: 'active' | 'warned' | 'blocked' | 'banned';
+  moderation_reason?: string | null;
   created_at: string;
 }
 
@@ -293,6 +295,8 @@ export interface AdminTenantSummary {
   landlord_id: string;
   landlord_name: string;
   status: string;
+  account_status?: 'active' | 'warned' | 'blocked' | 'banned';
+  moderation_reason?: string | null;
   created_at: string;
 }
 
@@ -306,6 +310,8 @@ export interface AdminLandlordSummary {
   plan_name: string;
   billing_cycle?: BillingCycle;
   plan_status: string;
+  account_status?: 'active' | 'warned' | 'blocked' | 'banned';
+  moderation_reason?: string | null;
   plan_unit_limit: number;
   plan_duration_days?: number;
   plan_starts_at?: string;
@@ -383,8 +389,11 @@ export interface LandlordProfile {
   plan_starts_at: string;
   plan_expires_at: string;
   subscription_expires_at?: string;
-  plan_status: 'active' | 'expired' | 'renewed';
-  subscription_status?: 'active' | 'expired' | 'renewed';
+  plan_status: 'active' | 'expired' | 'renewed' | 'blocked' | 'banned';
+  subscription_status?: 'active' | 'expired' | 'renewed' | 'blocked' | 'banned';
+  account_status?: 'active' | 'warned' | 'blocked' | 'banned';
+  moderation_reason?: string | null;
+  moderation_updated_at?: string | null;
   has_used_free_trial: boolean;
   has_used_trial?: boolean;
   created_at: string;
@@ -496,6 +505,12 @@ export interface TenantPortalData {
   landlord_name: string;
   landlord_phone: string;
   landlord_email: string;
+  manager_id?: string | null;
+  manager_name?: string | null;
+  manager_phone?: string | null;
+  manager_email?: string | null;
+  account_status?: 'active' | 'warned' | 'blocked' | 'banned';
+  moderation_reason?: string | null;
   assigned_at?: string | null;
   lease_start_date?: string | null;
   rent_due_day?: number | null;
@@ -696,6 +711,10 @@ export type NotificationType =
   | 'rent_due_reminder'
   | 'rent_overdue'
   | 'broadcast_reminder'
+  | 'manager_assigned'
+  | 'manager_revoked'
+  | 'subscription_reminder'
+  | 'admin_moderation'
   | 'system';
 
 export type NotificationRecipientRole =

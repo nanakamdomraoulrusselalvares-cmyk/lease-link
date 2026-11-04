@@ -66,6 +66,7 @@ export async function POST(req: Request) {
       planId = "tier_300_plus",
       customUnitLimit,
       durationDays: rawDurationDays = 30,
+      customExpiresAt: inputCustomExpiresAt,
     } = body;
 
     if (!fullName || !email || !phone) {
@@ -100,9 +101,16 @@ export async function POST(req: Request) {
     }
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    let expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    if (inputCustomExpiresAt) {
+      const parsedCustomDate = new Date(inputCustomExpiresAt);
+      if (!isNaN(parsedCustomDate.getTime()) && parsedCustomDate.getTime() > now.getTime()) {
+        expiresAt = parsedCustomDate;
+      }
+    }
+    const computedDays = Math.max(1, Math.ceil((expiresAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
 
-    const cycleLabelFr = billingCycle === "annual" ? "Annuel (12 Mois)" : "Mensuel (30 Jours)";
+    const cycleLabelFr = computedDays >= 360 ? "Annuel (12 Mois)" : "Mensuel";
     const planDisplayName = `${planConfig.nameFr || planConfig.name} - ${effectiveUnitLimit} Lots (${cycleLabelFr})`;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";

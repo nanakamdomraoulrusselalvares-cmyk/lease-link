@@ -15,6 +15,7 @@ import {
   AVAILABLE_PLANS,
   resolvePlanConfig,
 } from "@/types/database";
+import { createNotification } from "./notificationService";
 
 const LOCAL_STORAGE_PROFILES_KEY = "leaselink_mock_profiles";
 const LOCAL_STORAGE_BUILDINGS_KEY = "leaselink_mock_buildings";
@@ -624,6 +625,7 @@ export interface CreateLandlordInput {
   planId: SubscriptionPlanId;
   customUnitLimit?: number;
   durationDays: 30 | 365 | number;
+  customExpiresAt?: string;
 }
 
 export interface AdminCreatedCredentials {
@@ -1011,6 +1013,8 @@ export async function getAdminTenants(): Promise<AdminTenantSummary[]> {
         landlord_id: bInfo.landlord_id,
         landlord_name: landlordName,
         status: u.status || "occupied",
+        account_status: (u as any).account_status || "active",
+        moderation_reason: (u as any).moderation_reason || null,
         created_at: u.created_at || new Date().toISOString(),
       };
     });
@@ -1018,5 +1022,152 @@ export async function getAdminTenants(): Promise<AdminTenantSummary[]> {
     console.error("Error fetching admin tenants:", err);
     return [];
   }
+}
+
+export type ModerationAction = "warn" | "block" | "ban" | "activate";
+
+/**
+ * Super-Admin Moderation Tool:
+ * Applies Warn, Block, Ban, or Restore/Activate to any user role (Landlord, Manager, Tenant).
+ */
+export async function moderateUserAdmin(params: {
+  targetId: string;
+  targetRole: "landlord" | "manager" | "tenant";
+  action: ModerationAction;
+  reason: string;
+  targetName?: string;
+  landlordId?: string;
+  buildingId?: string;
+  unitId?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { targetId, targetRole, action, reason, targetName, landlordId, buildingId, unitId } = params;
+  const now = new Date().toISOString();
+  const newStatus = action === "activate" ? "active" : action === "warn" ? "warned" : action === "block" ? "blocked" : "banned";
+
+  // 1. Try API / Supabase update
+  try {
+    const supabase = createClient();
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const isMock = !url || url.includes("your-project-ref");
+
+    if (!isMock) {
+      if (targetRole === "tenant") {
+        // Update unit record
+        await supabase
+          .from("units")
+          .update({
+            account_status: newStatus,
+            moderation_reason: reason,
+            moderation_updated_at: now,
+          })
+          .eq("id", targetId);
+      } else {
+        // Update profiles record
+        await supabase
+          .from("profiles")
+          .update({
+            account_status: newStatus,
+            moderation_reason: reason,
+            moderation_updated_at: now,
+            ...(action === "block" || action === "ban" ? { plan_status: action } : {}),
+            ...(action === "activate" ? { plan_status: "active" } : {}),
+          })
+          .eq("id", targetId);
+      }
+    }
+  } catch (sbErr) {
+    console.warn("Supabase moderation update error:", sbErr);
+  }
+
+  // 2. Update local storage mock profiles/managers/units
+  if (typeof window !== "undefined") {
+    try {
+      if (targetRole === "manager") {
+        const raw = localStorage.getItem("leaselink_local_managers");
+        if (raw) {
+          const list: any[] = JSON.parse(raw);
+          const idx = list.findIndex((m) => m.id === targetId);
+          if (idx !== -1) {
+            list[idx].account_status = newStatus;
+            list[idx].moderation_reason = reason;
+            list[idx].moderation_updated_at = now;
+            localStorage.setItem("leaselink_local_managers", JSON.stringify(list));
+          }
+        }
+      } else if (targetRole === "tenant") {
+        const raw = localStorage.getItem("leaselink_units") || localStorage.getItem(LOCAL_STORAGE_BUILDINGS_KEY);
+        // Units cache update
+        const unitsRaw = localStorage.getItem("leaselink_units");
+        if (unitsRaw) {
+          const list: any[] = JSON.parse(unitsRaw);
+          const idx = list.findIndex((u) => u.id === targetId);
+          if (idx !== -1) {
+            list[idx].account_status = newStatus;
+            list[idx].moderation_reason = reason;
+            list[idx].moderation_updated_at = now;
+            localStorage.setItem("leaselink_units", JSON.stringify(list));
+          }
+        }
+      } else {
+        // Landlord
+        const raw = localStorage.getItem(LOCAL_STORAGE_PROFILES_KEY);
+        if (raw) {
+          const list: any[] = JSON.parse(raw);
+          const idx = list.findIndex((p) => p.id === targetId);
+          if (idx !== -1) {
+            list[idx].account_status = newStatus;
+            list[idx].moderation_reason = reason;
+            list[idx].moderation_updated_at = now;
+            if (action === "block" || action === "ban") list[idx].plan_status = action;
+            if (action === "activate") list[idx].plan_status = "active";
+            localStorage.setItem(LOCAL_STORAGE_PROFILES_KEY, JSON.stringify(list));
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 3. Dispatch official notification to the moderated user
+  try {
+    const actionTitles = {
+      warn: { en: "Official Warning from LeaseLink Administration", fr: "Avertissement Officiel de l'Administration" },
+      block: { en: "Account Temporarily Suspended", fr: "Accès au Compte Temporairement Suspendu" },
+      ban: { en: "Account Permanently Banned", fr: "Compte Définitivement Banni de la Plateforme" },
+      activate: { en: "Account Access Fully Restored", fr: "Accès au Compte Rétabli avec Succès" },
+    };
+
+    await createNotification({
+      type: "admin_moderation",
+      recipient_role: targetRole === "tenant" ? "tenant" : targetRole === "manager" ? "manager" : "landlord",
+      landlord_id: landlordId || (targetRole === "landlord" ? targetId : undefined),
+      building_id: buildingId,
+      unit_id: unitId || (targetRole === "tenant" ? targetId : undefined),
+      tenant_name: targetName,
+      title: actionTitles[action].en,
+      title_fr: actionTitles[action].fr,
+      message: `Administration Decision [${action.toUpperCase()}]: ${reason}`,
+      message_fr: `Décision de l'Administration [${action.toUpperCase()}] : ${reason}`,
+      metadata: {
+        action,
+        reason,
+        targetId,
+        targetRole,
+        moderatedAt: now,
+      },
+    });
+  } catch (notifErr) {
+    console.warn("Could not dispatch moderation notification:", notifErr);
+  }
+
+  // 4. Broadcast window event
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("leaselink:user_moderated", {
+        detail: { targetId, targetRole, action, newStatus, reason },
+      })
+    );
+  }
+
+  return { success: true };
 }
 

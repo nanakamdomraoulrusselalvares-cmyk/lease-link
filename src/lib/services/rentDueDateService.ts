@@ -333,3 +333,67 @@ export async function dispatchRentDueNotification(options: {
     });
   }
 }
+
+/**
+ * Automated job that sends a notification to the tenant exactly 3 days before their rent due date.
+ */
+export async function checkAndDispatchTenantRentReminder(details: {
+  unitId: string;
+  unitNumber: string;
+  buildingId: string;
+  buildingName: string;
+  tenantName: string;
+  landlordId: string;
+  monthlyRent: number;
+  dueDay: number;
+  leaseStartDate?: string | null;
+  payments: RentPayment[];
+}): Promise<void> {
+  if (!details.unitId || !details.tenantName) return;
+
+  const dummyUnit = {
+    id: details.unitId,
+    unit_number: details.unitNumber,
+    building_id: details.buildingId,
+    rent_due_day: details.dueDay,
+    lease_start_date: details.leaseStartDate || null,
+  } as Unit;
+
+  const dueStatus = calculateRentDueStatus(dummyUnit, details.payments);
+  if (dueStatus.isPaidCurrentMonth) return;
+
+  // Exactly 3 days before due date (daysDiff === -3)
+  if (dueStatus.daysDiff === -3) {
+    const currentMonthYear = new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    const key = `tenant_rent_reminder_3d_${details.unitId}_${currentMonthYear}`;
+    if (typeof window !== "undefined" && localStorage.getItem(key)) return;
+
+    const amountStr = Number(details.monthlyRent || 0).toLocaleString();
+    await createNotification({
+      type: "rent_due_reminder",
+      recipient_role: "tenant",
+      landlord_id: details.landlordId,
+      building_id: details.buildingId,
+      building_name: details.buildingName,
+      unit_id: details.unitId,
+      unit_number: details.unitNumber,
+      tenant_name: details.tenantName,
+      amount: details.monthlyRent,
+      title: "Rent Due in 3 Days",
+      title_fr: "Échéance de Loyer dans 3 Jours",
+      message: `Friendly automated reminder: your rent of ${amountStr} XAF for Unit ${details.unitNumber} (${details.buildingName}) is due in 3 days on day ${details.dueDay}. Please prepare your payment for property management.`,
+      message_fr: `Rappel automatique : votre loyer de ${amountStr} XAF pour le logement ${details.unitNumber} (${details.buildingName}) arrive à échéance dans 3 jours (le ${details.dueDay} du mois). Merci de prévoir votre règlement auprès de la gestion.`,
+      metadata: {
+        daysRemaining: 3,
+        dueDay: details.dueDay,
+        isTenantAutomatedReminder: true,
+      },
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(key, "dispatched");
+      } catch (_) {}
+    }
+  }
+}

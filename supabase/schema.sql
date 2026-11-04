@@ -44,6 +44,11 @@ create table if not exists public.profiles (
     subscription_expires_at timestamptz not null default (now() + interval '30 days'),
     plan_status text not null default 'active',
     subscription_status text not null default 'active',
+    account_status text not null default 'active',
+    moderation_reason text,
+    moderation_updated_at timestamptz,
+    custom_unit_limit integer,
+    custom_expires_at timestamptz,
     has_used_free_trial boolean not null default false,
     has_used_trial boolean not null default false,
     created_at timestamptz not null default now(),
@@ -69,6 +74,11 @@ alter table public.profiles add column if not exists trial_expires_at timestampt
 alter table public.profiles add column if not exists subscription_expires_at timestamptz not null default (now() + interval '30 days');
 alter table public.profiles add column if not exists plan_status text not null default 'active';
 alter table public.profiles add column if not exists subscription_status text not null default 'active';
+alter table public.profiles add column if not exists account_status text not null default 'active';
+alter table public.profiles add column if not exists moderation_reason text;
+alter table public.profiles add column if not exists moderation_updated_at timestamptz;
+alter table public.profiles add column if not exists custom_unit_limit integer;
+alter table public.profiles add column if not exists custom_expires_at timestamptz;
 alter table public.profiles add column if not exists has_used_free_trial boolean not null default false;
 alter table public.profiles add column if not exists has_used_trial boolean not null default false;
 alter table public.profiles add column if not exists created_at timestamptz not null default now();
@@ -117,6 +127,11 @@ create table if not exists public.units (
     tenant_password text,
     tenant_access_token text,
     tenant_assigned_at timestamptz,
+    account_status text not null default 'active',
+    moderation_reason text,
+    moderation_updated_at timestamptz,
+    next_due_date timestamptz,
+    assigned_tenant_id uuid,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -127,6 +142,9 @@ create table if not exists public.maintenance_requests (
     unit_id uuid not null references public.units(id) on delete cascade,
     building_id uuid not null references public.buildings(id) on delete cascade,
     landlord_id uuid not null references public.profiles(id) on delete cascade,
+    assigned_manager_id uuid references public.profiles(id) on delete set null,
+    manager_name text,
+    manager_phone text,
     tenant_name text not null,
     tenant_phone text not null,
     tenant_email text,
@@ -142,6 +160,7 @@ create table if not exists public.maintenance_requests (
     voice_url text,
     voice_duration_seconds integer,
     landlord_notes text,
+    resolved_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -169,6 +188,9 @@ create table if not exists public.rent_payments (
     payment_method text not null default 'momo',
     transaction_ref text not null,
     status text not null default 'completed',
+    is_partial boolean not null default false,
+    recorded_by text default 'landlord',
+    recorded_by_id uuid references public.profiles(id) on delete set null,
     payer_phone text,
     notes text,
     receipt_url text,
@@ -185,18 +207,21 @@ create table if not exists public.notifications (
     message text not null,
     message_fr text,
     recipient_role text not null default 'landlord',
+    recipient_id uuid references public.profiles(id) on delete cascade,
     landlord_id uuid references public.profiles(id) on delete cascade,
     building_id uuid references public.buildings(id) on delete cascade,
     building_name text,
     unit_id uuid references public.units(id) on delete cascade,
     unit_number text,
     tenant_name text,
+    tenant_phone text,
     amount numeric(12, 2),
     payment_method text,
     receipt_number text,
     rent_month text,
     is_read boolean not null default false,
     read_by text[] default '{}',
+    read_at timestamptz,
     metadata jsonb default '{}'::jsonb,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -216,9 +241,9 @@ create table if not exists public.subscriptions (
     amount_paid numeric(12, 2) not null default 0.00,
     payment_method text not null default 'momo',
     transaction_ref text not null,
-    duration_days integer not null default 30,
+    duration_days integer not null default 365,
     starts_at timestamptz not null default now(),
-    expires_at timestamptz not null default (now() + interval '30 days'),
+    expires_at timestamptz not null default (now() + interval '365 days'),
     status text not null default 'completed',
     payer_phone text,
     notes text,
@@ -360,10 +385,11 @@ alter table public.profiles add column if not exists updated_at timestamptz not 
 do $$
 begin
     update public.profiles set role = 'landlord' where role is null or role not in ('landlord', 'manager', 'admin', 'tenant');
-    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate', 'tier_300_plus', 'custom');
+    update public.profiles set plan = 'free' where plan is null or plan not in ('free', 'free_trial', 'tier_1_50', 'tier_51_150', 'tier_151_300', 'tier_300_plus', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate', 'custom');
     update public.profiles set billing_cycle = 'monthly' where billing_cycle is null or billing_cycle not in ('monthly', 'annual');
-    update public.profiles set plan_status = 'active' where plan_status is null or plan_status not in ('active', 'expired', 'renewed', 'suspended');
+    update public.profiles set plan_status = 'active' where plan_status is null or plan_status not in ('active', 'expired', 'renewed', 'suspended', 'blocked', 'banned');
     update public.profiles set subscription_status = plan_status where subscription_status is null;
+    update public.profiles set account_status = 'active' where account_status is null or account_status not in ('active', 'warned', 'blocked', 'banned');
     update public.profiles set plan_unit_limit = 5 where plan_unit_limit is null or plan_unit_limit < 1;
     update public.profiles set unit_limit = plan_unit_limit where unit_limit is null or unit_limit < 1;
     update public.profiles set has_used_trial = has_used_free_trial where has_used_trial is null;
@@ -373,13 +399,16 @@ begin
     alter table public.profiles add constraint profiles_role_check check (role in ('landlord', 'manager', 'admin', 'tenant'));
 
     alter table public.profiles drop constraint if exists profiles_plan_check;
-    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'free_trial', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate', 'tier_300_plus', 'custom'));
+    alter table public.profiles add constraint profiles_plan_check check (plan in ('free', 'free_trial', 'tier_1_50', 'tier_51_150', 'tier_151_300', 'tier_300_plus', 'tier_1_30', 'starter', 'tier_31_60', 'growth', 'tier_61_100', 'pro', 'tier_100_plus', 'ultimate', 'custom'));
 
     alter table public.profiles drop constraint if exists profiles_billing_cycle_check;
     alter table public.profiles add constraint profiles_billing_cycle_check check (billing_cycle in ('monthly', 'annual'));
 
     alter table public.profiles drop constraint if exists profiles_plan_status_check;
-    alter table public.profiles add constraint profiles_plan_status_check check (plan_status in ('active', 'expired', 'renewed', 'suspended'));
+    alter table public.profiles add constraint profiles_plan_status_check check (plan_status in ('active', 'expired', 'renewed', 'suspended', 'blocked', 'banned'));
+
+    alter table public.profiles drop constraint if exists profiles_account_status_check;
+    alter table public.profiles add constraint profiles_account_status_check check (account_status in ('active', 'warned', 'blocked', 'banned'));
 
     if not exists (
         select 1 from pg_indexes
@@ -444,18 +473,27 @@ alter table public.units add column if not exists tenant_email text;
 alter table public.units add column if not exists tenant_password text;
 alter table public.units add column if not exists tenant_access_token text;
 alter table public.units add column if not exists tenant_assigned_at timestamptz;
+alter table public.units add column if not exists account_status text not null default 'active';
+alter table public.units add column if not exists moderation_reason text;
+alter table public.units add column if not exists moderation_updated_at timestamptz;
+alter table public.units add column if not exists next_due_date timestamptz;
+alter table public.units add column if not exists assigned_tenant_id uuid;
 alter table public.units add column if not exists created_at timestamptz not null default now();
 alter table public.units add column if not exists updated_at timestamptz not null default now();
 
 do $$
 begin
     update public.units set status = 'vacant' where status is null or status not in ('vacant', 'occupied', 'maintenance');
+    update public.units set account_status = 'active' where account_status is null or account_status not in ('active', 'warned', 'blocked', 'banned');
     update public.units set rent_due_day = 5 where rent_due_day is null or rent_due_day < 1 or rent_due_day > 31;
     update public.units set rent_amount = 0.00 where rent_amount is null;
     update public.units set deposit_amount = 0.00 where deposit_amount is null;
 
     alter table public.units drop constraint if exists units_status_check;
     alter table public.units add constraint units_status_check check (status in ('vacant', 'occupied', 'maintenance'));
+
+    alter table public.units drop constraint if exists units_account_status_check;
+    alter table public.units add constraint units_account_status_check check (account_status in ('active', 'warned', 'blocked', 'banned'));
 
     alter table public.units drop constraint if exists units_rent_due_day_check;
     alter table public.units add constraint units_rent_due_day_check check (rent_due_day between 1 and 31);
@@ -469,6 +507,9 @@ $$;
 alter table public.maintenance_requests add column if not exists unit_id uuid references public.units(id) on delete cascade;
 alter table public.maintenance_requests add column if not exists building_id uuid references public.buildings(id) on delete cascade;
 alter table public.maintenance_requests add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
+alter table public.maintenance_requests add column if not exists assigned_manager_id uuid references public.profiles(id) on delete set null;
+alter table public.maintenance_requests add column if not exists manager_name text;
+alter table public.maintenance_requests add column if not exists manager_phone text;
 alter table public.maintenance_requests add column if not exists tenant_name text not null default '';
 alter table public.maintenance_requests add column if not exists tenant_phone text not null default '';
 alter table public.maintenance_requests add column if not exists tenant_email text;
@@ -484,6 +525,7 @@ alter table public.maintenance_requests add column if not exists video_url text;
 alter table public.maintenance_requests add column if not exists voice_url text;
 alter table public.maintenance_requests add column if not exists voice_duration_seconds integer;
 alter table public.maintenance_requests add column if not exists landlord_notes text;
+alter table public.maintenance_requests add column if not exists resolved_at timestamptz;
 alter table public.maintenance_requests add column if not exists created_at timestamptz not null default now();
 alter table public.maintenance_requests add column if not exists updated_at timestamptz not null default now();
 
@@ -524,6 +566,9 @@ alter table public.rent_payments add column if not exists payment_type text not 
 alter table public.rent_payments add column if not exists payment_method text not null default 'momo';
 alter table public.rent_payments add column if not exists transaction_ref text not null default 'REF-000';
 alter table public.rent_payments add column if not exists status text not null default 'completed';
+alter table public.rent_payments add column if not exists is_partial boolean not null default false;
+alter table public.rent_payments add column if not exists recorded_by text default 'landlord';
+alter table public.rent_payments add column if not exists recorded_by_id uuid references public.profiles(id) on delete set null;
 alter table public.rent_payments add column if not exists payer_phone text;
 alter table public.rent_payments add column if not exists notes text;
 alter table public.rent_payments add column if not exists receipt_url text;
@@ -564,18 +609,21 @@ alter table public.notifications add column if not exists title_fr text;
 alter table public.notifications add column if not exists message text not null default '';
 alter table public.notifications add column if not exists message_fr text;
 alter table public.notifications add column if not exists recipient_role text not null default 'landlord';
+alter table public.notifications add column if not exists recipient_id uuid references public.profiles(id) on delete cascade;
 alter table public.notifications add column if not exists landlord_id uuid references public.profiles(id) on delete cascade;
 alter table public.notifications add column if not exists building_id uuid references public.buildings(id) on delete cascade;
 alter table public.notifications add column if not exists building_name text;
 alter table public.notifications add column if not exists unit_id uuid references public.units(id) on delete cascade;
 alter table public.notifications add column if not exists unit_number text;
 alter table public.notifications add column if not exists tenant_name text;
+alter table public.notifications add column if not exists tenant_phone text;
 alter table public.notifications add column if not exists amount numeric(12, 2);
 alter table public.notifications add column if not exists payment_method text;
 alter table public.notifications add column if not exists receipt_number text;
 alter table public.notifications add column if not exists rent_month text;
 alter table public.notifications add column if not exists is_read boolean not null default false;
 alter table public.notifications add column if not exists read_by text[] default '{}';
+alter table public.notifications add column if not exists read_at timestamptz;
 alter table public.notifications add column if not exists metadata jsonb default '{}'::jsonb;
 alter table public.notifications add column if not exists created_at timestamptz not null default now();
 alter table public.notifications add column if not exists updated_at timestamptz not null default now();
@@ -592,7 +640,7 @@ alter table public.subscriptions add column if not exists billing_cycle text not
 alter table public.subscriptions add column if not exists amount_paid numeric(12, 2) not null default 0.00;
 alter table public.subscriptions add column if not exists payment_method text not null default 'momo';
 alter table public.subscriptions add column if not exists transaction_ref text not null default 'REF-000';
-alter table public.subscriptions add column if not exists duration_days integer not null default 30;
+alter table public.subscriptions add column if not exists duration_days integer not null default 365;
 alter table public.subscriptions add column if not exists starts_at timestamptz not null default now();
 alter table public.subscriptions add column if not exists expires_at timestamptz not null default (now() + interval '30 days');
 alter table public.subscriptions add column if not exists status text not null default 'completed';

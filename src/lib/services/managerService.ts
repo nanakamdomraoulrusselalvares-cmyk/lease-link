@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { ManagerProfile, CreateManagerInput } from "@/types/database";
+import { createNotification } from "./notificationService";
 
 const LOCAL_STORAGE_KEY_MANAGERS = "leaselink_local_managers";
 
@@ -288,8 +289,15 @@ export async function updateManagerAssignedBuildings(
     }
   }
 
-  // 3. Update local storage
+  // 3. Update local storage & identify assignment diffs
   const localManagers = getLocalManagers();
+  const previousManager = localManagers.find((m) => m.id === managerId);
+  const prevBuildingIds = new Set(previousManager?.assigned_building_ids || []);
+  const newBuildingIds = new Set(sanitizedBuildingIds || []);
+
+  const newlyAssigned = (sanitizedBuildingIds || []).filter((id) => !prevBuildingIds.has(id));
+  const revoked = (previousManager?.assigned_building_ids || []).filter((id) => !newBuildingIds.has(id));
+
   const idx = localManagers.findIndex((m) => m.id === managerId);
   if (idx !== -1) {
     localManagers[idx] = {
@@ -315,6 +323,49 @@ export async function updateManagerAssignedBuildings(
     localManagers.push(updatedManager);
   }
   setLocalManagers(localManagers);
+
+  // 4. Automated notifications to building tenants of assignment or revocation
+  if (updatedManager) {
+    const mgr = updatedManager;
+    // Dispatch assignment notices
+    for (const bId of newlyAssigned) {
+      createNotification({
+        type: "manager_assigned",
+        recipient_role: "building_community",
+        landlord_id: landlordId,
+        building_id: bId,
+        title: `Property Manager Assigned: ${mgr.full_name}`,
+        title_fr: `Nouveau Gestionnaire Assigné : ${mgr.full_name}`,
+        message: `${mgr.full_name} has been assigned as your delegated property manager. You can contact them directly on WhatsApp for any daily inquiries.`,
+        message_fr: `${mgr.full_name} a été assigné(e) comme gestionnaire délégué(e) de votre immeuble. Vous pouvez le/la contacter en priorité sur WhatsApp pour vos demandes.`,
+        metadata: { managerId: mgr.id, managerName: mgr.full_name, managerPhone: mgr.phone },
+      }).catch((err) => console.warn("Could not dispatch manager assigned notice:", err));
+    }
+
+    // Dispatch revocation notices
+    for (const bId of revoked) {
+      createNotification({
+        type: "manager_revoked",
+        recipient_role: "building_community",
+        landlord_id: landlordId,
+        building_id: bId,
+        title: "Building Management Update",
+        title_fr: "Mise à Jour de la Gestion de l'Immeuble",
+        message: `${mgr.full_name} is no longer assigned as the delegated manager for your building. Please refer to your tenant portal for updated contact info.`,
+        message_fr: `Le mandat de gestion déléguée de ${mgr.full_name} pour votre immeuble a pris fin. Veuillez consulter votre espace locataire pour les contacts à jour.`,
+        metadata: { managerId: mgr.id, managerName: mgr.full_name },
+      }).catch((err) => console.warn("Could not dispatch manager revoked notice:", err));
+    }
+  }
+
+  // 5. Broadcast window event for instant reactive tenant view updates
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("leaselink:manager_updated", {
+        detail: { managerId, assignedBuildingIds: sanitizedBuildingIds },
+      })
+    );
+  }
 
   return {
     success: true,

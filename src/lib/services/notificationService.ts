@@ -809,6 +809,54 @@ export async function notifyPaymentReceived(details: {
 }
 
 /**
+ * Triggered when a landlord logs a rent receipt for a tenant.
+ * Specifically routed to the tenant of that unit so they immediately receive a confirmation alert.
+ */
+export async function notifyTenantPaymentRecorded(details: {
+  landlordId: string;
+  buildingId?: string | null;
+  buildingName: string;
+  unitId: string;
+  unitNumber: string;
+  tenantName: string;
+  amount: number;
+  paymentMethod: string;
+  receiptNumber: string;
+  rentMonth: string;
+  isPartial?: boolean;
+}): Promise<AppNotification> {
+  const formattedAmount = Number(details.amount || 0).toLocaleString();
+  const titleEn = `Rent Receipt Confirmed: ${formattedAmount} XAF Recorded`;
+  const titleFr = `Quittance Confirmée : ${formattedAmount} XAF Enregistré`;
+
+  const messageEn = `Payment confirmation: ${formattedAmount} XAF has been recorded for Unit ${details.unitNumber} (${details.buildingName}) covering ${details.rentMonth}. Receipt: #${details.receiptNumber}.`;
+  const messageFr = `Confirmation de paiement : ${formattedAmount} XAF a été enregistré pour votre logement ${details.unitNumber} (${details.buildingName}) au titre de ${details.rentMonth}. Quittance n° ${details.receiptNumber}.`;
+
+  return createNotification({
+    type: "payment_received",
+    recipient_role: "tenant",
+    landlord_id: details.landlordId,
+    building_id: details.buildingId,
+    building_name: details.buildingName,
+    unit_id: details.unitId,
+    unit_number: details.unitNumber,
+    tenant_name: details.tenantName,
+    amount: details.amount,
+    payment_method: details.paymentMethod,
+    receipt_number: details.receiptNumber,
+    rent_month: details.rentMonth,
+    title: titleEn,
+    title_fr: titleFr,
+    message: messageEn,
+    message_fr: messageFr,
+    metadata: {
+      isPartial: details.isPartial || false,
+      isTenantReceiptConfirmation: true,
+    },
+  });
+}
+
+/**
  * RULE 2: Triggered when a new tenant arrives/moves into a unit.
  * ONLY admins, landlord, manager, and the different tenants sharing the SAME building receive this notification.
  */

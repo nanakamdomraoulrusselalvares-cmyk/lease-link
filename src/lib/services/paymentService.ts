@@ -8,7 +8,7 @@ import {
   Building,
 } from "@/types/database";
 import { formatWhatsAppPhoneNumber } from "./tenantService";
-import { notifyPaymentReceived } from "./notificationService";
+import { notifyPaymentReceived, notifyTenantPaymentRecorded } from "./notificationService";
 
 const LOCAL_STORAGE_KEY_PAYMENTS = "leaselink_local_payments";
 
@@ -277,7 +277,33 @@ export async function recordRentPayment(
         isPartial: newPayment.payment_type === "partial",
       });
     } catch (notifErr) {
-      console.warn("Could not dispatch payment notification:", notifErr);
+      console.warn("Could not dispatch landlord payment notification:", notifErr);
+    }
+
+    // 5. Notify tenant immediately on their dashboard and device with certified receipt confirmation
+    try {
+      await notifyTenantPaymentRecorded({
+        landlordId: newPayment.landlord_id,
+        buildingId: newPayment.building_id,
+        buildingName: newPayment.building_name,
+        unitId: newPayment.unit_id,
+        unitNumber: newPayment.unit_number,
+        tenantName: newPayment.tenant_name,
+        amount: newPayment.amount_paid,
+        paymentMethod: newPayment.payment_method,
+        receiptNumber: newPayment.receipt_number,
+        rentMonth: newPayment.rent_month,
+        isPartial: newPayment.payment_type === "partial",
+      });
+    } catch (tenantNotifErr) {
+      console.warn("Could not dispatch tenant payment notification:", tenantNotifErr);
+    }
+
+    // 6. Broadcast window event for instant reactive UI updates
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("leaselink:payment_recorded", { detail: newPayment })
+      );
     }
 
     return {

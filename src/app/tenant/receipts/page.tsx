@@ -18,7 +18,6 @@ import {
   PAYMENT_METHOD_LABELS,
 } from "@/lib/services/paymentService";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
-import PayRentModal from "@/components/PayRentModal";
 import RentPaymentUnderWorkModal from "@/components/RentPaymentUnderWorkModal";
 import TenantNav from "@/components/TenantNav";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -53,7 +52,6 @@ function TenantReceiptsContent() {
   // Modals state
   const [selectedReceipt, setSelectedReceipt] = useState<RentPayment | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [showPayModal, setShowPayModal] = useState(false);
   const [showUnderWorkModal, setShowUnderWorkModal] = useState(false);
 
   useEffect(() => {
@@ -142,6 +140,22 @@ function TenantReceiptsContent() {
 
     init();
   }, [tokenFromUrl, router]);
+
+  useEffect(() => {
+    const handlePaymentRecorded = () => {
+      refreshPayments();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("leaselink:payment_recorded", handlePaymentRecorded);
+      window.addEventListener("leaselink:new_notification", handlePaymentRecorded);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("leaselink:payment_recorded", handlePaymentRecorded);
+        window.removeEventListener("leaselink:new_notification", handlePaymentRecorded);
+      }
+    };
+  }, [tenantData?.unit_id]);
 
   const refreshPayments = async () => {
     if (tenantData) {
@@ -507,15 +521,6 @@ function TenantReceiptsContent() {
           )}
         </div>
       </main>
-
-      {/* Pay Rent Modal */}
-      <PayRentModal
-        isOpen={showPayModal}
-        onClose={() => setShowPayModal(false)}
-        tenantData={tenantData}
-        previouslyPaidInMonth={paidThisMonth}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
 
       {/* Payment Receipt Modal */}
       <PaymentReceiptModal

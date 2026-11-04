@@ -224,6 +224,30 @@ export async function GET(request: Request) {
           if (userPhone) {
             await supabase.auth.updateUser({ data: { phone: userPhone } }).catch(() => {});
           }
+
+          // Registration Alert: Notify super-admin of new landlord registration
+          try {
+            await db.from("notifications").insert([
+              {
+                type: "landlord_registered",
+                recipient_role: "admin",
+                landlord_id: userId,
+                title: `New Landlord Registered: ${fullName}`,
+                title_fr: `Nouveau Bailleur Inscrit : ${fullName}`,
+                message: `${fullName} (${userEmail}) has successfully created a landlord account via Google OAuth.`,
+                message_fr: `${fullName} (${userEmail}) vient de créer son compte bailleur via Google OAuth.`,
+                created_at: new Date().toISOString(),
+                metadata: {
+                  email: userEmail,
+                  phone: userPhone,
+                  provider: "google",
+                  planId: planConfig.id,
+                },
+              },
+            ]);
+          } catch (notifErr) {
+            console.warn("Could not insert admin landlord registration notification:", notifErr);
+          }
         } catch (profileErr) {
           console.warn("Could not create landlord profile in auth callback:", profileErr);
         }

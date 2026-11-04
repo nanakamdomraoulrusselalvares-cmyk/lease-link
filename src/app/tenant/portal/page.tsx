@@ -21,9 +21,9 @@ import {
   getCurrentRentMonth,
   PAYMENT_METHOD_LABELS,
 } from "@/lib/services/paymentService";
-import PayRentModal from "@/components/PayRentModal";
 import RentPaymentUnderWorkModal from "@/components/RentPaymentUnderWorkModal";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
+import { checkAndDispatchTenantRentReminder } from "@/lib/services/rentDueDateService";
 import TenantNav from "@/components/TenantNav";
 import SmartDataLoader from "@/components/SmartDataLoader";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -67,10 +67,110 @@ function TenantPortalContent() {
 
   // Rent Payments State
   const [payments, setPayments] = useState<RentPayment[]>([]);
-  const [showPayModal, setShowPayModal] = useState(false);
   const [showUnderWorkModal, setShowUnderWorkModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<RentPayment | null>(null);
+
+  // Live Rent Due Date Countdown formatted as: Weeks, Days, Hours, Seconds
+  const [rentCountdown, setRentCountdown] = useState<{
+    weeks: number;
+    days: number;
+    hours: number;
+    seconds: number;
+    isDueOrOverdue: boolean;
+    dueDateLabel: string;
+  }>({ weeks: 0, days: 0, hours: 0, seconds: 0, isDueOrOverdue: false, dueDateLabel: "" });
+
+  useEffect(() => {
+    if (!data) return;
+
+    const dueDay = Math.min(28, Math.max(1, Number(data.rent_due_day) || 5));
+    const now = new Date();
+
+    // Check if current month rent is settled
+    const currentMonthName = getCurrentRentMonth().toLowerCase();
+    const isPaid = payments.some((p) => {
+      const pMonth = (p.rent_month || "").toLowerCase();
+      const covers =
+        p.months_covered &&
+        p.months_covered.some((m) => m.toLowerCase().includes(currentMonthName));
+      return (
+        (pMonth.includes(currentMonthName) || covers) &&
+        p.status === "completed" &&
+        p.balance_remaining <= 0
+      );
+    });
+
+    // If paid current month or today is past due day, next due date is next month
+    let targetYear = now.getFullYear();
+    let targetMonth = now.getMonth();
+    if (isPaid || now.getDate() > dueDay) {
+      targetMonth += 1;
+      if (targetMonth > 11) {
+        targetMonth = 0;
+        targetYear += 1;
+      }
+    }
+    const targetDueDate = new Date(targetYear, targetMonth, dueDay, 23, 59, 59);
+
+    const updateCountdown = () => {
+      const diffMs = targetDueDate.getTime() - Date.now();
+      const label = targetDueDate.toLocaleDateString(isFrench ? "fr-FR" : "en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+
+      if (diffMs <= 0 && !isPaid) {
+        setRentCountdown({
+          weeks: 0,
+          days: 0,
+          hours: 0,
+          seconds: 0,
+          isDueOrOverdue: true,
+          dueDateLabel: label,
+        });
+        return;
+      }
+
+      const totalSecs = Math.max(0, Math.floor(diffMs / 1000));
+      const weeks = Math.floor(totalSecs / (7 * 86400));
+      const remAfterWeeks = totalSecs % (7 * 86400);
+      const days = Math.floor(remAfterWeeks / 86400);
+      const remAfterDays = remAfterWeeks % 86400;
+      const hours = Math.floor(remAfterDays / 3600);
+      const remAfterHours = remAfterDays % 3600;
+      const seconds = remAfterHours % 60;
+
+      setRentCountdown({
+        weeks,
+        days,
+        hours,
+        seconds,
+        isDueOrOverdue: false,
+        dueDateLabel: label,
+      });
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    // Automated job: Send notification to tenant exactly 3 days before rent due date
+    checkAndDispatchTenantRentReminder({
+      unitId: data.unit_id,
+      unitNumber: data.unit_number,
+      buildingId: data.building_id,
+      buildingName: data.building_name,
+      tenantName: data.tenant_name,
+      landlordId: data.landlord_id,
+      monthlyRent: Number(data.rent_amount || 0),
+      dueDay,
+      leaseStartDate: data.lease_start_date,
+      payments,
+    }).catch(() => {});
+
+    return () => clearInterval(interval);
+  }, [data, payments, isFrench]);
 
   const loadRequests = async (unitId: string) => {
     try {
@@ -214,9 +314,42 @@ function TenantPortalContent() {
     initSession();
   }, [tokenFromUrl, router]);
 
+  // Real-time listener for newly recorded receipts, alerts, and manager assignment updates
+  useEffect(() => {
+    const handleRefresh = async () => {
+      if (data?.unit_id) {
+        loadPayments(data.unit_id);
+      }
+      // Re-fetch portal data to instantly reflect manager assignment or revocation
+      if (tokenFromUrl) {
+        const res = await getTenantPortalDataByToken(tokenFromUrl);
+        if (res.success && res.data) setData(res.data);
+      } else {
+        const session = await getTenantSession();
+        if (session && session.portalData) {
+          const res = await getTenantPortalDataByToken(session.portalData.access_token);
+          if (res.success && res.data) setData(res.data);
+        }
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("leaselink:payment_recorded", handleRefresh);
+      window.addEventListener("leaselink:new_notification", handleRefresh);
+      window.addEventListener("leaselink:manager_updated", handleRefresh);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("leaselink:payment_recorded", handleRefresh);
+        window.removeEventListener("leaselink:new_notification", handleRefresh);
+        window.removeEventListener("leaselink:manager_updated", handleRefresh);
+      }
+    };
+  }, [data?.unit_id, tokenFromUrl]);
+
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (showPayModal || showReceiptModal) {
+    if (showUnderWorkModal || showReceiptModal) {
       document.documentElement.classList.add("modal-open");
       document.body.classList.add("modal-open");
     } else {
@@ -227,7 +360,7 @@ function TenantPortalContent() {
       document.documentElement.classList.remove("modal-open");
       document.body.classList.remove("modal-open");
     };
-  }, [showPayModal, showReceiptModal]);
+  }, [showUnderWorkModal, showReceiptModal]);
 
   const handleLogout = async () => {
     try {
@@ -302,6 +435,15 @@ function TenantPortalContent() {
         isFrench
           ? `Bonjour, c'est ${data.tenant_name} de l'appartement ${data.unit_number} (${data.building_name}).`
           : `Hello, this is ${data.tenant_name} from unit ${data.unit_number} (${data.building_name}).`
+      )}`
+    : "#";
+
+  const managerCleanPhone = data.manager_phone ? formatWhatsAppPhoneNumber(data.manager_phone) : null;
+  const managerWhatsAppUrl = managerCleanPhone
+    ? `https://wa.me/${managerCleanPhone}?text=${encodeURIComponent(
+        isFrench
+          ? `Bonjour M./Mme ${data.manager_name || ""}, je suis ${data.tenant_name} du logement ${data.unit_number} (${data.building_name}).`
+          : `Hello ${data.manager_name || ""}, this is ${data.tenant_name} from unit ${data.unit_number} (${data.building_name}).`
       )}`
     : "#";
 
@@ -667,6 +809,46 @@ function TenantPortalContent() {
                 </div>
               </div>
 
+              {/* Live Rent Due Date Countdown: Weeks, Days, Hours, Seconds */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-sky-500/10 to-indigo-500/10 border border-emerald-300 dark:border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+                    <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+                    <span>{isFrench ? "Compte à rebours prochaine échéance :" : "Next rent due countdown:"}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    {isFrench
+                      ? `Date limite : ${rentCountdown.dueDateLabel} (le ${data.rent_due_day || 5} du mois)`
+                      : `Due date: ${rentCountdown.dueDateLabel} (day ${data.rent_due_day || 5})`}
+                  </p>
+                </div>
+
+                {rentCountdown.isDueOrOverdue ? (
+                  <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold text-xs">
+                    {isFrench ? "Échéance atteinte — Règlement attendu" : "Rent due — Payment expected"}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5 text-center font-mono">
+                    <div className="px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                      <span className="block text-xs font-black text-emerald-600 dark:text-emerald-400">{rentCountdown.weeks}</span>
+                      <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Sem" : "Weeks"}</span>
+                    </div>
+                    <div className="px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                      <span className="block text-xs font-black text-emerald-600 dark:text-emerald-400">{rentCountdown.days}</span>
+                      <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Jours" : "Days"}</span>
+                    </div>
+                    <div className="px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                      <span className="block text-xs font-black text-emerald-600 dark:text-emerald-400">{rentCountdown.hours}</span>
+                      <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Heures" : "Hours"}</span>
+                    </div>
+                    <div className="px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                      <span className="block text-xs font-black text-emerald-600 dark:text-emerald-400">{rentCountdown.seconds}</span>
+                      <span className="block text-[9px] text-slate-500 uppercase">{isFrench ? "Sec" : "Secs"}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {advanceMonths.length > 0 && (
                 <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -889,8 +1071,111 @@ function TenantPortalContent() {
             </div>
           </div>
 
-          {/* Right Col: Landlord Contact & Security Checklist */}
+          {/* Right Col: Landlord & Manager Contacts */}
           <div className="space-y-6 sm:space-y-8">
+            {/* Manager Contact Card (When assigned to this building, with persistent WhatsApp recommendation) */}
+            {data.manager_name && data.manager_phone && (
+              <div id="manager" className="bg-white dark:bg-slate-900 border-2 border-purple-200 dark:border-purple-500/30 rounded-2xl p-6 shadow-sm space-y-5 scroll-mt-24">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                        {isFrench ? "Votre Gestionnaire Délégué" : "Your Assigned Manager"}
+                      </h2>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                        {isFrench ? "Interlocuteur direct pour votre résidence" : "Direct contact for your building"}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                    {isFrench ? "Gestionnaire" : "Manager"}
+                  </span>
+                </div>
+
+                {/* Persistent WhatsApp Advisory Callout */}
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{isFrench ? "Conseil de Contact Prioritaire :" : "Priority Contact Advice:"}</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                    {isFrench
+                      ? "Le propriétaire bailleur est particulièrement sollicité et très occupé par la gestion générale de ses patrimoines. Pour toute demande quotidienne, intervention rapide ou assistance, nous vous recommandons vivement de contacter en priorité votre gestionnaire délégué via WhatsApp."
+                      : "The landlord is very busy with overall asset management. For rapid assistance and daily needs, we strongly recommend reaching out directly to your assigned property manager via WhatsApp."}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-semibold">
+                      {isFrench ? "Nom du Gestionnaire" : "Manager Name"}
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white text-sm">{data.manager_name}</span>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-semibold">
+                        {isFrench ? "Numéro de Téléphone" : "Phone Number"}
+                      </span>
+                      <span className="font-mono text-slate-900 dark:text-white font-medium">{data.manager_phone}</span>
+                    </div>
+                    <a
+                      href={`tel:${data.manager_phone}`}
+                      className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-600/30 transition border border-purple-200 dark:border-transparent"
+                      title={isFrench ? "Appeler le gestionnaire" : "Call Manager"}
+                    >
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  </div>
+
+                  {data.manager_email && (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-semibold">
+                          {isFrench ? "E-mail" : "E-mail"}
+                        </span>
+                        <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[170px]">{data.manager_email}</span>
+                      </div>
+                      <a
+                        href={`mailto:${data.manager_email}`}
+                        className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-600/30 transition border border-purple-200 dark:border-transparent"
+                        title={isFrench ? "Envoyer un e-mail" : "Email Manager"}
+                      >
+                        <Mail className="w-4 h-4" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Direct Actions */}
+                <div className="pt-2 flex flex-col gap-2.5">
+                  {managerCleanPhone && (
+                    <a
+                      href={managerWhatsAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white shadow-lg shadow-emerald-600/25 transition cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4 fill-white" />
+                      <span>{isFrench ? "Contacter le Gestionnaire sur WhatsApp" : "Contact Manager on WhatsApp"}</span>
+                    </a>
+                  )}
+
+                  <a
+                    href={`tel:${data.manager_phone}`}
+                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold text-xs text-slate-800 hover:text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 transition"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    <span>{isFrench ? "Appeler le Gestionnaire" : "Call Manager Directly"}</span>
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Landlord Contact Card */}
             <div id="landlord" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 scroll-mt-24">
               <div className="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-4">
@@ -1034,27 +1319,6 @@ function TenantPortalContent() {
           </div>
         </div>
       </main>
-
-      {/* Pay Rent Modal */}
-      {data && (
-        <PayRentModal
-          isOpen={showPayModal}
-          onClose={() => setShowPayModal(false)}
-          tenantData={data}
-          previouslyPaidInMonth={payments
-            .filter(
-              (p) =>
-                p.rent_month.toLowerCase() ===
-                getCurrentRentMonth().toLowerCase()
-            )
-            .reduce((s, p) => s + Number(p.amount_paid || 0), 0)}
-          onPaymentSuccess={async (newPayment) => {
-            await loadPayments(data.unit_id);
-            setSelectedReceipt(newPayment);
-            setShowReceiptModal(true);
-          }}
-        />
-      )}
 
       {/* Payment Receipt Modal */}
       {data && (

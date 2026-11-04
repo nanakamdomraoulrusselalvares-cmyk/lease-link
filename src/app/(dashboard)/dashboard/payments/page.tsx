@@ -21,7 +21,6 @@ import {
   buildPaymentConfirmationWhatsAppUrl,
 } from "@/lib/services/paymentService";
 import PaymentReceiptModal from "@/components/PaymentReceiptModal";
-import BroadcastReminderModal from "@/components/BroadcastReminderModal";
 import { fetchCurrentProfileSafe } from "@/lib/services/profileService";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
@@ -98,32 +97,25 @@ function PaymentsContent() {
   const [inspectTenantReceipts, setInspectTenantReceipts] =
     useState<TenantRentStatus | null>(null);
 
-  // Broadcast payment reminder modal to all owing tenants
-  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
-
   const currentMonth = getCurrentRentMonth();
 
-  // Helper to open physical cash payment recording modal
+  // Helper to open physical payment recording modal
   const openRecordModal = (tenant: TenantRentStatus) => {
     setRecordTarget(tenant);
     setRecordMonthsCount(1);
-    const owingThisMonth = Math.max(0, Number(tenant.balance_owing_current_month || 0));
-    setRecordAmount(owingThisMonth > 0 ? owingThisMonth.toString() : Number(tenant.monthly_rent || 0).toString());
+    const monthlyRent = Number(tenant.monthly_rent || 0);
+    setRecordAmount((1 * monthlyRent).toString());
     setRecordMethod("cash");
     setRecordNotes("");
   };
 
-  // Automatically increment amount when months count changes based on rent amount
+  // Automatically calculate total as (Number of months × Tenant's monthly rent amount)
   const handleMonthsChange = (newCount: number, target = recordTarget) => {
     const safeCount = Math.max(1, Math.min(12, newCount));
     setRecordMonthsCount(safeCount);
     if (target) {
       const monthlyRent = Number(target.monthly_rent || 0);
-      const owingThisMonth = Math.max(0, Number(target.balance_owing_current_month || 0));
-      const calculatedTotal =
-        safeCount === 1
-          ? owingThisMonth
-          : owingThisMonth + monthlyRent * (safeCount - 1);
+      const calculatedTotal = safeCount * monthlyRent;
       setRecordAmount(calculatedTotal.toString());
     }
   };
@@ -378,33 +370,6 @@ function PaymentsContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowBroadcastModal(true)}
-              disabled={totalOwingTenants === 0}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-md cursor-pointer ${
-                totalOwingTenants > 0
-                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white shadow-amber-500/25 active:scale-95"
-                  : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
-              }`}
-              title={
-                totalOwingTenants > 0
-                  ? isFrench
-                    ? "Envoyer une alerte WhatsApp directe à tous les locataires débiteurs"
-                    : "Send instant push reminder to all unpaid tenants"
-                  : isFrench
-                  ? "Tous les locataires sont à jour"
-                  : "All tenants are fully settled"
-              }
-            >
-              <BellRing className={`w-4 h-4 ${totalOwingTenants > 0 ? "animate-bounce" : ""}`} />
-              <span>
-                {isFrench
-                  ? `Rappel groupé aux débiteurs (${totalOwingTenants})`
-                  : `Broadcast Reminder (${totalOwingTenants})`}
-              </span>
-            </button>
-
             <div className="text-left sm:text-right">
               <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">
                 {isFrench ? "Période de facturation" : "Billing Period"}
@@ -488,17 +453,6 @@ function PaymentsContent() {
                 ? "Tous les locataires sont à jour"
                 : "All tenants fully settled"}
             </span>
-
-            {totalOwingTenants > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowBroadcastModal(true)}
-                className="mt-1 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:text-amber-950 dark:hover:text-amber-200 flex items-center gap-1 cursor-pointer transition"
-              >
-                <BellRing className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>{isFrench ? "Diffuser un rappel groupé →" : "Broadcast reminder →"}</span>
-              </button>
-            )}
           </div>
 
           {/* Tenant Compliance Stats */}
@@ -1556,19 +1510,6 @@ function PaymentsContent() {
         payment={selectedReceipt}
         landlordName={profile?.full_name || (isFrench ? "Gestion Immobilière" : "Landlord Management")}
         landlordPhone={profile?.phone || undefined}
-      />
-
-      {/* Broadcast Payment Reminder Modal */}
-      <BroadcastReminderModal
-        isOpen={showBroadcastModal}
-        onClose={() => setShowBroadcastModal(false)}
-        landlordId={user?.id || profile?.id || ""}
-        landlordName={profile?.full_name || (isFrench ? "Votre Bailleur" : "Your Landlord")}
-        unpaidTenants={statuses}
-        currentMonth={currentMonth}
-        onBroadcastSuccess={() => {
-          loadData();
-        }}
       />
     </div>
   );

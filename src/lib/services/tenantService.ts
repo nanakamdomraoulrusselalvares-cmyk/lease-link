@@ -454,6 +454,74 @@ export async function unassignTenant(
 }
 
 /**
+ * Resolves the currently assigned active property manager for a specific building.
+ * Ensures that if a manager is revoked, this returns null immediately.
+ */
+export async function resolveActiveManagerForBuilding(
+  buildingId: string,
+  landlordId: string
+): Promise<{ id: string; name: string; phone: string; email: string } | null> {
+  if (!buildingId) return null;
+
+  // 1. Check local managers for instant reactivity & offline resilience
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("leaselink_local_managers");
+      if (raw) {
+        const managers: any[] = JSON.parse(raw);
+        const match = managers.find((m) => {
+          if (m.account_status === "blocked" || m.account_status === "banned") return false;
+          if (landlordId && m.landlord_id && m.landlord_id !== landlordId) return false;
+          if (!m.assigned_building_ids || !Array.isArray(m.assigned_building_ids) || m.assigned_building_ids.length === 0) {
+            return false;
+          }
+          return m.assigned_building_ids.includes(buildingId);
+        });
+        if (match) {
+          return {
+            id: match.id,
+            name: match.full_name || "Gestionnaire Délégué",
+            phone: match.phone || "",
+            email: match.email || "",
+          };
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 2. Query Supabase profiles
+  try {
+    const supabase = createClient();
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    if (url && !url.includes("your-project-ref")) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone, email, assigned_building_ids, account_status")
+        .eq("role", "manager")
+        .eq("landlord_id", landlordId);
+
+      if (data && data.length > 0) {
+        const match = data.find((m: any) => {
+          if (m.account_status === "blocked" || m.account_status === "banned") return false;
+          if (!m.assigned_building_ids || !Array.isArray(m.assigned_building_ids)) return false;
+          return m.assigned_building_ids.includes(buildingId);
+        });
+        if (match) {
+          return {
+            id: match.id,
+            name: match.full_name || "Gestionnaire Délégué",
+            phone: match.phone || "",
+            email: match.email || "",
+          };
+        }
+      }
+    }
+  } catch (_) {}
+
+  return null;
+}
+
+/**
  * Retrieve tenant portal data using 1-click access token.
  */
 export async function getTenantPortalDataByToken(
@@ -473,7 +541,20 @@ export async function getTenantPortalDataByToken(
       });
 
       if (!rpcErr && rpcData?.success && rpcData?.data) {
-        return { success: true, data: rpcData.data as TenantPortalData };
+        const pData = rpcData.data as TenantPortalData;
+        const manager = await resolveActiveManagerForBuilding(pData.building_id, pData.landlord_id);
+        if (manager) {
+          pData.manager_id = manager.id;
+          pData.manager_name = manager.name;
+          pData.manager_phone = manager.phone;
+          pData.manager_email = manager.email;
+        } else {
+          pData.manager_id = null;
+          pData.manager_name = null;
+          pData.manager_phone = null;
+          pData.manager_email = null;
+        }
+        return { success: true, data: pData };
       }
 
       if (!rpcErr && rpcData && !rpcData.success) {
@@ -518,6 +599,14 @@ export async function getTenantPortalDataByToken(
     assigned_at: unit.tenant_assigned_at,
     access_token: token,
   };
+
+  const manager = await resolveActiveManagerForBuilding(portalData.building_id, portalData.landlord_id);
+  if (manager) {
+    portalData.manager_id = manager.id;
+    portalData.manager_name = manager.name;
+    portalData.manager_phone = manager.phone;
+    portalData.manager_email = manager.email;
+  }
 
   return { success: true, data: portalData };
 }
@@ -564,7 +653,20 @@ export async function authenticateTenant(
 
       if (!rpcErr && rpcData?.success && rpcData?.data) {
         tenantLoginAttempts.delete(cleanId);
-        return { success: true, data: rpcData.data as TenantPortalData };
+        const pData = rpcData.data as TenantPortalData;
+        const manager = await resolveActiveManagerForBuilding(pData.building_id, pData.landlord_id);
+        if (manager) {
+          pData.manager_id = manager.id;
+          pData.manager_name = manager.name;
+          pData.manager_phone = manager.phone;
+          pData.manager_email = manager.email;
+        } else {
+          pData.manager_id = null;
+          pData.manager_name = null;
+          pData.manager_phone = null;
+          pData.manager_email = null;
+        }
+        return { success: true, data: pData };
       }
 
       // If the RPC returned an explicit failure message
